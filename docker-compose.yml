@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    restart: unless-stopped
+
+
+
+networks:
+  hypertube-network:
+    name: hypertube-network
+    driver: bridge
+
+
+#volumes:
+ # mongodb_data:
