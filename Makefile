@@ -3,6 +3,9 @@
 all: env up
 
 up:
+	docker compose up -d
+
+upf:
 	docker compose up
 
 down:
