@@ -12,7 +12,8 @@ async def get_connection_pool():
         get_connection_pool.pool = await asyncpg.create_pool(
             os.environ.get("DATABASE_URL"),
             min_size=5,
-            max_size=20
+            max_size=20,
+            statement_cache_size=0
         )
     return get_connection_pool.pool
 
