@@ -2,7 +2,7 @@
 
 
 from fastapi import APIRouter, HTTPException
-from app.models.user import UserCreate, UserResponse
+from app.models.users import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter()

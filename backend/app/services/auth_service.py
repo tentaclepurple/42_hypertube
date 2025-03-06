@@ -2,11 +2,11 @@
 
 
 from passlib.context import CryptContext
-from app.models.user import UserCreate
+from app.models.users import UserCreate
 from app.db.session import get_db_connection
 import uuid
 from datetime import datetime
-from queries import insert_user
+from .queries import insert_user
 
 
 # Configure password hashing context
