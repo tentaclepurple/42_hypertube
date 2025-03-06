@@ -54,6 +54,9 @@
            └─────────────────────────────────────────────┘
 
 
+---
+
+
 # Flujos Principales de Datos
 
 ## 1. Flujo de Autenticación de Usuario
@@ -75,6 +78,10 @@ API Gateway → Reproductor → Usuario
 Usuario → Interacciones → API Gateway → Kafka (user-events) → 
 Servicio de Recomendaciones → pgvector (búsqueda) → 
 Resultados recomendados → API Gateway → UI → Usuario
+
+
+---
+
 
 # Desglose de Componentes Clave
 

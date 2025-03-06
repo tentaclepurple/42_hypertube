@@ -5,18 +5,21 @@ all: env up
 up:
 	docker compose up -d
 
+
 upf:
 	docker compose up
+
 
 down:
 	docker compose down
 
+
+re: down up
+
+
 exec:
 	docker exec -it backend bash -c "cd app && bash"
 
-
-run:
-	cd matcha_backend
 
 env:
 	@if [ -f .env ]; then \
@@ -31,8 +34,6 @@ env:
 logs:
 	docker logs backend
 
-test:
-	cd matcha_backend/app/scripts/ && python3 generate_test_users.py
 
 clean: down
 	yes | docker system prune -a
