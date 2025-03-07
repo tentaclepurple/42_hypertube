@@ -51,7 +51,8 @@ async def update_profile(
     """
     try:
         print("--------------------")
-        user_id = uuid.UUID(current_user["id"])
+        user_id = current_user["id"]
+        print("^^^^^^^^")
         # Verificar si los IDs de películas existen en la base de datos
         movie_ids = [
             profile_data.favorite_movie_id,
