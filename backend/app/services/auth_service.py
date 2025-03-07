@@ -13,6 +13,42 @@ from .queries import insert_user
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
+    
+    @staticmethod
+    async def authenticate_user(username_or_email: str, password: str):
+        """
+        Authenticate a user with username/email and password
+        """
+        async with get_db_connection() as conn:
+            # Try to find user by username or email
+            user = await conn.fetchrow(
+                """
+                SELECT id, email, username, password, first_name, last_name, 
+                    profile_picture, created_at
+                FROM users 
+                WHERE username = $1 OR email = $1
+                """,
+                username_or_email
+            )
+            
+            if not user:
+                raise ValueError("Invalid username or password")
+            
+            # Check if password exists (OAuth accounts might not have one)
+            if not user["password"]:
+                raise ValueError("This account uses OAuth authentication")
+                
+            # Verify password
+            if not pwd_context.verify(password, user["password"]):
+                raise ValueError("Invalid username or password")
+            
+            # Return user without password
+            user_dict = dict(user)
+            user_dict.pop("password", None)
+            
+            return user_dict
+
+
     @staticmethod
     async def create_user(user_data: UserCreate):
         """
@@ -57,3 +93,4 @@ class AuthService:
             
             # Convert the database record to a dictionary
             return dict(user)
+    

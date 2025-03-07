@@ -2,11 +2,19 @@
 
 
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from app.services.jwt_service import JWTService
 from app.models.users import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 from app.services.oauth_service import OAuthService
+from app.services.jwt_service import JWTService
 from app.db.session import get_db_connection
+from app.services.supabase_services import supabase_service
+from .queries import (update_existing_user,
+                     update_existing_email,
+                     insert_new_user)
+
 import uuid
 import secrets
 from datetime import datetime
@@ -27,6 +35,38 @@ async def register_user(user_data: UserCreate):
     except Exception as e:
         # In production, you would want to log this error
         raise HTTPException(status_code=500, detail="An error occurred while registering the user")
+    
+
+@router.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Login with username/email and password
+    """
+    try:
+        # Authenticate user (verifica credenciales)
+        user = await AuthService.authenticate_user(form_data.username, form_data.password)
+        
+        # Generate JWT token
+        access_token = JWTService.create_access_token(user["id"])
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": str(user["id"]),
+                "email": user["email"],
+                "username": user["username"],
+                "first_name": user["first_name"],
+                "last_name": user["last_name"],
+                "profile_picture": user.get("profile_picture", "")
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 @router.get("/oauth/{provider}")
@@ -60,6 +100,7 @@ async def oauth_login(provider: str, request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
 
+
 @router.get("/oauth/{provider}/callback")
 async def oauth_callback(provider: str, code: str, state: str = None, request: Request = None):
     """
@@ -82,6 +123,22 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
         # Process callback and get user info
         user_info = await OAuthService.process_callback(provider, code, redirect_uri)
         
+        # Download and upload profile picture if available
+        profile_picture_url = user_info.get("profile_picture", "")
+        if profile_picture_url:
+            # Generate a temporary user ID if we don't have one yet
+            temp_id = str(uuid.uuid4())
+            
+            # Download and upload to Supabase
+            stored_url = await supabase_service.upload_profile_picture(
+                profile_picture_url, 
+                temp_id
+            )
+            
+            # Update the profile picture URL
+            if stored_url:
+                user_info["profile_picture"] = stored_url
+        
         # Now we need to create or update the user in our database
         async with get_db_connection() as conn:
             # Check if user already exists by OAuth ID
@@ -92,12 +149,7 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
             
             if user:
                 # User exists, update information if needed
-                await conn.execute(
-                    """
-                    UPDATE users 
-                    SET first_name = $1, last_name = $2, profile_picture = $3, updated_at = $4
-                    WHERE oauth_provider = $5 AND oauth_id = $6
-                    """,
+                await conn.execute(update_existing_user,
                     user_info["first_name"], user_info["last_name"], 
                     user_info["profile_picture"], datetime.now(),
                     user_info["oauth_provider"], user_info["oauth_id"]
@@ -117,14 +169,7 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
                 
                 if email_exists:
                     # Link existing account with OAuth provider
-                    await conn.execute(
-                        """
-                        UPDATE users 
-                        SET oauth_provider = $1, oauth_id = $2, 
-                            first_name = $3, last_name = $4, 
-                            profile_picture = $5, updated_at = $6
-                        WHERE email = $7
-                        """,
+                    await conn.execute(update_existing_email,
                         user_info["oauth_provider"], user_info["oauth_id"],
                         user_info["first_name"], user_info["last_name"], 
                         user_info["profile_picture"], datetime.now(), 
@@ -152,15 +197,7 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
                         username = f"{username}_{user_id.hex[:6]}"
                     
                     # Insert new user
-                    user = await conn.fetchrow(
-                        """
-                        INSERT INTO users 
-                        (id, email, username, first_name, last_name, profile_picture, 
-                         oauth_provider, oauth_id, created_at, updated_at)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
-                        RETURNING id, email, username, first_name, last_name, 
-                                  profile_picture, created_at
-                        """,
+                    user = await conn.fetchrow(insert_new_user,
                         user_id, user_info["email"], username, 
                         user_info["first_name"], user_info["last_name"], 
                         user_info["profile_picture"], 
@@ -168,9 +205,25 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
                         datetime.now()
                     )
             
-            # Here you would generate a JWT token or set up a session
-            # For now, we'll just return the user details
-            return dict(user)
+        access_token = JWTService.create_access_token(user["id"])
+    
+            # Create a response with the token
+        response = JSONResponse(
+                content={
+                    "access_token": access_token,
+                    "token_type": "bearer",
+                    "user": {
+                        "id": str(user["id"]),
+                        "email": user["email"],
+                        "username": user["username"],
+                        "first_name": user["first_name"],
+                        "last_name": user["last_name"],
+                        "profile_picture": user["profile_picture"] if user.get("profile_picture") else ""
+                    }
+                }
+            )
+        
+        return response
             
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
