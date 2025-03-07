@@ -4,6 +4,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from app.services.jwt_service import JWTService
+from app.services.token_service import TokenService
 from app.db.session import get_db_connection
 import uuid
 
@@ -11,21 +12,20 @@ import uuid
 # Define the token URL
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
-
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     """
     Get the current authenticated user
-    
-    Args:
-        token: JWT token from the request
-        
-    Returns:
-        dict: User information
-        
-    Raises:
-        HTTPException: If token is invalid or user doesn't exist
     """
     try:
+        # Verificar si el token está revocado
+        # is_revoked = await TokenService.is_token_revoked(token)
+        # if is_revoked:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_401_UNAUTHORIZED,
+        #         detail="Token has been revoked",
+        #         headers={"WWW-Authenticate": "Bearer"},
+        #     )
+        
         # Verify the token
         user_id = JWTService.verify_token(token)
         

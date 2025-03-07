@@ -6,6 +6,8 @@ import re
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
+import uuid
+
 
 
 class UserCreate(BaseModel):
@@ -39,3 +41,23 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     created_at: datetime
+    
+
+# Modelo para la actualización del perfil
+class ProfileUpdate(BaseModel):
+    birth_year: int = Field(..., ge=1900, le=datetime.now().year)
+    gender: str = Field(..., min_length=1, max_length=20)
+    bio: Optional[str] = None
+    favorite_movie_id: Optional[uuid.UUID] = None
+    worst_movie_id: Optional[uuid.UUID] = None
+    movie_preference_a_id: Optional[uuid.UUID] = None
+    movie_preference_b_id: Optional[uuid.UUID] = None
+    movie_preference_c_id: Optional[uuid.UUID] = None
+    movie_preference_d_id: Optional[uuid.UUID] = None
+    email: Optional[str] = None
+    
+    @validator('birth_year')
+    def validate_birth_year(cls, v):
+        if v < 1900 or v > datetime.now().year:
+            raise ValueError("Birth year must be between 1900 and current year")
+        return v

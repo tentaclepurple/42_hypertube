@@ -1,6 +1,5 @@
 # backend/app/services/supabase_services.py
 
-# backend/app/services/supabase_service.py
 import os
 import requests
 import uuid
@@ -18,6 +17,43 @@ class SupabaseService:
             raise ValueError("Supabase URL and key must be provided in environment variables")
         
         self.client = create_client(self.supabase_url, self.supabase_key)
+    
+    async def update_profile_picture(self, image_data, user_id):
+        """
+        Upload profile picture to Supabase storage
+        
+        Args:
+            image_data (bytes): Binary image data
+            user_id (str): ID of the user
+            
+        Returns:
+            str: Public URL of the uploaded image
+        """
+        try:
+            if not image_data:
+                return ""
+                
+            # Generate unique filename
+            file_ext = "jpg"  # Default extension
+            filename = f"{user_id}_{uuid.uuid4().hex}.{file_ext}"
+            
+            print(f"Uploading profile picture: {filename}")
+            
+            # Upload to Supabase Storage
+            result = self.client.storage.from_('profile_pictures').upload(
+                filename,
+                image_data,
+                {"content-type": f"image/{file_ext}"}
+            )
+            
+            # Get public URL
+            public_url = self.client.storage.from_('profile_pictures').get_public_url(filename)
+            
+            return public_url
+            
+        except Exception as e:
+            print(f"Error uploading profile picture: {str(e)}")
+            raise e
     
     async def upload_profile_picture(self, image_url, user_id):
         """
@@ -68,6 +104,9 @@ class SupabaseService:
         except Exception as e:
             print(f"Error uploading profile picture: {str(e)}")
             return ""
+
+    
+
 
 # Singleton instance
 supabase_service = SupabaseService()

@@ -5,19 +5,32 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from app.services.jwt_service import JWTService
+from app.services.auth_service import pwd_context
 from app.models.users import UserCreate, UserResponse
+from app.models.auth import PasswordReset, PasswordResetRequest
 from app.services.auth_service import AuthService
+from app.services.email_service import send_password_reset_email
 from app.services.oauth_service import OAuthService
 from app.services.jwt_service import JWTService
 from app.db.session import get_db_connection
+from app.api.deps import get_current_user, oauth2_scheme
 from app.services.supabase_services import supabase_service
+from app.services.token_service import TokenService
+
 from .queries import (update_existing_user,
                      update_existing_email,
                      insert_new_user)
+from pydantic import BaseModel, EmailStr
+from supabase import create_client
 
+import os
 import uuid
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
+from starlette import status
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
 
 router = APIRouter()
 
@@ -88,7 +101,7 @@ async def oauth_login(provider: str, request: Request):
         
         # Generate redirect URI
         base_url = str(request.base_url).rstrip("/")
-        redirect_uri = f"{base_url}api/v1/auth/oauth/{provider}/callback"
+        redirect_uri = f"{base_url}/api/v1/auth/oauth/{provider}/callback"
         
         # Get authorization URL
         auth_url = OAuthService.get_authorization_url(provider, redirect_uri, state)
@@ -231,3 +244,108 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
+
+
+@router.post("/logout")
+async def logout(
+    response: Response,
+    token: str = Depends(oauth2_scheme),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Logout the current user
+    """
+    try:
+        success = await TokenService.revoke_token(
+            token=token,
+            user_id=uuid.UUID(current_user["id"]),
+            reason="user_logout"
+        )
+        
+        response.delete_cookie(key="access_token")
+        
+        if not success:
+            return {"message": "Warning: Token could not be blacklisted, but cookies were cleared"}
+        
+        return {"message": "Successfully logged out"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error during logout: {str(e)}"
+        )
+
+
+@router.post("/forgot-password")
+async def forgot_password(request_data: PasswordResetRequest):
+    """
+    Envía un email de reseteo de contraseña
+    """
+    try:
+        # Verificar si el email existe en la base de datos
+        async with get_db_connection() as conn:
+            user = await conn.fetchrow(
+                "SELECT id, email FROM users WHERE email = $1",
+                request_data.email
+            )
+            
+        if not user:
+            return {"message": "If your email is registered, you will receive a password reset link"}
+        
+        reset_token = JWTService.create_access_token(
+            user_id=user["id"],
+            expires_delta=timedelta(minutes=5)
+        )
+        print(reset_token)
+        
+        # RESET URL FRONTEND
+        reset_url = f"http://localhost:3000/reset-password?token={reset_token}"
+        
+        send_password_reset_email(user["email"], reset_url)
+        
+        return {"message": "If your email is registered, you will receive a password reset link"}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing password reset request: {str(e)}"
+        )
+
+
+@router.post("/reset-password")
+async def reset_password(reset_data: PasswordReset):
+
+    try:
+        try:
+            user_id = JWTService.verify_token(reset_data.token)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired token"
+            )
+        
+        
+        if len(reset_data.new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must be at least 8 characters long"
+            )
+        
+        # Hash de la nueva contraseña
+        hashed_password = pwd_context.hash(reset_data.new_password)
+        
+        # Actualizar contraseña
+        async with get_db_connection() as conn:
+            await conn.execute(
+                "UPDATE users SET password = $1 WHERE id = $2",
+                hashed_password, uuid.UUID(user_id)
+            )
+        
+        return {"message": "Password has been reset successfully"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error resetting password: {str(e)}"
+        )

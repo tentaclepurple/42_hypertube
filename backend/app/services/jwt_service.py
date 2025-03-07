@@ -1,8 +1,11 @@
 # backend/app/services/jwt_service.py
+
+
 from datetime import datetime, timedelta
 from typing import Optional
 import jwt
 import os
+import uuid
 from uuid import UUID
 
 
@@ -16,16 +19,11 @@ class JWTService:
     @staticmethod
     def create_access_token(user_id: UUID, expires_delta: Optional[timedelta] = None):
         """
-        Create a new JWT access token
-        
-        Args:
-            user_id: User ID to include in the token
-            expires_delta: Optional custom expiration time
-            
-        Returns:
-            str: Encoded JWT
+        Create a new JWT access token with JTI
         """
-        to_encode = {"sub": str(user_id)}
+        jti = str(uuid.uuid4())
+        
+        to_encode = {"sub": str(user_id), "jti": jti}
         
         # Set expiration time
         if expires_delta:
@@ -48,15 +46,6 @@ class JWTService:
     def verify_token(token: str):
         """
         Verify a JWT token and return the user_id
-        
-        Args:
-            token: JWT token to verify
-            
-        Returns:
-            str: User ID from the token
-            
-        Raises:
-            ValueError: If token is invalid or expired
         """
         try:
             payload = jwt.decode(
@@ -72,3 +61,14 @@ class JWTService:
             return user_id
         except jwt.PyJWTError as e:
             raise ValueError(f"Could not validate token: {str(e)}")
+    
+    @staticmethod
+    def decode_token_without_verification(token: str):
+        """
+        Decode token without verifying signature to extract metadata
+        """
+        try:
+            payload = jwt.decode(token, options={"verify_signature": False})
+            return payload
+        except Exception as e:
+            raise ValueError(f"Error decoding token: {str(e)}")
