@@ -18,13 +18,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     """
     try:
         # Verificar si el token está revocado
-        # is_revoked = await TokenService.is_token_revoked(token)
-        # if is_revoked:
-        #     raise HTTPException(
-        #         status_code=status.HTTP_401_UNAUTHORIZED,
-        #         detail="Token has been revoked",
-        #         headers={"WWW-Authenticate": "Bearer"},
-        #     )
+        is_revoked = await TokenService.is_token_revoked(token)
+        if is_revoked:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
         # Verify the token
         user_id = JWTService.verify_token(token)

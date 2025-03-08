@@ -40,7 +40,7 @@ class SupabaseService:
             print(f"Uploading profile picture: {filename}")
             
             # Upload to Supabase Storage
-            result = self.client.storage.from_('profile_pictures').upload(
+            result = self.client.storage.from_('profile_images').upload(
                 filename,
                 image_data,
                 {"content-type": f"image/{file_ext}"}
@@ -104,8 +104,6 @@ class SupabaseService:
         except Exception as e:
             print(f"Error uploading profile picture: {str(e)}")
             return ""
-
-    
 
 
 # Singleton instance

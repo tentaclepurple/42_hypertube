@@ -258,7 +258,7 @@ async def logout(
     try:
         success = await TokenService.revoke_token(
             token=token,
-            user_id=uuid.UUID(current_user["id"]),
+            user_id=current_user["id"],  # Aquí está la corrección
             reason="user_logout"
         )
         
@@ -269,6 +269,7 @@ async def logout(
         
         return {"message": "Successfully logged out"}
     except Exception as e:
+        print(f"Error during logout: {str(e)}", flush=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error during logout: {str(e)}"

@@ -1,70 +1,91 @@
 # backend/app/services/token_service.py
-from datetime import datetime
-import jwt
-import uuid
-from app.db.session import get_db_connection
 
+
+from app.db.session import get_db_connection
+import jwt
+from datetime import datetime, timedelta
 
 class TokenService:
     @staticmethod
-    async def revoke_token(token: str, user_id: uuid.UUID, reason: str = "user_logout"):
+    async def revoke_token(token: str, user_id, reason: str = "user_logout") -> bool:
         """
-        Revocar un token agregándolo a la blacklist
+        Revoca un token añadiéndolo a la lista negra
         """
         try:
-            # Decodificar el token sin verificar firma para extraer metadatos
-            from app.services.jwt_service import JWTService
-            payload = JWTService.decode_token_without_verification(token)
+            # Extraer el jti (JWT ID) del token
+            payload = jwt.decode(token, options={"verify_signature": False})
+            token_jti = payload.get('jti')
             
-            # Extraer datos necesarios
-            jti = payload.get("jti")
-            exp = datetime.fromtimestamp(payload.get("exp"))
+            if not token_jti:
+                print("No jti claim found in token", flush=True)
+                return False
             
-            if not jti:
-                raise ValueError("Token doesn't contain a JTI")
+            print(f"Token JTI: {token_jti}", flush=True)
             
-            # Almacenar en la base de datos
+            # Verificar si el token ya está revocado
             async with get_db_connection() as conn:
-                await conn.execute(
-                    """
-                    INSERT INTO revoked_tokens 
-                    (token_jti, user_id, expiry, revoked_by)
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (jti) DO NOTHING
-                    """,
-                    jti, user_id, exp, reason
+                exists = await conn.fetchval(
+                    "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE jti = $1)",
+                    token_jti
                 )
                 
-            return True
+                if exists:
+                    # El token ya está revocado, no hacemos nada
+                    return True
+                
+                # Calcular la fecha de expiración si está disponible en el token
+                expiry = None
+                if 'exp' in payload:
+                    # El campo 'exp' en JWT es un timestamp UNIX en segundos
+                    exp_timestamp = payload['exp']
+                    expiry = datetime.fromtimestamp(exp_timestamp)
+                else:
+                    # Si no hay fecha de expiración en el token, establecemos una por defecto (7 días)
+                    expiry = datetime.now() + timedelta(days=7)
+                
+                # Insertar en la tabla de tokens revocados usando la columna jti
+                await conn.execute(
+                    """
+                    INSERT INTO revoked_tokens (jti, user_id, revoked_at, expiry)
+                    VALUES ($1, $2, $3, $4)
+                    """,
+                    token_jti, user_id, datetime.now(), expiry
+                )
+                
+                print(f"Token revocado exitosamente", flush=True)
+                return True
+                
         except Exception as e:
-            print(f"Error revoking token: {str(e)}")
+            print(f"Error revoking token: {str(e)}", flush=True)
+            # A pesar del error, permitimos que el logout continúe
             return False
     
     @staticmethod
     async def is_token_revoked(token: str) -> bool:
         """
-        Verificar si un token está en la blacklist
+        Verifica si un token está revocado
         """
         try:
-            # Decodificar sin verificar para obtener el JTI
-            from app.services.jwt_service import JWTService
-            payload = JWTService.decode_token_without_verification(token)
-            jti = payload.get("jti")
+            # Extraer el jti (JWT ID) del token
+            payload = jwt.decode(token, options={"verify_signature": False})
+            token_jti = payload.get('jti')
             
-            if not jti:
-                return False  # Si no tiene JTI, no puede estar en la blacklist
-            
-            # Verificar en la base de datos
+            if not token_jti:
+                # Si no hay jti, no podemos verificar si está revocado
+                return False
+                
+            # Verificar en la base de datos si el token está revocado usando la columna jti
             async with get_db_connection() as conn:
-                is_revoked = await conn.fetchval(
-                    "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE token_id = $1)",
-                    jti
+                result = await conn.fetchval(
+                    "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE jti = $1)",
+                    token_jti
                 )
                 
-            return is_revoked
+                return result
         except Exception as e:
-            print(f"Error checking token revocation: {str(e)}")
-            return False  # Por defecto, permitir el acceso en caso de error
+            print(f"Error checking token revocation: {str(e)}", flush=True)
+            # En caso de error, permitimos que el token siga siendo válido
+            return False
     
     @staticmethod
     async def clean_expired_tokens():
