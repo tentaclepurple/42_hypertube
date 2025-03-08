@@ -2,6 +2,7 @@
 
 
 from pydantic import BaseModel, EmailStr, Field, validator
+from typing import Optional, List
 import re
 from typing import Optional
 from datetime import datetime
@@ -43,17 +44,11 @@ class UserResponse(BaseModel):
     created_at: datetime
     
 
-# Modelo para la actualización del perfil
 class ProfileUpdate(BaseModel):
     birth_year: int = Field(..., ge=1900, le=datetime.now().year)
     gender: str = Field(..., min_length=1, max_length=20)
-    bio: Optional[str] = None
     favorite_movie_id: Optional[uuid.UUID] = None
     worst_movie_id: Optional[uuid.UUID] = None
-    movie_preference_a_id: Optional[uuid.UUID] = None
-    movie_preference_b_id: Optional[uuid.UUID] = None
-    movie_preference_c_id: Optional[uuid.UUID] = None
-    movie_preference_d_id: Optional[uuid.UUID] = None
     email: Optional[str] = None
     
     @validator('birth_year')
@@ -61,3 +56,54 @@ class ProfileUpdate(BaseModel):
         if v < 1900 or v > datetime.now().year:
             raise ValueError("Birth year must be between 1900 and current year")
         return v
+
+
+class MovieComment(BaseModel):
+    id: str
+    movie_id: str
+    movie_title: str
+    comment: str
+    rating: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+class FavoriteMovie(BaseModel):
+    id: str
+    title: str
+    year: Optional[int] = None
+    cover_image: Optional[str] = None
+    imdb_rating: Optional[float] = None
+
+class UserProfile(BaseModel):
+    id: str
+    email: str
+    username: str
+    first_name: str
+    last_name: str
+    profile_picture: Optional[str] = None
+    birth_year: Optional[int] = None
+    gender: Optional[str] = None
+    favorite_movie: Optional[FavoriteMovie] = None
+    worst_movie: Optional[FavoriteMovie] = None
+    profile_completed: bool = False
+    created_at: datetime
+    updated_at: datetime
+    comments: List[MovieComment] = []
+
+
+class PublicUserProfile(BaseModel):
+    id: str
+    username: str
+    first_name: str
+    last_name: str
+    profile_picture: Optional[str] = None
+    birth_year: Optional[int] = None
+    gender: Optional[str] = None
+    favorite_movie: Optional[FavoriteMovie] = None
+    worst_movie: Optional[FavoriteMovie] = None
+    profile_completed: bool = False
+    created_at: datetime
+    updated_at: datetime
+    comments: List[MovieComment] = []
+
+

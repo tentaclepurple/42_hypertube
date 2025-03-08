@@ -20,3 +20,79 @@ insert_new_user = """
 					RETURNING id, email, username, first_name, last_name, 
 								profile_picture, created_at
 					"""
+
+get_movie_comments = """
+                SELECT 
+                    mc.id, 
+                    mc.movie_id, 
+                    m.title as movie_title, 
+                    mc.comment, 
+                    mc.rating, 
+                    mc.created_at,
+                    mc.updated_at
+                FROM 
+                    movie_comments mc
+                JOIN 
+                    movies m ON mc.movie_id = m.id
+                WHERE 
+                    mc.user_id = $1
+                ORDER BY 
+                    mc.created_at DESC
+            """
+
+
+get_user_profile = """  
+                SELECT 
+                    id, email, username, first_name, last_name, profile_picture,
+                    birth_year, gender, favorite_movie_id, worst_movie_id,
+                    created_at, updated_at
+                FROM 
+                    users
+                WHERE 
+                    id = $1
+            """
+
+movies_query = """
+                    SELECT 
+                        m.id, 
+                        m.title, 
+                        m.year, 
+                        m.cover_image, 
+                        m.imdb_rating
+                    FROM 
+                        movies m
+                    WHERE 
+                        m.id = ANY($1)
+                """
+
+
+comments_query = """
+                SELECT 
+                    mc.id, 
+                    mc.movie_id, 
+                    m.title as movie_title, 
+                    mc.comment, 
+                    mc.rating, 
+                    mc.created_at,
+                    mc.updated_at
+                FROM 
+                    movie_comments mc
+                JOIN 
+                    movies m ON mc.movie_id = m.id
+                WHERE 
+                    mc.user_id = $1
+                ORDER BY 
+                    mc.created_at DESC
+            """
+
+user_query = """
+                SELECT 
+                    u.id, u.username, u.first_name, u.last_name, 
+                    u.profile_picture, u.birth_year, u.gender,
+                    u.favorite_movie_id, u.worst_movie_id, 
+                    u.profile_completed, u.created_at, u.updated_at
+                FROM 
+                    users u
+                WHERE 
+                    u.username = $1
+            """

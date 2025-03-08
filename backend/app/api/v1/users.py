@@ -2,16 +2,14 @@
 
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, status, Request
-from typing import Optional
-from pydantic import BaseModel, Field, validator
 from app.api.deps import get_current_user
 from app.db.session import get_db_connection
 from app.services.supabase_services import supabase_service
-from app.models.users import ProfileUpdate
-import uuid
-import os
+from app.models.users import ProfileUpdate, UserProfile, PublicUserProfile
 from datetime import datetime
-import json
+from .queries import get_movie_comments, get_user_profile, movies_query, comments_query, user_query
+from pprint import pprint
+
 
 router = APIRouter()
 
@@ -31,11 +29,7 @@ async def update_profile(
         # Verificar si los IDs de películas existen en la base de datos
         movie_ids = [
             profile_data.favorite_movie_id,
-            profile_data.worst_movie_id,
-            profile_data.movie_preference_a_id,
-            profile_data.movie_preference_b_id,
-            profile_data.movie_preference_c_id,
-            profile_data.movie_preference_d_id
+            profile_data.worst_movie_id
         ]
         
         # Filtrar IDs no nulos
@@ -90,10 +84,6 @@ async def update_profile(
                 "gender": profile_data.gender,
                 "favorite_movie_id": profile_data.favorite_movie_id,
                 "worst_movie_id": profile_data.worst_movie_id,
-                "movie_preference_a_id": profile_data.movie_preference_a_id,
-                "movie_preference_b_id": profile_data.movie_preference_b_id,
-                "movie_preference_c_id": profile_data.movie_preference_c_id,
-                "movie_preference_d_id": profile_data.movie_preference_d_id,
                 "profile_picture": profile_picture_url,
                 "updated_at": datetime.now()
             }
@@ -233,4 +223,177 @@ async def update_profile_image(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating profile picture: {str(e)}"
+        )
+
+
+
+
+
+
+@router.get("/me", response_model=UserProfile)
+async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+    """
+    Gets the current user's profile information along with their comments and favorite movies
+    """
+    try:
+        user_id = current_user["id"]
+        
+        async with get_db_connection() as conn:
+            # 1. Obtener perfil básico del usuario (asumiendo que get_user_profile ya está definido)
+            user = await conn.fetchrow(get_user_profile, user_id)
+            
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+            
+            # 2. Obtener comentarios de películas (asumiendo que get_movie_comments ya está definido)
+            comments = await conn.fetch(get_movie_comments, user_id)
+            
+            # 3. Obtener detalles de películas favoritas y peores en una sola consulta eficiente
+            favorite_movies = {}
+            movie_ids = []
+            
+            if user['favorite_movie_id']:
+                movie_ids.append(user['favorite_movie_id'])
+            if user['worst_movie_id']:
+                movie_ids.append(user['worst_movie_id'])
+            
+            if movie_ids:
+                movies_data = await conn.fetch("""
+                    SELECT id, title, year, cover_image, imdb_rating
+                    FROM movies
+                    WHERE id = ANY($1)
+                """, movie_ids)
+                
+                for movie in movies_data:
+                    favorite_movies[str(movie['id'])] = {
+                        'id': str(movie['id']),
+                        'title': movie['title'],
+                        'year': movie['year'],
+                        'cover_image': movie['cover_image'],
+                        'imdb_rating': movie['imdb_rating']
+                    }
+            
+            # 4. Preparar la respuesta
+            user_dict = dict(user)
+            comments_list = [dict(comment) for comment in comments]
+            
+            # Convertir el ID de usuario a string
+            user_dict["id"] = str(user_dict["id"])
+            
+            # Convertir comentarios
+            for comment in comments_list:
+                comment["id"] = str(comment["id"])
+                comment["movie_id"] = str(comment["movie_id"])
+            
+            # Añadir los comentarios al perfil
+            user_dict["comments"] = comments_list
+            
+            # 5. En lugar de solo incluir los IDs, incluir los objetos completos de películas favoritas
+            if user_dict.get('favorite_movie_id') and str(user_dict['favorite_movie_id']) in favorite_movies:
+                user_dict['favorite_movie'] = favorite_movies[str(user_dict['favorite_movie_id'])]
+            else:
+                user_dict['favorite_movie'] = None
+                
+            if user_dict.get('worst_movie_id') and str(user_dict['worst_movie_id']) in favorite_movies:
+                user_dict['worst_movie'] = favorite_movies[str(user_dict['worst_movie_id'])]
+            else:
+                user_dict['worst_movie'] = None
+            
+            # Eliminar los IDs originales ya que ahora tenemos los objetos completos
+            user_dict.pop('favorite_movie_id', None)
+            user_dict.pop('worst_movie_id', None)
+            
+            return user_dict
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving user profile: {str(e)}", flush=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving user profile: {str(e)}")
+    
+
+@router.get("/{username}", response_model=PublicUserProfile)
+async def get_user_profile_by_username(username: str):
+    """
+    Gets a user's public profile information by username along with their comments and favorite movies
+    """
+    try:
+        async with get_db_connection() as conn:
+
+            user = await conn.fetchrow(user_query, username)
+            
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+            
+            comments = await conn.fetch(comments_query, user['id'])
+            
+            # 3. Obtener detalles de películas favoritas y peores
+            favorite_movies = {}
+            movie_ids = []
+            
+            if user['favorite_movie_id']:
+                movie_ids.append(user['favorite_movie_id'])
+            if user['worst_movie_id']:
+                movie_ids.append(user['worst_movie_id'])
+            
+            if movie_ids:
+
+                movies_data = await conn.fetch(movies_query, movie_ids)
+                
+                for movie in movies_data:
+                    favorite_movies[str(movie['id'])] = {
+                        'id': str(movie['id']),
+                        'title': movie['title'],
+                        'year': movie['year'],
+                        'cover_image': movie['cover_image'],
+                        'imdb_rating': movie['imdb_rating']
+                    }
+            
+            # 4. Preparar la respuesta
+            user_dict = dict(user)
+            comments_list = [dict(comment) for comment in comments]
+            
+            # Convertir el ID de usuario a string
+            user_dict["id"] = str(user_dict["id"])
+            
+            # Convertir comentarios
+            for comment in comments_list:
+                comment["id"] = str(comment["id"])
+                comment["movie_id"] = str(comment["movie_id"])
+            
+            # Añadir los comentarios al perfil
+            user_dict["comments"] = comments_list
+            
+            # 5. Incluir objetos completos de películas favoritas
+            if user_dict.get('favorite_movie_id') and str(user_dict['favorite_movie_id']) in favorite_movies:
+                user_dict['favorite_movie'] = favorite_movies[str(user_dict['favorite_movie_id'])]
+            else:
+                user_dict['favorite_movie'] = None
+                
+            if user_dict.get('worst_movie_id') and str(user_dict['worst_movie_id']) in favorite_movies:
+                user_dict['worst_movie'] = favorite_movies[str(user_dict['worst_movie_id'])]
+            else:
+                user_dict['worst_movie'] = None
+            
+            # Eliminar los IDs originales
+            user_dict.pop('favorite_movie_id', None)
+            user_dict.pop('worst_movie_id', None)
+            
+            return user_dict
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving user profile: {str(e)}", flush=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving user profile: {str(e)}"
         )
