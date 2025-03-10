@@ -65,7 +65,7 @@ class YTSService:
     @staticmethod
     async def get_popular_movies(limit: int = 20, page: int = 1) -> Dict[str, Any]:
         """
-        Obtiene las películas más populares de YTS
+        Obtiene las películas más populares de YTS con paginación
         """
         url = f"{YTSService.BASE_URL}/list_movies.json"
         params = {
@@ -77,9 +77,12 @@ class YTSService:
         
         try:
             async with aiohttp.ClientSession() as session:
+                print(f"Fetching popular movies from YTS with URL: {url} and params: {params}")
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
                         data = await response.json()
+                        movies_count = len(data.get("data", {}).get("movies", []))
+                        print(f"YTS returned {movies_count} popular movies for page {page}")
                         return data.get("data", {})
                     else:
                         error_text = await response.text()

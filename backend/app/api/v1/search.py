@@ -8,6 +8,7 @@ from app.models.movie import MovieSearchResponse, MovieDetail
 
 router = APIRouter()
 
+
 @router.get("/movies", response_model=List[MovieSearchResponse])
 async def search_movies(
     query: str = Query("", description="Término de búsqueda"),
@@ -26,6 +27,7 @@ async def search_movies(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error searching movies: {str(e)}"
         )
+
 
 @router.get("/popular", response_model=List[MovieSearchResponse])
 async def get_popular_movies(

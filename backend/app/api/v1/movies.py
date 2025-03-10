@@ -83,6 +83,11 @@ async def get_movie_details(
                 except:
                     movie_dict["torrents"] = []
             
+            # Obtener el torrent hash del primer torrent disponible (si existe)
+            torrent_hash = None
+            if movie_dict.get("torrents") and isinstance(movie_dict["torrents"], list) and len(movie_dict["torrents"]) > 0:
+                torrent_hash = movie_dict["torrents"][0].get("hash")
+            
             # Adaptar los campos para el formato de respuesta
             result = {
                 "id": str(movie_dict["id"]),
@@ -97,7 +102,7 @@ async def get_movie_details(
                 "director": movie_dict.get("director", []),
                 "cast": movie_dict.get("casting", []),
                 "torrents": movie_dict.get("torrents", []),
-                "torrent_hash": movie_dict.get("torrent_hash"),
+                "torrent_hash": torrent_hash,
                 "download_status": movie_dict.get("download_status"),
                 "download_progress": movie_dict.get("download_progress", 0)
             }

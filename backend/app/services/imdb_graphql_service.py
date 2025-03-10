@@ -4,6 +4,7 @@ import aiohttp
 import json
 from typing import Dict, List, Any, Optional
 
+
 class IMDBGraphQLService:
     """Servicio para obtener información adicional de películas vía GraphQL"""
     
@@ -29,9 +30,6 @@ class IMDBGraphQLService:
             directors: credits(first: 5, categories:[ "director" ]) {
               name {
                 display_name
-                avatars {
-                  url
-                }
               }
             }
           
@@ -39,9 +37,6 @@ class IMDBGraphQLService:
             casts: credits(first: 5, categories:[ "actor", "actress" ]) {
               name {
                 display_name
-                avatars {
-                  url
-                }
               }
             }
           }
