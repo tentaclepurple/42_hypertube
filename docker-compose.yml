@@ -1,100 +1,119 @@
 version: "3.8"
 
 services:
-
-  backend:
-    container_name: backend
+  frontend:
+    container_name: frontend
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "3000:3000"
     volumes:
-      - ./backend:/app
-      - ./data:/data
-    env_file:
-      - .env
+      - ./frontend/app:/app
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    stdin_open: true
+    tty: true
+    # env_file:
+    #   - .env
     networks:
       - hypertube-network
     restart: unless-stopped
-    depends_on:
-      - kafka
-      - zookeeper
+
+  # backend:
+  #   container_name: backend
+  #   build:
+  #     context: .
+  #     dockerfile: ./backend/Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./backend:/app
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - hypertube-network
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - kafka
+  #     - zookeeper
   
-  torrent_service:
-    container_name: torrent_service
-    build:
-      context: .
-      dockerfile: ./microservices/torrent_service/Dockerfile
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    depends_on:
-      - kafka
-    restart: "no"
+  # torrent_service:
+  #   container_name: torrent_service
+  #   build:
+  #     context: .
+  #     dockerfile: ./microservices/torrent_service/Dockerfile
+  #   volumes:
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - hypertube-network
+  #   depends_on:
+  #     - kafka
+  #   restart: "no"
   
-  conversion_service:
-    container_name: conversion_service
-    build:
-      context: .
-      dockerfile: ./microservices/conversion_service/Dockerfile
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    depends_on:
-      - kafka
-    restart: "no"
+  # conversion_service:
+  #   container_name: conversion_service
+  #   build:
+  #     context: .
+  #     dockerfile: ./microservices/conversion_service/Dockerfile
+  #   volumes:
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - hypertube-network
+  #   depends_on:
+  #     - kafka
+  #   restart: "no"
   
-  recommendation_service:
-    container_name: recommendation_service
-    build:
-      context: .
-      dockerfile: ./microservices/recommendation_service/Dockerfile
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    depends_on:
-      - kafka
-    restart: "no"
+  # recommendation_service:
+  #   container_name: recommendation_service
+  #   build:
+  #     context: .
+  #     dockerfile: ./microservices/recommendation_service/Dockerfile
+  #   volumes:
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - hypertube-network
+  #   depends_on:
+  #     - kafka
+  #   restart: "no"
   
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.0
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - hypertube-network
-    restart: "no"
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.0.0
+  #   container_name: zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   networks:
+  #     - hypertube-network
+  #   restart: "no"
   
-  kafka:
-    image: confluentinc/cp-kafka:7.0.0
-    container_name: kafka
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    networks:
-      - hypertube-network
-    restart: "no"
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.0.0
+  #   container_name: kafka
+  #   depends_on:
+  #     - zookeeper
+  #   ports:
+  #     - "9092:9092"
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  #   networks:
+  #     - hypertube-network
+  #   restart: "no"
 
 
 networks:

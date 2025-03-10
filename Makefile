@@ -1,6 +1,6 @@
-.PHONY: up all down exec env clean
+.PHONY: up all down exec execf env clean
 
-all: env up
+all: up
 
 up:
 	docker compose up -d
@@ -14,9 +14,9 @@ down:
 exec:
 	docker exec -it backend bash -c "cd app && bash"
 
+execf:
+	docker exec -it frontend bash
 
-run:
-	cd matcha_backend
 
 env:
 	@if [ -f .env ]; then \
@@ -31,8 +31,8 @@ env:
 logs:
 	docker logs backend
 
-test:
-	cd matcha_backend/app/scripts/ && python3 generate_test_users.py
+logsf:
+	docker logs  -f frontend
 
 clean: down
 	yes | docker system prune -a
