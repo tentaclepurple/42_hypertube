@@ -5,18 +5,23 @@ all: up
 up:
 	docker compose up -d
 
+
 upf:
 	docker compose up
 
+
 down:
 	docker compose down
+
+
+re: down up
+
 
 exec:
 	docker exec -it backend bash -c "cd app && bash"
 
 execf:
 	docker exec -it frontend bash
-
 
 env:
 	@if [ -f .env ]; then \

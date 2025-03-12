@@ -21,24 +21,24 @@ services:
       - hypertube-network
     restart: unless-stopped
 
-  # backend:
-  #   container_name: backend
-  #   build:
-  #     context: .
-  #     dockerfile: ./backend/Dockerfile
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./backend:/app
-  #     - ./data:/data
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - hypertube-network
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - kafka
-  #     - zookeeper
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    restart: unless-stopped
+    # depends_on:
+    #   - kafka
+    #   - zookeeper
   
   # torrent_service:
   #   container_name: torrent_service
