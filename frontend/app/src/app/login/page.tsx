@@ -1,46 +1,63 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Login() {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    // Verificar si hay un mensaje de error en la URL
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, [searchParams]);
 
-    const handleLogin = async () => {
-      setLoading(true);
-      setError(null);
-      try{
-        const response = await fetch("http://localhost:8000/api/v1/auth/oauth/42", {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) {
-          throw new Error("Failed to login");
-        }
-        const data = await response.json();
-        console.log("Auth Response:", data);
-      } catch (err) {
-        setError("Failed to login");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+  // IMPORTANTE: Usar redirección directa en lugar de fetch
+  const handleLogin = (provider: string) => {
+    // Redireccionar directamente al endpoint OAuth del backend
+    window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
   };
 
   return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
-          <h1 className="text-3xl font-bold mb-4">Login with 42</h1>
-          <button 
-              onClick={handleLogin} 
-              className="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded text-white"
-              disabled={loading}
+    <main className="flex min-h-screen flex-col items-center justify-center">
+      <div className="w-full max-w-md space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-6">HYPERTUBE</h1>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-4">
+          <button
+            onClick={() => handleLogin('42')}
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded transition duration-200"
           >
-              {loading ? "Logging in..." : "Login with 42"}
+            Iniciar sesión con 42
           </button>
-          {error && <p className="text-red-500 mt-2">{error}</p>}
+          
+          <button
+            onClick={() => handleLogin('google')}
+            className="w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded transition duration-200"
+          >
+            Iniciar sesión con Google
+          </button>
+          
+          <button
+            onClick={() => handleLogin('github')}
+            className="w-full py-2 px-4 bg-gray-700 hover:bg-gray-800 text-white rounded transition duration-200"
+          >
+            Iniciar sesión con GitHub
+          </button>
+        </div>
       </div>
+    </main>
   );
 }

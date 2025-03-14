@@ -23,11 +23,12 @@ from .queries import (update_existing_user,
 from pydantic import BaseModel, EmailStr
 from supabase import create_client
 
-import os
 import uuid
 import secrets
 from datetime import datetime, timedelta
 from starlette import status
+import urllib.parse
+import json
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
@@ -125,10 +126,6 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
         if provider not in valid_providers:
             raise HTTPException(status_code=400, detail=f"Provider must be one of: {', '.join(valid_providers)}")
         
-        # In a real app, you would validate the state parameter
-        # if state != request.session.get("oauth_state"):
-        #     raise HTTPException(status_code=400, detail="Invalid state parameter")
-        
         # Generate redirect URI (must match the one used in authorization request)
         base_url = str(request.base_url).rstrip("/")
         redirect_uri = f"{base_url}/api/v1/auth/oauth/{provider}/callback"
@@ -219,32 +216,39 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
                     )
             
         access_token = JWTService.create_access_token(user["id"])
-    
-            # Create a response with the token
-        response = JSONResponse(
-                content={
-                    "access_token": access_token,
-                    "token_type": "bearer",
-                    "user": {
-                        "id": str(user["id"]),
-                        "email": user["email"],
-                        "username": user["username"],
-                        "first_name": user["first_name"],
-                        "last_name": user["last_name"],
-                        "profile_picture": user["profile_picture"] if user.get("profile_picture") else ""
-                    }
-                }
-            )
         
-        return response
+        # Crear un objeto de usuario para enviarlo al frontend
+        user_data = {
+            "id": str(user["id"]),
+            "email": user["email"],
+            "username": user["username"],
+            "first_name": user["first_name"],
+            "last_name": user["last_name"],
+            "profile_picture": user["profile_picture"] if user.get("profile_picture") else ""
+        }
+        
+        # Convertir a JSON y codificar para URL
+        user_json = json.dumps(user_data)
+        encoded_user = urllib.parse.quote(user_json)
+        
+        # Redirigir al frontend con el token y datos de usuario
+        frontend_url = "http://localhost:3000/auth/callback"
+        redirect_url = f"{frontend_url}?access_token={access_token}&user={encoded_user}"
+        
+        return RedirectResponse(redirect_url, status_code=303)
             
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # En caso de error, redirigir al frontend con mensaje de error
+        frontend_url = "http://localhost:3000/login"
+        error_message = urllib.parse.quote(str(e))
+        return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
     except HTTPException as e:
         raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
-
+        # En caso de error, redirigir al frontend con mensaje de error
+        frontend_url = "http://localhost:3000/login"
+        error_message = urllib.parse.quote(f"Error de autenticación: {str(e)}")
+        return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
 
 @router.post("/logout")
 async def logout(
