@@ -18,7 +18,7 @@ export default function Login() {
 
   // IMPORTANTE: Usar redirección directa en lugar de fetch
   const handleLogin = (provider: string) => {
-    // Redireccionar directamente al endpoint OAuth del backend
+    // NO usar fetch, sino redirección directa
     window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
   };
 
