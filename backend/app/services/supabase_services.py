@@ -47,7 +47,7 @@ class SupabaseService:
             )
             
             # Get public URL
-            public_url = self.client.storage.from_('profile_pictures').get_public_url(filename)
+            public_url = self.client.storage.from_('profile_images').get_public_url(filename)
             
             return public_url
             
@@ -97,7 +97,7 @@ class SupabaseService:
             )
             
             # Get public URL
-            public_url = self.client.storage.from_('profile_pictures').get_public_url(filename)
+            public_url = self.client.storage.from_('profile_images').get_public_url(filename)
             
             return public_url
             
