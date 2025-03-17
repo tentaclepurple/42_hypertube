@@ -1,100 +1,89 @@
-"use client"
+'use client';
 
-import Link from "next/link";
-import { useState } from "react";
-import { userUserContext } from "../../context/usercontext";
-import { user as defaultUser } from "../../profile/profile";
+import { useState } from 'react';
+import {  useAuth } from '../../context/authcontext';
+import { useRouter } from 'next/navigation';
+import { Menu, X } from "lucide-react";
+import Image from 'next/image';
 
 export default function Navbar() {
-    const { user, logout, login } = userUserContext();
-    const [menuOpen, setMenuOpen] = useState(false);
+    const { user, logout } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
+    const router = useRouter();
+    const isAuth = !!user;
+
+    const toggleMenu = () => setIsOpen(!isOpen);
+    const closeMenu = () => setIsOpen(false);
 
     return (
-        <nav className="bg-black-800 p-4">
-            <div className="container mx-auto flex justify-between items-center">
-                <Link legacyBehavior href="/" className="text-2xl font-bold">
-                    HYPERTUBE
-                </Link>
-                {/* Ícono de hamburguesa para mostrar el menú */}
-                <button
-                    className="text-white text-2xl md:hidden"
-                    onClick={() => setMenuOpen(!menuOpen)}
+        < nav className='bg-dark-900 text-white p-4' >
+            <div className='container mx-auto flex justify-between items-center'>
+                <div 
+                    className="text-2xl font-bold cursor-pointer"
+                    onClick={() => {router.push('/'); closeMenu()}}
                 >
-                    ☰
-                </button>
-                {/* Menú de usuario */}
-                {menuOpen && (
-                    <div className="absolute rigth-0 mt-2 w-48 bg-white texte-black rounded shadow-lg md:hidden">
-                        {user ? (
-                            <>
-                                <div className="p-2">
-                                    <img
-                                        src = {user.avatar}
-                                        alt="Avatar"
-                                        className="w-10 h-10 rounded-full border-2 border-white"
-                                    />
-                                    <p className="p-2 text-sm">{user.name}</p>
-                                    <Link href="/profile" className="block w-full text-left p-2 hover:bg-gray-200">
-                                        Profile
-                                    </Link>
-                                </div>
-                                <button
-                                    onClick={() => { logout(); setMenuOpen(false); }}
-                                    className="block w-full text-left p-2 hover:bg-gray-200"
-                                >
-                                    Logout
-                                </button>
-                            </>
-                        ) : (
-                            <div className="p-2 space-y-2">
-                                <button
-                                    onClick={() =>{login(defaultUser); setMenuOpen(false)}}
-                                    className="block w-full text-left p-2  bg-green-500 hover:bg-green-600 text-white rounded"
-                                >
-                                    Login
-                                </button>
-                                <Link
-                                    href="/register"
-                                    className="block w-full text-left p-2 hover:bg-gray-200"
-                                >
-                                    Register
-                                </Link>
-                            </div>
-                        )}
-                    </div>
-                )}
-                {/* Si hay usuario, mostramos el menu formato desktop */}
-                <div className="hidden md:flex items-center space-x-4">
-                    {user ? (
+                    HYPERTUBE
+                </div>
+                 {/* Menú para pantallas grandes */}
+                <div className="hiden md:flex gap-6">
+                    {!isAuth ? (
                         <>
-                            <Link href="/profile" className="text-white text-sm">
-                                {user.name}
-                            </Link>
-                            <img
-                                src={user.avatar}
-                                alt="Avatar"
-                                className="w-10 h-10 rounded-full border-2 border-white"
+                            <button onClick={() => router.push('/login')} className="hover:test-gray-300">Login</button>
+                            <button onClick={() => router.push('/register')} className="hover:test-gray-300">Register</button>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-4">
+                          <Image
+                            src={user.profile_picture || "/default-avatar.png"}
+                            alt="avatar"
+                            width={40}
+                            height={40}
+                            className="rounded-full border border-gray-600"
                             />
-                            <button
-                                onClick={logout}
-                                className="text-sm text-red-500 hover:text-red-700"
-                            >
-                                Logout
+                        <span>{user.username}</span>
+                        <button onClick={() => {logout(); closeMenu();}} className="text-red-400 hover:text-red-500">
+                            Logout
+                        </button>
+                    </div>
+                    )}
+                </div>
+            {/* Botón de menú hamburguesa en pantallas pequeñas */} 
+                <button onClick={toggleMenu} className="md:hidden">
+                    {isOpen ? <X size={24} /> : <Menu size={24} />}
+                </button>
+            </div>
+            {/* Menú para pantallas pequeñas */}
+            {isOpen && (
+                <div className="md:hidden flex flex-col bg-gray-800 mt-2 p-4 rounded-lg">
+                    {!isAuth ? (
+                        <>
+                            <button onClick={() => { router.push('/login'); closeMenu(); }} className="hover:test-gray-300">
+                                Login
+                            </button>
+                            <button onClick={() => { router.push('/register'); closeMenu(); }} className="hover:test-gray-300">
+                                Register
                             </button>
                         </>
                     ) : (
                         <>
-                            <button
-                                onClick={() =>{login(defaultUser); setMenuOpen(false)}}
-                                className="bg-green-500 px-3 py-1 rounded text-white"
-                            >
-                                Login
+                            <div className="flex items-center gap-3 py-2">
+                                <Image
+                                    src={user.profile_picture || "/default-avatar.png"}
+                                    alt="avatar"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full border border-gray-600"
+                                />
+                                <span>{user.username}</span>
+                            </div>
+                            <button onClick={() => { logout(); closeMenu(); }} className="text-red-400 hover:text-red-500">
+                                Logout
                             </button>
-                            <Link href="/register" className="text-sm hover:underline">Register</Link>
                         </>
                     )}
                 </div>
-            </div>
+            )}
         </nav>
     );
 }
+

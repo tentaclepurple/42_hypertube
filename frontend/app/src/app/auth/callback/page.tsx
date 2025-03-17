@@ -1,13 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '../../context/authcontext';
 
 export default function AuthCallback() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
+  const processAuth = useRef(false);
 
   useEffect(() => {
+
+    if (processAuth.current) return;
     // Obtener parámetros de la URL
     const token = searchParams.get('access_token');
     const userParam = searchParams.get('user');
@@ -30,6 +35,12 @@ export default function AuthCallback() {
         // Guardar datos del usuario en localStorage
         localStorage.setItem('user', JSON.stringify(userData));
         
+        // Marcar que se está procesando la autenticación
+        processAuth.current = true;
+
+        // Autenticar al usuario
+        login(token, userData);
+        
         console.log('Autenticación exitosa:', userData);
         
         // Redirigir a la página principal
@@ -41,7 +52,7 @@ export default function AuthCallback() {
     } else {
       router.push('/login?error=Datos+de+autenticación+incompletos');
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, login]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

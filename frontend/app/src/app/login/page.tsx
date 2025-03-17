@@ -24,9 +24,8 @@ export default function Login() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
-      <div className="w-full max-w-md space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-6">HYPERTUBE</h1>
+          <h1 className="text-3xl font-bold mb-6">Login</h1>
           
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -57,7 +56,6 @@ export default function Login() {
             Iniciar sesión con GitHub
           </button>
         </div>
-      </div>
     </main>
   );
 }
