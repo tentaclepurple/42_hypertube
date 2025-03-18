@@ -5,12 +5,13 @@ import { useAuth } from '../../context/authcontext';
 import { useRouter } from 'next/navigation';
 import { Menu, X } from "lucide-react";
 import Image from 'next/image';
+import Link from 'next/link';
+
 
 export default function Navbar() {
-    const { user, logout } = useAuth();
+    const { user, isAuthenticated, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
-    const isAuth = !!user;
     
     const toggleMenu = () => setIsOpen(!isOpen);
     const closeMenu = () => setIsOpen(false);
@@ -28,21 +29,29 @@ export default function Navbar() {
                 
                 {/* CONTENIDO PARA PANTALLAS GRANDES */}
                 <div className="hidden md:flex items-center gap-6">
-                    {!isAuth ? (
+                    {!isAuthenticated ? (
                         <>
                             <button onClick={() => router.push('/login')} className="hover:text-gray-300">Login</button>
                             <button onClick={() => router.push('/register')} className="hover:text-gray-300">Register</button>
                         </>
                     ) : (
                         <div className="flex items-center gap-4">
+                            <button onClick={() => router.push('/movies')} className="hover:text-gray-300 text-xl py-2 px-4">
+                                Movies
+                            </button>
                             <Image
-                                src={user.profile_picture || "/default-avatar.png"}
+                                src={user?.profile_picture || "/default-avatar.png"}
                                 alt="avatar"
                                 width={40}
                                 height={40}
                                 className="rounded-full border border-gray-600"
                             />
-                            <span>{user.username}</span>
+                            <Link 
+                                href="/profile" 
+                                className="cursor-pointer hover:text-gray-300"
+                            >
+                                {user?.username}
+                            </Link>
                             <button onClick={() => {logout(); closeMenu();}} className="text-red-400 hover:text-red-500">
                                 Logout
                             </button>
@@ -58,8 +67,8 @@ export default function Navbar() {
             
             {/* Menú desplegable para móvil */}
             {isOpen && (
-                <div className="md:hidden flex flex-col bg-gray-800 mt-2 p-4 rounded-lg">
-                    {!isAuth ? (
+                <div className="md:hidden flex flex-col bg-black-800 mt-2 p-4 rounded-lg">
+                    {!isAuthenticated ? (
                         <>
                             <button 
                                 onClick={() => { router.push('/login'); closeMenu(); }} 
@@ -78,14 +87,19 @@ export default function Navbar() {
                         <>
                             <div className="flex items-center gap-3 py-2">
                                 <Image
-                                    src={user.profile_picture || "/default-avatar.png"}
+                                    src={user?.profile_picture || "/default-avatar.png"}
                                     alt="avatar"
                                     width={40}
                                     height={40}
                                     className="rounded-full border border-gray-600"
                                 />
-                                <span>{user.username}</span>
+                                <button onClick={() => {router.push('/profile'); closeMenu();}} className="text-white-400 hover:text-white-500">
+                                    {user?.username}
+                                </button>
                             </div>
+                            <button onClick={() => {router.push('/movies'); closeMenu();}} className="text-white-400 hover:text-white-500">
+                                Movies
+                            </button>
                             <button 
                                 onClick={() => { logout(); closeMenu(); }} 
                                 className="py-2 text-red-400 hover:text-red-500"
