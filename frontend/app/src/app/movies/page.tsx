@@ -1,21 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-
-interface Movie {
-    id: string;
-    imdb_id: string;
-    title: string;
-    year: number;
-    rating: number;
-    genres: string[];
-    summary: string;
-    poster: string;
-    torrents: object[];
-    torrent_hash: string;
-    source: string;
-    runtime: number;
-  }
+import { Movie } from "./types/movies";
 
 export default function Movies() {
     const [movies, setMovies] = useState<Movie[]>([]);
