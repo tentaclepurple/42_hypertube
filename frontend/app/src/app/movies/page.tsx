@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Movie } from "./types/movies";
+import Link from 'next/link';
 
 export default function Movies() {
     const [movies, setMovies] = useState<Movie[]>([]);
@@ -53,14 +54,16 @@ export default function Movies() {
             <h1 className="text-3xl font-bold mb-6">Popular Movies</h1>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {movies.map((movie) => (
-                <div key={movie.id} className="bg-gray-800 p-2 rounded-lg">
-                    <img src={movie.poster} alt={movie.title} className="w-full h-64 object-cover rounded-md" />
-                    <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>
-                    <div className="flex justify-between text-sm text-gray-400">
-                        <span>{movie.year}</span>
-                        <span>⭐ {movie.rating}/10</span>
+                <Link key={movie.imdb_id || movie.id} href={`/movies/${movie.id}`} passHref>
+                    <div key={movie.id} className="bg-gray-800 p-2 rounded-lg">
+                        <img src={movie.poster} alt={movie.title} className="w-full h-64 object-cover rounded-md" />
+                        <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>
+                        <div className="flex justify-between text-sm text-gray-400">
+                            <span>{movie.year}</span>
+                            <span>⭐ {movie.rating}/10</span>
+                        </div>
                     </div>
-                </div>
+                </Link>
             ))}
         </div>
 
