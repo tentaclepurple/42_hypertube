@@ -88,9 +88,15 @@ async def update_profile(
                 "updated_at": datetime.now()
             }
             
-            # Si se proporciona email, incluirlo en la actualización
+            # Agregar los nuevos campos para actualizar
             if profile_data.email:
                 update_data["email"] = profile_data.email
+            
+            if profile_data.first_name:
+                update_data["first_name"] = profile_data.first_name
+                
+            if profile_data.last_name:
+                update_data["last_name"] = profile_data.last_name
             
             # Verificar si todos los campos requeridos están completos
             profile_is_complete = all([
@@ -224,9 +230,6 @@ async def update_profile_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating profile picture: {str(e)}"
         )
-
-
-
 
 
 

@@ -33,6 +33,7 @@ class SearchService:
         # buscamos en YTS para complementar
         if page == 1 or len(db_results) < limit:
             yts_results = await YTSService.search_movies(query, limit - len(db_results), page)
+            print(query)
             yts_movies = yts_results.get("movies", [])
             print(f"YTS movies found: {len(yts_movies)}")
             

@@ -50,11 +50,19 @@ class ProfileUpdate(BaseModel):
     favorite_movie_id: Optional[uuid.UUID] = None
     worst_movie_id: Optional[uuid.UUID] = None
     email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     
     @validator('birth_year')
     def validate_birth_year(cls, v):
         if v < 1900 or v > datetime.now().year:
             raise ValueError("Birth year must be between 1900 and current year")
+        return v
+        
+    @validator('email')
+    def validate_email(cls, v):
+        if v is not None and not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", v):
+            raise ValueError("Invalid email format")
         return v
 
 

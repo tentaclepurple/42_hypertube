@@ -18,7 +18,7 @@ export default function Movies() {
             const token = localStorage.getItem('authToken');
             try
             {
-                const response = await fetch(`http://localhost:8000/api/v1/search/popular?page=${page}&limit=20`, 
+                const response = await fetch(`http://localhost:8000/api/v1/search/popular?page=${page}&limit=10`, 
                 {
                     method: 'GET',
                     headers: {

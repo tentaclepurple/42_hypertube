@@ -45,3 +45,11 @@ class MovieDetail(BaseModel):
     torrent_hash: Optional[str] = None
     download_status: Optional[str] = None
     download_progress: Optional[int] = 0
+
+class MovieBasicResponse(BaseModel):
+    id: str
+    title: str
+    poster: Optional[str] = None
+    year: Optional[int] = None
+    rating: Optional[float] = None
+
