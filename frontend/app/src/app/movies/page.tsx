@@ -28,7 +28,13 @@ export default function Movies() {
                 );
                 if(!response.ok) throw new Error('Error fetching movies');
                 const data: Movie[] = await response.json();
-                setMovies((prevMovies) => [...prevMovies, ...data]);
+                setMovies((prevMovies) => {
+                    // Crear un conjunto de IDs existentes
+                    const existingIds = new Set(prevMovies.map(m => m.imdb_id || m.id));
+                    // Filtrar películas nuevas que no existan ya
+                    const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
+                    return [...prevMovies, ...newMovies];
+                });
                 setHasMore(data.length > 0);
             }catch(err){
                 console.error('Error fetching movies:', err);

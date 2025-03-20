@@ -39,6 +39,9 @@ export default function Navbar() {
                             <button onClick={() => router.push('/movies')} className="hover:text-gray-300 text-xl py-2 px-4">
                                 Movies
                             </button>
+                            <button onClick={() => router.push('/search')} className="hover:text-gray-300 text-xl py-2 px-4">
+                                Search
+                            </button>
                             <Image
                                 src={user?.profile_picture || "/default-avatar.png"}
                                 alt="avatar"
