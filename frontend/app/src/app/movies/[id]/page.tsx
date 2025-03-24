@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation"; 
 import { Movie } from "../types/movies";
 import { useAuth } from "../../context/authcontext";
@@ -9,7 +9,7 @@ import { useAuth } from "../../context/authcontext";
 export default function MovieDetails() {
     const { logout } = useAuth();
     const { id } = useParams();
-    const [movie, setMovie] = useState<Movie | null>(null);
+    const movieData = useRef<Movie | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -33,7 +33,7 @@ export default function MovieDetails() {
             return response.json();
         })
         .then((data) => {
-            setMovie(data);
+            movieData.current = data;
             setLoading(false);
         })
         .catch((err) => {
@@ -56,7 +56,7 @@ export default function MovieDetails() {
             <p className="mt-2">Loading movie...</p>
         </div>
     );
-
+    const movie = movieData.current;
     return (
         <div className="p-4 bg-dark-900 text-white min-h-screen">
             <div className="max-w-4xl mx-auto mx-auto flex flex-col md:flex-row">
