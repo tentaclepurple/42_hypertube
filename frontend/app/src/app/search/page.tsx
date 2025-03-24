@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useRef, use } from "react";
 import { Movie } from "../movies/types/movies";
+import { Search as SearchIcon, X, Film } from "lucide-react";
 import Link from 'next/link';
+import { useAuth } from "../context/authcontext";
 
 export default function Search() {
+    const { logout } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebounceQuery] = useState('');
     const [page, setPage] = useState(1);
@@ -39,14 +43,14 @@ export default function Search() {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                console.log('Respuesta recibida:', response.status, response.statusText);
                 if(!response.ok) {
+                    if(response.status === 401) logout();
                     const errorText = await response.text();
                     console.error(`Error de servidor: Estado ${response.status}`, errorText);
-                    throw new Error(`Error fetching movies: ${response.status}`);
+                    setError(errorText);
+                    setHasMore(false);
                 }
                 const data: Movie[] = await response.json();
-                console.log('Datos recibidos:', data);
                 if (page === 1){
                     setMovies(data);
                 } else {
@@ -128,48 +132,26 @@ export default function Search() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-6 w-6 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-
+                <SearchIcon className="h-6 w-6 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 {searchQuery && (
                     <button
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
                         onClick={() => setSearchQuery('')}
                     >
-                        <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-5 w-5" 
-                        viewBox="0 0 20 20" 
-                        fill="currentColor"
-                        >
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
+                        <X className="h-5 w-5" />
                     </button>
                 )}
             </div>
+            { error && (
+                <div className="text-center mt-4 py-2">
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                        {error}
+                    </div>
+                </div>
+            )}
             {!initialSearch && !loading && movies.length === 0 && (
                     <div className="text-center py-10">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-16 w-16 mx-auto text-gray-600 mb-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                        </svg>
+                        <Film className="h-16 w-16 mx-auto text-gray-600 mb-4" />
                         <p className="text-xl text-gray-400">Search for movies to display here</p>
                     </div>
             )}
