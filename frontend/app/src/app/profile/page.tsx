@@ -63,12 +63,10 @@ export default function Profile() {
                 <h1 className="text-3xl font-bold">{user.username}</h1>
                 <p className="text-gray-400 mt-1">{user?.first_name} {user?.last_name}</p>
                 <p className="text-gray-400 mt-1">{user?.email}</p>
+                <p className="text-gray-400 mt-1">Year of birth: {user.birth_year || "N/A"}</p>
+                <p className="text-gray-400 mt-1 ">Gender: {user.gender || "N/A"}</p>
               </div>
             </div>
-            <div className="mt-6 space-y-2">
-                    <p><strong>Año de nacimiento:</strong> {user.birth_year || "N/A"}</p>
-                    <p><strong>Género:</strong> {user.gender || "N/A"}</p>
-              </div>
           </div>
       )}
     </div>
