@@ -150,7 +150,7 @@ export default function Profile() {
                       className="p-2 bg-gray-700 text-white rounded"
                     />
                     <input 
-                      type="number"
+                      type="date"
                       name="birth_year"
                       value={formData.birth_year}
                       onChange={handleChange}
