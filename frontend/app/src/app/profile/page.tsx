@@ -99,29 +99,29 @@ export default function Profile() {
 
       {!isLoading && !error && user && (
         <div className="max-w-screen-lg mx-auto p-6">
-            <div className="flex flex-col md:flex-row items-center space-x-4">
-              <img
-                src={user?.profile_picture || '/default-avatar.png'}
-                alt={user.username}
-                className="w-32 h-32 rounded-full border-4 border-gray-600 mb-4 md:mb-0"
-              />
-              <div className="relative">
-                <div className="flex items-center">
-                  <h1 className="text-3xl font-bold">{user.username}</h1>
-                  <button
-                    onClick={() => setEditing(true)} 
-                    className="ml-5 text-gray-400 hover:text-white" title="Edit profile">
-                      <Pencil className="h-5 w-5 text-white" />
-                  </button>
+          {(!isEditing ? (  
+              <div className="flex flex-col md:flex-row items-center space-x-4">
+                <img
+                  src={user?.profile_picture || '/default-avatar.png'}
+                  alt={user.username}
+                  className="w-32 h-32 rounded-full border-4 border-gray-600 mb-4 md:mb-0"
+                />
+                <div className="relative">
+                  <div className="flex items-center">
+                    <h1 className="text-3xl font-bold">{user.username}</h1>
+                    <button
+                      onClick={() => setEditing(true)} 
+                      className="ml-5 text-gray-400 hover:text-white" title="Edit profile">
+                        <Pencil className="h-5 w-5 text-white" />
+                    </button>
+                  </div>
+                  <p className="text-gray-400 mt-1">{user?.first_name} {user?.last_name}</p>
+                  <p className="text-gray-400 mt-1">{user?.email}</p>
+                  <p className="text-gray-400 mt-1">Year of birth: {user.birth_year || "N/A"}</p>
+                  <p className="text-gray-400 mt-1 ">Gender: {user.gender || "N/A"}</p>
                 </div>
-                <p className="text-gray-400 mt-1">{user?.first_name} {user?.last_name}</p>
-                <p className="text-gray-400 mt-1">{user?.email}</p>
-                <p className="text-gray-400 mt-1">Year of birth: {user.birth_year || "N/A"}</p>
-                <p className="text-gray-400 mt-1 ">Gender: {user.gender || "N/A"}</p>
               </div>
-            </div>
-
-            {isEditing && (
+          ):(
               <div className="mt-6">
                 <h2 className="text-2xl font-bold mb-4">Edit Profile</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -179,7 +179,7 @@ export default function Profile() {
                       </button>
                   </div>
               </div>
-            )}
+            ))}
           </div>
       )}
     </div>
