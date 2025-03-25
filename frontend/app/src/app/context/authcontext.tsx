@@ -3,13 +3,15 @@
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
  import { useRouter } from 'next/navigation';
  
- interface User {
+ export interface User {
    id: string;
    email: string;
    username: string;
    first_name?: string;
    last_name?: string;
    profile_picture?: string;
+   birth_year?: number;
+   gender?: string;
  }
  
  interface AuthContextType {

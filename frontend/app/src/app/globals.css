@@ -32,3 +32,21 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari */
 }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #111827; /* thumb-color track-color */
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-radius: 20px;
+}
