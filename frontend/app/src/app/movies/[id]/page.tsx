@@ -28,7 +28,7 @@ export default function MovieDetails() {
                 if (response.status === 401) logout();
                 const text = await response.text();
                 setError(text);
-                throw new Error(`Server error: Status ${response.status}, ${text}`);
+                return Promise.reject(text);
             }
             return response.json();
         })
@@ -37,7 +37,7 @@ export default function MovieDetails() {
             setLoading(false);
         })
         .catch((err) => {
-            console.error("Error fetching movie details:", err);
+            console.log("Error fetching movie details:", err);
             setLoading(false);
         });
     }, [id]);

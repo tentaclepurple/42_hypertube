@@ -46,7 +46,6 @@ export default function Search() {
                 if(!response.ok) {
                     if(response.status === 401) logout();
                     const errorText = await response.text();
-                    console.error(`Error de servidor: Estado ${response.status}`, errorText);
                     setError(errorText);
                     setHasMore(false);
                 }
@@ -64,7 +63,7 @@ export default function Search() {
                 }
                 setHasMore(data.length === 20); // Si la respuesta tiene 20 películas, hay más por cargar
             } catch(err){
-                console.error('Error fetching movies:', err);
+                console.log('Error fetching movies:', err);
             } finally{
                 setLoading(false);
             }

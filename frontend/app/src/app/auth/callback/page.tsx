@@ -19,7 +19,7 @@ export default function AuthCallback() {
     const error = searchParams.get('error');
 
     if (error) {
-      console.error('Error en la autenticación:', error);
+      console.log('Error en la autenticación:', error);
       router.push(`/login?error=${error}`);
       return;
     }
@@ -46,7 +46,7 @@ export default function AuthCallback() {
         // Redirigir a la página principal
         router.push('/');
       } catch (err) {
-        console.error('Error procesando datos de autenticación:', err);
+        console.log('Error procesando datos de autenticación:', err);
         router.push('/login?error=Error+procesando+datos+de+autenticación');
       }
     } else {

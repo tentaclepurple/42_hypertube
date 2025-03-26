@@ -32,8 +32,9 @@ export default function Movies() {
                 if(!response.ok){
                     if(response.status === 401) logout();
                     const errorText = await response.text();
-                    console.error(`Server error: Status ${response.status}, ${errorText}`);
+                    console.log(`Server error: Status ${response.status}, ${errorText}`);
                     setError(errorText);
+                    return Promise.reject(errorText);
                 };
                 const data: Movie[] = await response.json();
                 setMovies((prevMovies) => {
@@ -45,7 +46,7 @@ export default function Movies() {
                 });
                 setHasMore(data.length > 0);
             }catch(err){
-                console.error('Error fetching movies:', err);
+                console.log('Error fetching movies:', err);
             }finally{
                 setLoading(false);
             }
