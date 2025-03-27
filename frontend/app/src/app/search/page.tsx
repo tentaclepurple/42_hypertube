@@ -164,6 +164,4 @@ export default function Search() {
             <div ref={observerRef} className="h-10" />
         </div>
     );
-
-
   }
