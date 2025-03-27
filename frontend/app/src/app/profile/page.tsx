@@ -78,7 +78,6 @@ function AvatarUpload({
   );
 }
 
-
 export default function Profile() {
   const { logout, updateUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
@@ -90,7 +89,6 @@ export default function Profile() {
   const [formData, setFormData] = useState({});
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
