@@ -19,6 +19,7 @@
    isLoading: boolean;
    login: (token: string, userData: User) => void;
    logout: () => void;
+   updateUser: (userData: Partial<User>) => void;
    isAuthenticated: boolean;
  }
  
@@ -71,6 +72,17 @@
      setUser(null);
      router.push('/login');
    };
+
+   const updateUser = (userData: Partial<User>) => {
+      setUser((prevUser) => {
+        if (!prevUser) return null;
+        const newUser = { ...prevUser, ...userData };
+
+        localStorage.setItem('user', JSON.stringify(newUser));
+
+        return newUser;
+      });
+    };
  
    return (
      <AuthContext.Provider 
@@ -78,7 +90,8 @@
          user, 
          isLoading, 
          login, 
-         logout, 
+         logout,
+         updateUser,
          isAuthenticated: !!user 
        }}
      >

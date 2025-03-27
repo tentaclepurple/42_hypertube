@@ -123,7 +123,7 @@ export default function Search() {
     };
 
     return (
-        <div className="p-4 bg-dark-900 text-white min-h-screen">
+        <div className="p-4 bg-dark-900 text-white">
             <div className="relative mb-8 max-w-2xl mx-auto">
                 <input
                     type="text"

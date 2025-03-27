@@ -64,7 +64,7 @@ export default function Movies() {
     }, [hasMore]);
 
     return (
-        <div className="p-4 bg-dark-900 text-white min-h-screen">
+        <div className="p-4 bg-dark-900 text-white">
             <h1 className="text-3xl font-bold mb-6">Popular Movies</h1>
             {error && (
                 <div className="text-center mt-4 py-2">

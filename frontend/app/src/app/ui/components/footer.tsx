@@ -1,7 +1,7 @@
 const Footer = () => {
     return (
-      <footer className="text-white py-4 mt-10">
-        <div className="container mx-auto text-center flex justify-center items-center">
+      <footer className="text-white py-4 mt-10 bg-dark-900">
+        <div className="container mx-auto text-center flex justify-center items-center flex-wrap gap-2">
           <p>&copy; 2025 Hypertube.</p>
           <p>
             Made by{" "}
