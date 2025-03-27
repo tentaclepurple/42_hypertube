@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { Movie } from "./types/movies";
 import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
+import { parsedError } from "../ui/error/parsedError";
 
 export default function Movies() {
     const { logout } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string[] | null>(null);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -31,9 +32,7 @@ export default function Movies() {
                 );
                 if(!response.ok){
                     if(response.status === 401) logout();
-                    const errorText = await response.text();
-                    console.log(`Server error: Status ${response.status}, ${errorText}`);
-                    setError(errorText);
+                    const errorText = parsedError(await response.json());
                     return Promise.reject(errorText);
                 };
                 const data: Movie[] = await response.json();
@@ -46,7 +45,7 @@ export default function Movies() {
                 });
                 setHasMore(data.length > 0);
             }catch(err){
-                console.log('Error fetching movies:', err);
+                setError(err as string[]);
             }finally{
                 setLoading(false);
             }

@@ -5,11 +5,12 @@ import { Movie } from "../movies/types/movies";
 import { Search as SearchIcon, X, Film } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
+import { parsedError } from "../ui/error/parsedError";
 
 export default function Search() {
     const { logout } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string[] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebounceQuery] = useState('');
     const [page, setPage] = useState(1);
@@ -45,9 +46,8 @@ export default function Search() {
                 });
                 if(!response.ok) {
                     if(response.status === 401) logout();
-                    const errorText = await response.text();
-                    setError(errorText);
-                    setHasMore(false);
+                    const errorText = parsedError(await response.json());
+                    return Promise.reject(errorText);
                 }
                 const data: Movie[] = await response.json();
                 if (page === 1){
@@ -63,7 +63,8 @@ export default function Search() {
                 }
                 setHasMore(data.length === 20); // Si la respuesta tiene 20 películas, hay más por cargar
             } catch(err){
-                console.log('Error fetching movies:', err);
+                setHasMore(false);
+                setError(err as string[]);
             } finally{
                 setLoading(false);
             }

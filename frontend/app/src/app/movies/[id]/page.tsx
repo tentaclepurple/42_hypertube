@@ -4,13 +4,14 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation"; 
 import { Movie } from "../types/movies";
 import { useAuth } from "../../context/authcontext";
+import { parsedError } from "../../ui/error/parsedError";
 
 
 export default function MovieDetails() {
     const { logout } = useAuth();
     const { id } = useParams();
     const movieData = useRef<Movie | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string[] | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,8 +27,7 @@ export default function MovieDetails() {
         .then(async (response) => {
             if (!response.ok) {
                 if (response.status === 401) logout();
-                const text = await response.text();
-                setError(text);
+                const text = parsedError(await response.json());
                 return Promise.reject(text);
             }
             return response.json();
@@ -37,7 +37,7 @@ export default function MovieDetails() {
             setLoading(false);
         })
         .catch((err) => {
-            console.log("Error fetching movie details:", err);
+            setError(err);
             setLoading(false);
         });
     }, [id]);
