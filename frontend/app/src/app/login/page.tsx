@@ -36,9 +36,6 @@ export default function Login() {
     setError(null);
     setLoading(true);
 
-    const loginData = { username, password };
-    console.log('Sending JSON:', loginData);
-
     try {
       const formData = new URLSearchParams()
       formData.append('grant_type', 'password');
