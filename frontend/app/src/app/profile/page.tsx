@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useAuth, User } from "../context/authcontext";
 import { Pencil, Camera, Upload, X } from "lucide-react";
 import { parsedError, parsedEditError } from "../ui/error/parsedError";
@@ -11,15 +11,40 @@ function AvatarUpload({
     handleUpload,
     uploading,
     editError,
+    profilePicture,
+    setProfilePicture
 }: {
     user: User;
     handleImageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
     handleUpload: () => void;
     uploading: boolean;
     editError: string[] | null;
+    profilePicture: File | null;
+    setProfilePicture: (file: File | null) => void;
 }) {
   const [hover, setHover] = useState(false);
-  
+  const [previewURL, setPreviewURL] = useState<string | null>(null);
+
+  useEffect(() => {
+    if(profilePicture) {
+      const url = URL.createObjectURL(profilePicture);
+      setPreviewURL(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewURL(null);
+    }
+  },[profilePicture]);
+
+  const handleCancel = () => {
+    setProfilePicture(null);
+    setPreviewURL(null);
+
+    const input = document.getElementById('avatar-upload') as HTMLInputElement;
+    if (input) {
+      input.value = '';
+    }
+  }
+
   return (
     <div className="flex flex-col items-center">
       <div 
@@ -28,7 +53,7 @@ function AvatarUpload({
         onMouseLeave={() => setHover(false)}
       >
         <img
-          src={user?.profile_picture || '/default-avatar.png'}
+          src={previewURL || user?.profile_picture || '/default-avatar.png'}
           alt={user.username}
           className="w-32 h-32 rounded-full border-4 border-gray-600"
         />
@@ -58,13 +83,24 @@ function AvatarUpload({
       </div>
       ) : (
         <>
-          <button
-            onClick={handleUpload}
-            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md flex items-center hover:bg-blue-600 transition"
-          >
-            <Upload className="mr-2 w-5 h-5" />
-            Upload
-          </button>
+          {profilePicture && (
+            <div className="mt-4 flex  flex-col space-x-2">
+              <button
+                onClick={handleUpload}
+                className="w-full mt-4 bg-blue-500 text-white px-4 py-2 rounded-md flex items-center hover:bg-blue-600 transition"
+              >
+                <Upload className="mr-2 w-5 h-5" />
+                Upload
+              </button>
+              <button
+                onClick={handleCancel}
+                className="w-full mt-4 bg-gray-500 text-white px-4 py-2 rounded-md flex items-center hover:bg-gray-600 transition"
+              >
+                <X className="mr-2 w-5 h-5" />
+                Cancel
+              </button>
+            </div>
+          )}
           {editError && (
             <div className="mt-2 text-red-500 text-sm">
               {editError.map((err, index) => (
@@ -257,6 +293,8 @@ export default function Profile() {
                     handleUpload={handleUpload}
                     uploading={uploading}
                     editError={editImgError}
+                    profilePicture={profilePicture}
+                    setProfilePicture={setProfilePicture}
                   />
                   <div className="flex-1">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -315,7 +353,7 @@ export default function Profile() {
                           />
                       </div>
                       <div>
-                        <label htmlFor="gende" className="block text-sm font-medium text-gray-300 mb-1">
+                        <label htmlFor="gender" className="block text-sm font-medium text-gray-300 mb-1">
                           Gender
                         </label>
                         <select 
