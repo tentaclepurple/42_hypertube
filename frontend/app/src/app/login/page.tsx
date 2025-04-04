@@ -63,7 +63,8 @@ export default function Login() {
       login(data.access_token, data.user);
       router.push('/'); 
     } catch (error) {
-      setError(error as string);
+      const err = error instanceof Error ? error.message : String(error);
+      setError(err);
     }finally {
       setLoading(false);
     } 
@@ -84,12 +85,11 @@ export default function Login() {
             <p className="mt-2">Loading...</p>
           </div>
         )}
-        {error || errorS && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded space-y-1">
             {error}
           </div>
         )}
-        
         <form onSubmit={handleSubmit} className="mt-6 mb-6">
           <div className="space-y-4">
             <div>
