@@ -66,10 +66,10 @@ export default function Register() {
 
       if(!response.ok) {
         const data = parsedEditError(await response.json());
-        console.log("DATOS: ", data);
         setError((prev) => ({ ...prev, ...data,}));
         return;
       }
+      
       setSuccess(true);
       setFormData({
         email: "",
