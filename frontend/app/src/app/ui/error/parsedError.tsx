@@ -19,8 +19,12 @@ export function parsedEditError(errorResponse: any): Record<string, string> | st
 }
 
 export function parsedError(errorResponse: any): string[] {
+    console.log('Error response:', errorResponse);
     try {
         const errorData = typeof errorResponse === 'string' ? JSON.parse(errorResponse) : errorResponse;
+        if (typeof errorData.detail === 'string') {
+            return [errorResponse.detail];
+        }
         if(errorData.detail && Array.isArray(errorData.detail)) {
             return errorData.detail.map((error: any) => error.msg);
         }
