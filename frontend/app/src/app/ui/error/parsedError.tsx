@@ -19,7 +19,6 @@ export function parsedEditError(errorResponse: any): Record<string, string> | st
 }
 
 export function parsedError(errorResponse: any): string[] {
-    console.log('Error response:', errorResponse);
     try {
         const errorData = typeof errorResponse === 'string' ? JSON.parse(errorResponse) : errorResponse;
         if (typeof errorData.detail === 'string') {

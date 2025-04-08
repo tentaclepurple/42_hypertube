@@ -57,8 +57,7 @@ export default function Login() {
         throw new Error(errorData.join(', '));
       }
       const data = await response.json();
-      login(data.access_token, data.user);   
-      console.log('Login successful:', data);
+      login(data.access_token, data.user);
       router.push('/');
     } catch (error) {
       const err = error instanceof Error ? error.message : String(error);
@@ -75,7 +74,7 @@ export default function Login() {
   };
 
   return (
-    <div className="text-white max-w-md mx-auto p-6">
+    <div className="text-white max-w-md mx-auto p-6 ">
       {loading && (
         <div className="text-center mb-4 py-2">
           <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
@@ -132,7 +131,7 @@ export default function Login() {
               {loading ? 'Logging in...' : 'Login'}
             </button>
             <p className='text-blue-600 hover:underline ml-4'>
-              Forgot your password?
+              <Link href="/forgot-password">Forgot password?</Link>
             </p>
           </div>
         </div>
