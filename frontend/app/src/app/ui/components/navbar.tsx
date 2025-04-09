@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/authcontext';
 import { useRouter } from 'next/navigation';
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOutIcon } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -55,8 +55,8 @@ export default function Navbar() {
                             >
                                 {user?.username}
                             </Link>
-                            <button onClick={() => {logout(); closeMenu();}} className="text-red-400 hover:text-red-500">
-                                Logout
+                            <button onClick={() => {logout(); closeMenu();}} className="text-red-400 hover:text-red-500" title='Logout'>
+                                <LogOutIcon size={20} />
                             </button>
                         </div>
                     )}
@@ -97,17 +97,21 @@ export default function Navbar() {
                                     className="rounded-full border border-gray-600"
                                 />
                                 <button onClick={() => {router.push('/profile'); closeMenu();}} className="text-white-400 hover:text-white-500">
-                                    {user?.username}
+                                <Link href="/profile"> {user?.username} </Link>
                                 </button>
                             </div>
-                            <button onClick={() => {router.push('/movies'); closeMenu();}} className="text-white-400 hover:text-white-500">
+                            <button onClick={() => {router.push('/search'); closeMenu();}} className="text-white-400 hover:text-white-500">
+                                Search
+                            </button>
+                            <button onClick={() => {router.push('/movies'); closeMenu();}} className="text-white-400 hover:text-white-500 py-2">
                                 Movies
                             </button>
                             <button 
                                 onClick={() => { logout(); closeMenu(); }} 
-                                className="py-2 text-red-400 hover:text-red-500"
+                                className="text-red-400 hover:text-red-500 flex items-center justify-center py-2"
+                                title='Logout'
                             >
-                                Logout
+                                <LogOutIcon size={20}  />
                             </button>
                         </>
                     )}

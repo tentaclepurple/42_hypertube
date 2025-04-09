@@ -65,7 +65,6 @@ export default function Movies() {
 
     return (
         <div className="p-4 bg-dark-900 text-white">
-            <h1 className="text-3xl font-bold mb-6">Popular Movies</h1>
             {error && (
                 <div className="text-center mt-4 py-2">
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -73,11 +72,20 @@ export default function Movies() {
                     </div>
                 </div>
             )}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {movies.map((movie) => (
                 <Link key={movie.imdb_id || movie.id} href={`/movies/${movie.id}`} passHref>
-                    <div key={movie.id} className="bg-gray-800 p-2 rounded-lg">
-                        <img src={movie.poster} alt={movie.title} className="w-full h-64 object-cover rounded-md" />
+                    <div className="bg-gray-800 p-2 rounded-lg transition-transform hover:scale-105">
+                        <div className="relative pb-[150%]">
+                            <img
+                                src={movie.poster || '/no-poster.png'}
+                                alt={movie.title}
+                                className="absolute inset-0 w-full h-full object-cover rounded-md"
+                                onError={(e) => {
+                                    e.currentTarget.src = '/no-poster.png';
+                                }}
+                            />
+                        </div>
                         <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>
                         <div className="flex justify-between text-sm text-gray-400">
                             <span>{movie.year}</span>
