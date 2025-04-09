@@ -71,9 +71,9 @@ export default function MovieDetails() {
                     <h3 className="mt-6 text-xl font-semibold">Cast</h3>
                     <p>{movie?.cast?.length? movie.cast.join(", ") : "No cast available"}</p>
                     <h3 className="text-2xl mt-8">Genres</h3>
-                    <ul className="flex space-x-4">
+                    <ul className="grid grid-cols-3 gap-4">
                         {movie?.genres.map((genre) => (
-                            <li key={genre} className="bg-gray-800 px-2 py-1 rounded-lg">{genre}</li>
+                            <li key={genre} className="bg-gray-800 px-2 py-1 rounded-lg text-center">{genre}</li>
                         ))}
                     </ul>
                     <div className="flex space-x-4 mt-8">
