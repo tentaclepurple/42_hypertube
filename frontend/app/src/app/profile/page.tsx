@@ -127,7 +127,7 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     fetch('http://localhost:8000/api/v1/users/me', {
         method: 'GET',
         headers: {
@@ -170,7 +170,7 @@ export default function Profile() {
   const handleSave = () => {
       setIsLoading(true);
       setEditError(null);
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
       fetch('http://localhost:8000/api/v1/users/profile', {
         method: 'PUT',
         headers: {
@@ -214,7 +214,7 @@ export default function Profile() {
       return 
     }
     setUploading(true);
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('profile_picture', profilePicture);
     fetch('http://localhost:8000/api/v1/users/profile/image', {

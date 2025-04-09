@@ -25,8 +25,7 @@ export default function MovieDetails() {
         })
         .then(async (response) => {
             if (!response.ok) {
-                if (response.status === 401){ //logout();
-                    }
+                if (response.status === 401) logout();
                 const text = parsedError(await response.json());
                 return Promise.reject(text);
             }

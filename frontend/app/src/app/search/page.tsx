@@ -36,7 +36,7 @@ export default function Search() {
         if(!debouncedQuery) return;
         const fetchMovies = async () => {
             setLoading(true);
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
             try{
                 const response = await fetch(`http://localhost:8000/api/v1/search/movies?query=${encodeURIComponent(debouncedQuery)}&page=${page}`, {
                     method: 'GET',

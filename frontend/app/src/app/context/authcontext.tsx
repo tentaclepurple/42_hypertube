@@ -32,7 +32,7 @@
  
    useEffect(() => {
      // Check if user is logged in on mount
-     const token = localStorage.getItem('authToken');
+     const token = localStorage.getItem('token');
      const storedUser = localStorage.getItem('user');
      
      if (token && storedUser) {
@@ -40,7 +40,7 @@
          setUser(JSON.parse(storedUser));
        } catch (error) {
          console.error('Error parsing user data:', error);
-         localStorage.removeItem('authToken');
+         localStorage.removeItem('token');
          localStorage.removeItem('user');
        }
      }
@@ -49,14 +49,14 @@
    }, []);
  
    const login = (token: string, userData: User) => {
-     localStorage.setItem('authToken', token);
+     localStorage.setItem('token', token);
      localStorage.setItem('user', JSON.stringify(userData));
      setUser(userData);
    };
  
    const logout = () => {
      // Hacer una petición al backend para invalidar el token
-     const token = localStorage.getItem('authToken');
+     const token = localStorage.getItem('token');
      if (token) {
        fetch('http://localhost:8000/api/v1/auth/logout', {
          method: 'POST',
@@ -67,7 +67,7 @@
      }
      
      // Limpieza local
-     localStorage.removeItem('authToken');
+     localStorage.removeItem('token');
      localStorage.removeItem('user');
      setUser(null);
      router.push('/login');

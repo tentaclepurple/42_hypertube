@@ -19,7 +19,7 @@ export default function Movies() {
         const fetchMovies = async () => {
             if(!hasMore) return;
             setLoading(true);
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
             try
             {
                 const response = await fetch(`http://localhost:8000/api/v1/search/popular?page=${page}&limit=10`, 
