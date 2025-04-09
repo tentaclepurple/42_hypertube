@@ -6,7 +6,6 @@ import  Link  from "next/link";
 import { parsedError } from "../ui/error/parsedError";
 import { useAuth } from "../context/authcontext";
 
-
 export default function ForgotPassword() {
     const [ email, setEmail ] = useState("");
     const [ loading, setLoading ] = useState(false);
