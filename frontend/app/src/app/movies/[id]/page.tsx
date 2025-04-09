@@ -76,6 +76,10 @@ export default function MovieDetails() {
                             <li key={genre} className="bg-gray-800 px-2 py-1 rounded-lg">{genre}</li>
                         ))}
                     </ul>
+                    <div className="flex space-x-4 mt-8">
+                        <span className="bg-gray-800 px-4 py-2 rounded-lg text-center">720p</span>
+                        <span className="bg-gray-800 px-4 py-2 rounded-lg text-center">1080p</span>
+                    </div>
                 </div>
             </div>
         </div>
