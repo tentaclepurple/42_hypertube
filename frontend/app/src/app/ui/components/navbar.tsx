@@ -12,22 +12,19 @@ export default function Navbar() {
     const { user, isAuthenticated, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
-    
     const toggleMenu = () => setIsOpen(!isOpen);
     const closeMenu = () => setIsOpen(false);
-    
+
     return (
         <nav className='bg-dark-900 text-white p-4'>
             <div className='container mx-auto flex justify-between items-center bottom-0 left-0 right-0'>
-                {/* Logo */}
                 <div
                     className="text-2xl font-bold cursor-pointer"
                     onClick={() => {router.push('/'); closeMenu()}}
                 >
                     HYPERTUBE
                 </div>
-                
-                {/* CONTENIDO PARA PANTALLAS GRANDES */}
+                {/* CONTENT FOR LARGE SCREENS */}
                 <div className="hidden md:flex items-center gap-6">
                     {!isAuthenticated ? (
                         <>
@@ -62,14 +59,12 @@ export default function Navbar() {
                         </div>
                     )}
                 </div>
-                
-                {/* Botón de hamburguesa (solo visible en móvil) */}
-                <button onClick={toggleMenu} className="md:hidden">
-                    {isOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
+            {/* Hamburger button (only visible on mobile) */}
+            <button onClick={toggleMenu} className="md:hidden">
+                {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
             </div>
-            
-            {/* Menú desplegable para móvil */}
+            {/* Mobile drop-down menu */}
             {isOpen && (
                 <div className="md:hidden flex flex-col bg-black-800 mt-2 p-4 rounded-lg">
                     {!isAuthenticated ? (

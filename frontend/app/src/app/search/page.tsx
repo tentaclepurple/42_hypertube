@@ -31,7 +31,7 @@ export default function Search() {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Effect para la busqueda de películas
+    // Effect for movie search
     useEffect(() => {
         if(!debouncedQuery) return;
         const fetchMovies = async () => {
@@ -73,9 +73,7 @@ export default function Search() {
     }, [debouncedQuery, page]);
 
     useEffect(() => {
-
         if(!hasMore || loading) return;
-
         const observer = new IntersectionObserver((entries) => {
             if(entries[0].isIntersecting && hasMore && debouncedQuery){
                 setPage((prevPage) => prevPage + 1);

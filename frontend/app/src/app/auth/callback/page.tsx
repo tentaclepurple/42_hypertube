@@ -11,9 +11,8 @@ export default function AuthCallback() {
   const processAuth = useRef(false);
 
   useEffect(() => {
-
     if (processAuth.current) return;
-    // Obtener parámetros de la URL
+
     const token = searchParams.get('access_token');
     const userParam = searchParams.get('user');
     const error = searchParams.get('error');
@@ -25,22 +24,11 @@ export default function AuthCallback() {
     
     if (token && userParam) {
       try {
-        // Decodificar y parsear los datos del usuario
         const userData = JSON.parse(decodeURIComponent(userParam));
-        
-        // Guardar token en localStorage
         localStorage.setItem('token', token);
-        
-        // Guardar datos del usuario en localStorage
         localStorage.setItem('user', JSON.stringify(userData));
-        
-        // Marcar que se está procesando la autenticación
         processAuth.current = true;
-
-        // Autenticar al usuario
         login(token, userData);
-        
-        // Redirigir a la página principal
         router.push('/');
       } catch (err) {
         router.push('/login?error=Error+processing+authentication+data');

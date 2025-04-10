@@ -20,7 +20,6 @@ export default function Login() {
   const router = useRouter();
   
   useEffect(() => {
-    // Verificar si hay un mensaje de error en la URL
     const errorParam = searchParams.get('error');
     if (errorParam) {
       setError(decodeURIComponent(errorParam));
@@ -67,9 +66,9 @@ export default function Login() {
     } 
   }
 
-  // IMPORTANTE: Usar redirección directa en lugar de fetch
+  // IMPORTANT: Use direct redirection instead of fetch
   const handleLogin = (provider: string) => {
-    // NO usar fetch, sino redirección directa
+    // Do NOT use fetch, but direct redirection.
     window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
   };
 

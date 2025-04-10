@@ -37,9 +37,9 @@ export default function Movies() {
                 };
                 const data: Movie[] = await response.json();
                 setMovies((prevMovies) => {
-                    // Crear un conjunto de IDs existentes
+                    // Create a set of existing IDs
                     const existingIds = new Set(prevMovies.map(m => m.imdb_id || m.id));
-                    // Filtrar películas nuevas que no existan ya
+                    // Filter out new movies that do not already exist
                     const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
                     return [...prevMovies, ...newMovies];
                 });

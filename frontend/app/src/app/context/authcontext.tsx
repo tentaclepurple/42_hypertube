@@ -55,7 +55,6 @@
    };
  
    const logout = () => {
-     // Hacer una petición al backend para invalidar el token
      const token = localStorage.getItem('token');
      if (token) {
        fetch('http://localhost:8000/api/v1/auth/logout', {
@@ -65,8 +64,6 @@
          },
        }).catch(error => console.error('Error during logout:', error));
      }
-     
-     // Limpieza local
      localStorage.removeItem('token');
      localStorage.removeItem('user');
      setUser(null);
