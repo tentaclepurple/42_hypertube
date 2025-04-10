@@ -69,6 +69,7 @@ function AvatarUpload({
           className={`absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center cursor-pointer 
             ${hover ? 'opacity-75' : 'opacity-0'} 
             transition-opacity duration-300 ease-in-out`}
+          title="Change profile picture"
         >
           <Camera className="h-8 w-8 text-white" />
         </label>
@@ -304,10 +305,12 @@ export default function Profile() {
                         </label>
                         <input 
                           type="text"
+                          id="first_name"
                           name="first_name"
                           value={formData.first_name}
                           onChange={handleChange}
                           placeholder="First Name"
+                          autoComplete="given-name"
                           className={`w-full p-2 bg-gray-700 text-white rounded ${editError?.first_name ? 'border border-red-500' : ''}`}
                           />
                       </div>
@@ -317,10 +320,12 @@ export default function Profile() {
                         </label>
                         <input 
                           type="text"
+                          id="last_name"
                           name="last_name"
                           value={formData.last_name}
                           onChange={handleChange}
                           placeholder="Last Name"
+                          autoComplete="family-name"
                           className={`w-full p-2 bg-gray-700 text-white rounded ${editError?.last_name ? 'border border-red-500' : ''}`}
                           />
                       </div>
@@ -330,10 +335,12 @@ export default function Profile() {
                         </label>
                         <input 
                           type="email"
+                          id="email"
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="Email"
+                          autoComplete="email"
                           className={`w-full p-2 bg-gray-700 text-white rounded ${editError?.email ? 'border border-red-500' : ''}`}
                           />
                       </div>
@@ -343,10 +350,12 @@ export default function Profile() {
                         </label>
                         <input 
                           type="number"
+                          id="birth_year"
                           name="birth_year"
                           value={formData.birth_year}
                           onChange={handleChange}
                           placeholder="Year of Birth"
+                          autoComplete="bday-year"
                           min={1900}
                           max={new Date().getFullYear()}
                           className={`w-full p-2 bg-gray-700 text-white rounded ${editError?.birth_year ? 'border border-red-500' : ''}`}
@@ -357,9 +366,11 @@ export default function Profile() {
                           Gender
                         </label>
                         <select 
+                          id="gender"
                           name="gender"
                           value={formData.gender}
                           onChange={handleChange}
+                          autoComplete="sex"
                           className={`w-full p-2 bg-gray-700 text-white rounded ${editError?.gender ? 'border border-red-500' : ''}`} 
                           >
                           <option value="" disabled>Select Gender</option>

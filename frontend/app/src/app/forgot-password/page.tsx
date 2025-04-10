@@ -73,12 +73,14 @@ export default function ForgotPassword() {
                                 <div className="flex rounded overflow-hidden border border-gray-300">
                                     <input
                                         type="email"
+                                        name="email"
                                         id="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                         className="w-full p-2 outline-none"
                                         placeholder="Enter your email"
+                                        autoComplete="on"
                                     />
                                     <button
                                         type="submit"

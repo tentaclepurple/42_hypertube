@@ -125,10 +125,13 @@ export default function Search() {
             <div className="relative mb-8 max-w-2xl mx-auto">
                 <input
                     type="text"
+                    id="search"
+                    name="search"
                     placeholder="Search movies..."
                     className="w-full p-4 pl-12 pr-4 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    autoComplete="off"
                 />
                 <SearchIcon className="h-6 w-6 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 {searchQuery && (

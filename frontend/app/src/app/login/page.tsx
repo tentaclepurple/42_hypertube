@@ -93,6 +93,8 @@ export default function Login() {
             <input
               type='text'
               id='username'
+              name='username'
+              autoComplete='on'
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
@@ -107,6 +109,7 @@ export default function Login() {
               <input
                 type={showPassword ? "text" : "password"}
                 id='password'
+                name='password'
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded"

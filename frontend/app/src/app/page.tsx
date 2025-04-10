@@ -21,6 +21,7 @@ export default function Home() {
           className="mt-4 sm:mt-6 rounded-lg"
           style={{ width: "100%", height: "auto" }}
           sizes="(max-width: 768px) 100vw, 50vw"
+          priority
         />
       </div>
       <p className="mt-2 sm:mt-4 text-base sm:text-lg text-center">Dive into the ultimate movie universe</p>

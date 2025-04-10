@@ -130,6 +130,7 @@ export default function Register() {
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.first_name ? "border-red-500" : "border-gray-300"}`}
               placeholder="First Name"
+              autoComplete="on"
             />
             {error.first_name && <p className="text-red-500 text-sm mt-1">{error.first_name}</p>}
           </div>
@@ -145,6 +146,7 @@ export default function Register() {
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.last_name ? "border-red-500" : "border-gray-300"}`}
               placeholder="Last Name"
+              autoComplete="on"
             />
             {error.last_name && <p className="text-red-500 text-sm mt-1">{error.last_name}</p>}
           </div>
@@ -160,6 +162,7 @@ export default function Register() {
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.email ? "border-red-500" : "border-gray-300"}`}
               placeholder="you@email.com"
+              autoComplete="on"
             />
             {error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
           </div>
@@ -175,6 +178,7 @@ export default function Register() {
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.username ? "border-red-500" : "border-gray-300"}`}
               placeholder="Username"
+              autoComplete="on"
             />
             {error.username && <p className="text-red-500 text-sm mt-1">{error.username}</p>}
           </div>
@@ -191,6 +195,7 @@ export default function Register() {
                 onChange={handleChange}
                 className={`w-full p-2 border rounded ${error.password ? "border-red-500" : "border-gray-300"}`}
                 placeholder="Password minimum 8 characters"
+                autoComplete="off"
               />
               <button
                 type="button"
@@ -215,6 +220,7 @@ export default function Register() {
                 onChange={handleChange}
                 className={`w-full p-2 border rounded ${error.confirm_password ? "border-red-500" : "border-gray-300"}`}
                 placeholder="Confirm Password"
+                autoComplete="off"
               />
               <button
                 type="button"
