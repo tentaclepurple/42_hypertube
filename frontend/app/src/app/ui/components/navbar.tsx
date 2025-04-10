@@ -52,6 +52,7 @@ export default function Navbar() {
                             <Link 
                                 href="/profile" 
                                 className="cursor-pointer hover:text-gray-300"
+                                title='Edit Profile'
                             >
                                 {user?.username}
                             </Link>
