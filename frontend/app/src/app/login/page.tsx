@@ -94,7 +94,7 @@ export default function Login() {
               type='text'
               id='username'
               name='username'
-              autoComplete='on'
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
@@ -110,6 +110,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 id='password'
                 name='password'
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded"
