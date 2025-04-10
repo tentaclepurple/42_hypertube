@@ -19,7 +19,6 @@ export default function AuthCallback() {
     const error = searchParams.get('error');
 
     if (error) {
-      console.log('Error en la autenticación:', error);
       router.push(`/login?error=${error}`);
       return;
     }
@@ -41,16 +40,13 @@ export default function AuthCallback() {
         // Autenticar al usuario
         login(token, userData);
         
-        console.log('Autenticación exitosa:', userData);
-        
         // Redirigir a la página principal
         router.push('/');
       } catch (err) {
-        console.log('Error procesando datos de autenticación:', err);
-        router.push('/login?error=Error+procesando+datos+de+autenticación');
+        router.push('/login?error=Error+processing+authentication+data');
       }
     } else {
-      router.push('/login?error=Datos+de+autenticación+incompletos');
+      router.push('/login?error=Data+of+authentication+incomplete');
     }
   }, [searchParams, router, login]);
 

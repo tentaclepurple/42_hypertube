@@ -13,7 +13,6 @@ export function parsedEditError(errorResponse: any): Record<string, string> | st
         }
         return ['Unknown validation error'];
     } catch (err) {
-        console.log('Error parsing error response:', err);
         return ['Error parsing error response'];
     }
 }
@@ -29,7 +28,6 @@ export function parsedError(errorResponse: any): string[] {
         }
         return ['Unknown validation error message'];
     } catch (err) {
-        console.log(' Error parsing error message response:', err);
         return ['Error parsing error message response'];
     }
 }
