@@ -57,7 +57,7 @@
    const logout = () => {
      const token = localStorage.getItem('token');
      if (token) {
-       fetch('http://localhost:8000/api/v1/auth/logout', {
+       fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/logout`, {
          method: 'POST',
          headers: {
            'Authorization': `Bearer ${token}`,

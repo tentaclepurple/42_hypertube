@@ -22,7 +22,7 @@ export default function Movies() {
             const token = localStorage.getItem('token');
             try
             {
-                const response = await fetch(`http://localhost:8000/api/v1/search/popular?page=${page}&limit=10`, 
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}&limit=10`, 
                 {
                     method: 'GET',
                     headers: {

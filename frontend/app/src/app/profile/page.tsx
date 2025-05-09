@@ -218,7 +218,7 @@ export default function Profile() {
     const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('profile_picture', profilePicture);
-    fetch('http://localhost:8000/api/v1/users/profile/image', {
+    fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/profile/image`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
