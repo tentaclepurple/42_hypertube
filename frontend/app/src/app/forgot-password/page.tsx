@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react"
 import  Link  from "next/link";
-import { parsedError } from "../ui/error/parsedError";
+import { parsedError, parsedEditError } from "../ui/error/parsedError";
 import { useAuth } from "../context/authcontext";
 
 export default function ForgotPassword() {
@@ -19,17 +19,16 @@ export default function ForgotPassword() {
         setError(null);
 
         try {
-            const response = await fetch("http://localhost:8000/api/v1/auth/forgot-password", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/forgot-password`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ email }),
             });
-
             if (!response.ok) {
                 if (response.status === 401) logout();
-                const errorData = parsedError(await response.json());
+                const errorData = parsedEditError(await response.json());
                 return Promise.reject(errorData);
             }
             setSuccess(true);

@@ -56,7 +56,7 @@ export default function Register() {
     try{
       const { confirm_password, ...data } = formData; // Exclude confirm_password from the data sent to the backend
 
-      const response = await fetch("http://localhost:8000/api/v1/auth/register", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

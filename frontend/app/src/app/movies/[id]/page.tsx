@@ -16,7 +16,8 @@ export default function MovieDetails() {
     useEffect(() => {
         if (!id) return;
         const token = localStorage.getItem("token");
-        fetch(`http://localhost:8000/api/v1/movies/${id}`, 
+        const url = process.env.NEXT_PUBLIC_URL;
+        fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}`,
         {
             method: "GET",
             headers: { 

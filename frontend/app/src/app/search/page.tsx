@@ -38,7 +38,7 @@ export default function Search() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try{
-                const response = await fetch(`http://localhost:8000/api/v1/search/movies?query=${encodeURIComponent(debouncedQuery)}&page=${page}`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/movies?query=${encodeURIComponent(debouncedQuery)}&page=${page}`, {
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${token}`,

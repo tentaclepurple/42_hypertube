@@ -41,7 +41,7 @@ export default function ResetPassword() {
         }
 
         try {
-            const response = await fetch("http://localhost:8000/api/v1/auth/reset-password", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/reset-password`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

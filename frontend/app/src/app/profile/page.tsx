@@ -129,7 +129,7 @@ export default function Profile() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:8000/api/v1/users/me', {
+    fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/me`, {
         method: 'GET',
         headers: {
             Authorization: `Bearer ${token}`,
@@ -172,7 +172,7 @@ export default function Profile() {
       setIsLoading(true);
       setEditError(null);
       const token = localStorage.getItem('token');
-      fetch('http://localhost:8000/api/v1/users/profile', {
+      fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +218,7 @@ export default function Profile() {
     const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('profile_picture', profilePicture);
-    fetch('http://localhost:8000/api/v1/users/profile/image', {
+    fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/profile/image`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,

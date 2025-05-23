@@ -42,7 +42,7 @@ export default function Login() {
       formData.append('password', password);
       formData.append('scope', '');
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -69,7 +69,7 @@ export default function Login() {
   // IMPORTANT: Use direct redirection instead of fetch
   const handleLogin = (provider: string) => {
     // Do NOT use fetch, but direct redirection.
-    window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_URL}/api/v1/auth/oauth/${provider}`;
   };
 
   return (
