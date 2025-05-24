@@ -12,68 +12,60 @@ class SearchService:
     """Servicio para buscar películas combinando múltiples fuentes"""
     
     @staticmethod
-    async def search_movies(query: str, page: int = 1, limit: int = 20) -> List[Dict[str, Any]]:
+    async def search_movies_with_views(query: str, page: int = 1, limit: int = 20, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Busca películas en YTS y en la base de datos local con paginación
+        Busca películas con información de visualización del usuario
         """
         print(f"Query: {query}")
         
         # Calcular el offset para la paginación
         offset = (page - 1) * limit
         
-        # Buscar primero en la base de datos
-        db_results = await SearchService._search_in_database(query, limit, offset)
+        # Buscar en la base de datos con información de visualización
+        db_results = await SearchService._search_in_database_with_views(query, limit, offset, user_id)
         print(f"DB results found: {len(db_results)}")
         
         if db_results and len(db_results) >= limit:
-            # Si encontramos suficientes resultados en la base de datos, los devolvemos
             return db_results
         
-        # Si no hay suficientes resultados en la base de datos o estamos en la primera página, 
-        # buscamos en YTS para complementar
+        # Si no hay suficientes resultados, buscar en YTS y completar
         if page == 1 or len(db_results) < limit:
             yts_results = await YTSService.search_movies(query, limit - len(db_results), page)
-            print(query)
             yts_movies = yts_results.get("movies", [])
             print(f"YTS movies found: {len(yts_movies)}")
             
             if yts_movies:
                 # Transformar y guardar resultados
                 transformed_results = await SearchService._transform_yts_results(yts_movies)
-                print(f"Transformed results: {len(transformed_results)}")
-                
-                # Guardar resultados en la base de datos para futuras consultas
                 await SearchService._save_to_database(transformed_results)
                 
-                # Si ya tenemos algunos resultados de la base de datos, completamos hasta el límite
+                # Añadir información de visualización (serán 0.0 y false para películas nuevas)
+                for movie in transformed_results:
+                    movie["view_percentage"] = 0.0
+                    movie["completed"] = False
+                
                 if db_results:
-                    # Filtrar películas de YTS que no estén ya en los resultados de BD
                     db_imdb_ids = {movie.get("imdb_id") for movie in db_results if movie.get("imdb_id")}
                     filtered_yts_results = [
                         movie for movie in transformed_results 
                         if movie.get("imdb_id") not in db_imdb_ids
                     ]
-                    
-                    # Combinar resultados hasta el límite
                     combined_results = db_results + filtered_yts_results[:limit - len(db_results)]
                     return combined_results
                 
                 return transformed_results
         
-        # Si estamos en una página diferente a la 1 y no hay suficientes resultados,
-        # simplemente devolvemos lo que encontramos en la base de datos
         return db_results
     
     @staticmethod
-    async def get_popular_movies(page: int = 1, limit: int = 20) -> List[Dict[str, Any]]:
+    async def get_popular_movies_with_views(page: int = 1, limit: int = 20, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Obtiene las películas más populares con paginación
+        Obtiene las películas más populares con información de visualización
         """
-        # Calcular el offset basado en la página
         offset = (page - 1) * limit
         
-        # Intentar obtener de la base de datos primero
-        db_results = await SearchService._get_popular_from_database(limit, offset)
+        # Intentar obtener de la base de datos con información de visualización
+        db_results = await SearchService._get_popular_from_database_with_views(limit, offset, user_id)
         print(f"DB popular results found: {len(db_results)}")
         
         if db_results and len(db_results) >= limit:
@@ -88,8 +80,180 @@ class SearchService:
         transformed_results = await SearchService._transform_yts_results(yts_movies)
         await SearchService._save_to_database(transformed_results)
         
+        # Añadir información de visualización
+        for movie in transformed_results:
+            movie["view_percentage"] = 0.0
+            movie["completed"] = False
+        
         return transformed_results
 
+    @staticmethod
+    async def search_movies(query: str, page: int = 1, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Busca películas sin información de visualización (para endpoints _full)
+        """
+        offset = (page - 1) * limit
+        db_results = await SearchService._search_in_database(query, limit, offset)
+        
+        if db_results and len(db_results) >= limit:
+            return db_results
+        
+        if page == 1 or len(db_results) < limit:
+            yts_results = await YTSService.search_movies(query, limit - len(db_results), page)
+            yts_movies = yts_results.get("movies", [])
+            
+            if yts_movies:
+                transformed_results = await SearchService._transform_yts_results(yts_movies)
+                await SearchService._save_to_database(transformed_results)
+                
+                if db_results:
+                    db_imdb_ids = {movie.get("imdb_id") for movie in db_results if movie.get("imdb_id")}
+                    filtered_yts_results = [
+                        movie for movie in transformed_results 
+                        if movie.get("imdb_id") not in db_imdb_ids
+                    ]
+                    combined_results = db_results + filtered_yts_results[:limit - len(db_results)]
+                    return combined_results
+                
+                return transformed_results
+        
+        return db_results
+    
+    @staticmethod
+    async def get_popular_movies(page: int = 1, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Obtiene películas populares sin información de visualización (para endpoints _full)
+        """
+        offset = (page - 1) * limit
+        db_results = await SearchService._get_popular_from_database(limit, offset)
+        
+        if db_results and len(db_results) >= limit:
+            return db_results[:limit]
+        
+        yts_results = await YTSService.get_popular_movies(limit, page)
+        yts_movies = yts_results.get("movies", [])
+        
+        transformed_results = await SearchService._transform_yts_results(yts_movies)
+        await SearchService._save_to_database(transformed_results)
+        
+        return transformed_results
+
+    @staticmethod
+    async def _search_in_database_with_views(query: str, limit: int, offset: int = 0, user_id: str = None) -> List[Dict[str, Any]]:
+        """
+        Busca películas en la base de datos con información de visualización
+        """
+        words = query.split()
+        if not words:
+            return []
+        
+        conditions = []
+        params = [user_id, limit, offset]  # user_id, límite y offset como primeros parámetros
+        
+        for word in words:
+            pattern = f"%{word}%"
+            conditions.append("(m.title ILIKE $" + str(len(params) + 1) + 
+                            " OR m.title_lower ILIKE $" + str(len(params) + 1) +
+                            " OR m.summary ILIKE $" + str(len(params) + 1) + ")")
+            params.append(pattern)
+        
+        sql = f"""
+            SELECT 
+                m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres, m.summary,
+                m.cover_image, m.director, m.casting, m.torrents,
+                COALESCE(umv.view_percentage, 0.0) as view_percentage,
+                COALESCE(umv.completed, false) as completed
+            FROM movies m
+            LEFT JOIN user_movie_views umv ON m.id = umv.movie_id AND umv.user_id = $1
+            WHERE {" AND ".join(conditions)}
+            ORDER BY m.imdb_rating DESC NULLS LAST
+            LIMIT $2 OFFSET $3
+        """
+        
+        try:
+            async with get_db_connection() as conn:
+                results = await conn.fetch(sql, *params)
+                
+                movies_list = []
+                for row in results:
+                    movie_dict = dict(row)
+                    movie_dict["id"] = str(movie_dict["id"])
+                    movie_dict["poster"] = movie_dict.pop("cover_image")
+                    movie_dict["rating"] = movie_dict.pop("imdb_rating")
+                    movie_dict["runtime"] = movie_dict.get("duration")
+                    movie_dict["source"] = "database"
+                    
+                    # Decodificar torrents
+                    torrents = movie_dict.get("torrents")
+                    if torrents and isinstance(torrents, str):
+                        try:
+                            movie_dict["torrents"] = json.loads(torrents)
+                        except Exception as e:
+                            print(f"Error parsing torrents JSON for movie {movie_dict['id']}: {str(e)}")
+                            movie_dict["torrents"] = []
+                    elif torrents is None:
+                        movie_dict["torrents"] = []
+                    
+                    movies_list.append(movie_dict)
+                
+                return movies_list
+        except Exception as e:
+            print(f"Error searching in database with views: {str(e)}")
+            return []
+    
+    @staticmethod
+    async def _get_popular_from_database_with_views(limit: int, offset: int = 0, user_id: str = None) -> List[Dict[str, Any]]:
+        """
+        Obtiene películas populares con información de visualización
+        """
+        sql = """
+            SELECT 
+                m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres, m.summary,
+                m.cover_image, m.director, m.casting, m.torrents,
+                COALESCE(umv.view_percentage, 0.0) as view_percentage,
+                COALESCE(umv.completed, false) as completed
+            FROM movies m
+            LEFT JOIN user_movie_views umv ON m.id = umv.movie_id AND umv.user_id = $1
+            WHERE m.imdb_rating IS NOT NULL
+            ORDER BY m.imdb_rating DESC
+            LIMIT $2 OFFSET $3
+        """
+        
+        try:
+            async with get_db_connection() as conn:
+                results = await conn.fetch(sql, user_id, limit, offset)
+                
+                movies_list = []
+                for row in results:
+                    movie_dict = dict(row)
+                    movie_dict["id"] = str(movie_dict["id"])
+                    movie_dict["poster"] = movie_dict.pop("cover_image")
+                    movie_dict["rating"] = movie_dict.pop("imdb_rating")
+                    movie_dict["runtime"] = movie_dict.get("duration")
+                    movie_dict["source"] = "database"
+                    
+                    # Decodificar torrents
+                    torrents = movie_dict.get("torrents")
+                    if torrents and isinstance(torrents, str):
+                        try:
+                            movie_dict["torrents"] = json.loads(torrents)
+                        except:
+                            movie_dict["torrents"] = []
+                    
+                    # Extraer torrent_hash
+                    if movie_dict.get("torrents") and isinstance(movie_dict["torrents"], list) and len(movie_dict["torrents"]) > 0:
+                        movie_dict["torrent_hash"] = movie_dict["torrents"][0].get("hash")
+                    else:
+                        movie_dict["torrent_hash"] = None
+                    
+                    movies_list.append(movie_dict)
+                
+                return movies_list
+        except Exception as e:
+            print(f"Error getting popular movies from database with views: {str(e)}")
+            return []
+
+    # Mantener métodos existentes sin cambios
     @staticmethod
     async def _transform_yts_results(yts_movies: List[Dict]) -> List[Dict]:
         """
@@ -98,14 +262,11 @@ class SearchService:
         results = []
         
         for movie in yts_movies:
-            # Solo procesar películas que tienen torrents
             if not movie.get("torrents"):
                 continue
                 
-            # Generar un ID único para la película
             movie_id = str(uuid.uuid4())
             
-            # Extraer los datos relevantes
             transformed = {
                 "id": movie_id,
                 "imdb_id": movie.get("imdb_code"),
@@ -127,27 +288,22 @@ class SearchService:
     @staticmethod
     async def _search_in_database(query: str, limit: int, offset: int = 0) -> List[Dict[str, Any]]:
         """
-        Busca películas en la base de datos usando palabras clave múltiples
+        Busca películas en la base de datos sin información de visualización
         """
-        # Dividir la consulta en palabras individuales
         words = query.split()
         if not words:
             return []
         
-        # Construir una condición que exige todas las palabras
         conditions = []
-        params = [limit, offset]  # El límite y offset serán los primeros parámetros
+        params = [limit, offset]
         
         for word in words:
-            # Agregar cada palabra como %palabra%
             pattern = f"%{word}%"
-            # Buscar en título o resumen
             conditions.append("(title ILIKE $" + str(len(params) + 1) + 
                             " OR title_lower ILIKE $" + str(len(params) + 1) +
                             " OR summary ILIKE $" + str(len(params) + 1) + ")")
             params.append(pattern)
         
-        # Construir la consulta SQL completa con paginación
         sql = f"""
             SELECT 
                 id, imdb_id, title, year, imdb_rating, genres, summary,
@@ -162,18 +318,15 @@ class SearchService:
             async with get_db_connection() as conn:
                 results = await conn.fetch(sql, *params)
                 
-                # Adaptar los resultados
                 movies_list = []
                 for row in results:
                     movie_dict = dict(row)
-                    # Renombrar campos para mantener consistencia
                     movie_dict["id"] = str(movie_dict["id"])
                     movie_dict["poster"] = movie_dict.pop("cover_image")
                     movie_dict["rating"] = movie_dict.pop("imdb_rating")
                     movie_dict["runtime"] = movie_dict.get("duration")
                     movie_dict["source"] = "database"
                     
-                    # Decodificar torrents si están en formato JSON string
                     torrents = movie_dict.get("torrents")
                     if torrents and isinstance(torrents, str):
                         try:
@@ -194,7 +347,7 @@ class SearchService:
     @staticmethod
     async def _get_popular_from_database(limit: int, offset: int = 0) -> List[Dict[str, Any]]:
         """
-        Obtiene películas populares de la base de datos con paginación
+        Obtiene películas populares sin información de visualización
         """
         try:
             async with get_db_connection() as conn:
@@ -203,18 +356,15 @@ class SearchService:
                     limit, offset
                 )
                 
-                # Adaptar los resultados
                 movies_list = []
                 for row in results:
                     movie_dict = dict(row)
-                    # Renombrar campos para mantener consistencia
                     movie_dict["id"] = str(movie_dict["id"])
                     movie_dict["poster"] = movie_dict.pop("cover_image")
                     movie_dict["rating"] = movie_dict.pop("imdb_rating")
                     movie_dict["runtime"] = movie_dict.get("duration")
                     movie_dict["source"] = "database"
                     
-                    # Decodificar torrents si están en formato JSON string
                     torrents = movie_dict.get("torrents")
                     if torrents and isinstance(torrents, str):
                         try:
@@ -222,7 +372,6 @@ class SearchService:
                         except:
                             movie_dict["torrents"] = []
                     
-                    # Extraer el torrent_hash del primer torrent disponible (si existe)
                     if movie_dict.get("torrents") and isinstance(movie_dict["torrents"], list) and len(movie_dict["torrents"]) > 0:
                         movie_dict["torrent_hash"] = movie_dict["torrents"][0].get("hash")
                     else:
@@ -242,11 +391,9 @@ class SearchService:
         """
         async with get_db_connection() as conn:
             for movie in movies:
-                # Solo procesar películas con torrents disponibles
                 if not movie.get("torrents"):
                     continue
                     
-                # Comprobar si la película ya existe
                 exists = False
                 if movie.get("imdb_id"):
                     exists = await conn.fetchval(
@@ -254,10 +401,8 @@ class SearchService:
                         movie.get("imdb_id")
                     )
                 
-                # Si no existe, la insertamos
                 if not exists:
                     try:
-                        # Insertar la película
                         await conn.execute(
                             insert_movie,
                             uuid.UUID(movie["id"]) if isinstance(movie["id"], str) else movie["id"],

@@ -45,6 +45,9 @@ class MovieDetail(BaseModel):
     torrent_hash: Optional[str] = None
     download_status: Optional[str] = None
     download_progress: Optional[int] = 0
+    # Nuevos campos para visualización
+    view_percentage: float = 0.0
+    completed: bool = False
 
 class MovieBasicResponse(BaseModel):
     id: str
@@ -52,4 +55,6 @@ class MovieBasicResponse(BaseModel):
     poster: Optional[str] = None
     year: Optional[int] = None
     rating: Optional[float] = None
-
+    # Nuevos campos para visualización
+    view_percentage: float = 0.0
+    completed: bool = False

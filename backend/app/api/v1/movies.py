@@ -2,14 +2,18 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
+from datetime import datetime
+import json
 import uuid
+
 from app.api.deps import get_current_user
 from app.db.session import get_db_connection
 from app.models.movie import MovieDetail, MovieSearchResponse
+from app.models.view_progress import ViewProgressUpdate, ViewProgressResponse
 from app.services.imdb_graphql_service import IMDBGraphQLService
-import json
 
 router = APIRouter()
+
 
 @router.get("/{movie_id}", response_model=MovieDetail)
 async def get_movie_details(
@@ -18,15 +22,25 @@ async def get_movie_details(
 ):
     """
     Obtiene detalles completos de una película, incluyendo información de APIs externas si es necesario
+    e información de visualización del usuario
     """
     try:
-        # Buscar la película en la base de datos
+        user_id = current_user["id"]
+        
+        # Buscar la película en la base de datos con información de visualización
         async with get_db_connection() as conn:
             movie = await conn.fetchrow(
                 """
-                SELECT * FROM movies WHERE id = $1
+                SELECT 
+                    m.*,
+                    COALESCE(umv.view_percentage, 0.0) as view_percentage,
+                    COALESCE(umv.completed, false) as completed
+                FROM movies m
+                LEFT JOIN user_movie_views umv ON m.id = umv.movie_id AND umv.user_id = $2
+                WHERE m.id = $1
                 """, 
-                uuid.UUID(movie_id)
+                uuid.UUID(movie_id),
+                user_id
             )
             
             if not movie:
@@ -73,7 +87,12 @@ async def get_movie_details(
                         # Ejecutar la actualización
                         updated_movie = await conn.fetchrow(query, *values)
                         if updated_movie:
+                            # Actualizar movie_dict pero mantener la info de visualización
+                            view_percentage = movie_dict["view_percentage"]
+                            completed = movie_dict["completed"]
                             movie_dict = dict(updated_movie)
+                            movie_dict["view_percentage"] = view_percentage
+                            movie_dict["completed"] = completed
             
             # Decodificar torrents si están en formato JSON string
             torrents = movie_dict.get("torrents")
@@ -104,7 +123,10 @@ async def get_movie_details(
                 "torrents": movie_dict.get("torrents", []),
                 "torrent_hash": torrent_hash,
                 "download_status": movie_dict.get("download_status"),
-                "download_progress": movie_dict.get("download_progress", 0)
+                "download_progress": movie_dict.get("download_progress", 0),
+                # Nuevos campos de visualización
+                "view_percentage": movie_dict.get("view_percentage", 0.0),
+                "completed": movie_dict.get("completed", False)
             }
             
             return result
@@ -115,4 +137,171 @@ async def get_movie_details(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting movie details: {str(e)}"
+        )
+
+@router.put("/{movie_id}/view", response_model=ViewProgressResponse)
+async def update_view_progress(
+    movie_id: str,
+    progress_data: ViewProgressUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Actualizar el progreso de visualización de una película
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        user_id = current_user["id"]
+        
+        async with get_db_connection() as conn:
+            # Verificar que la película existe
+            movie_exists = await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM movies WHERE id = $1)",
+                movie_uuid
+            )
+            
+            if not movie_exists:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Movie not found"
+                )
+            
+            # Determinar si está completada (≥90%)
+            completed = progress_data.view_percentage >= 90.0
+            now = datetime.now()
+            
+            # Usar UPSERT para actualizar o insertar
+            result = await conn.fetchrow(
+                """
+                INSERT INTO user_movie_views (id, user_id, movie_id, view_percentage, completed, first_viewed_at, last_viewed_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $6, $6, $6)
+                ON CONFLICT (user_id, movie_id) 
+                DO UPDATE SET 
+                    view_percentage = GREATEST(user_movie_views.view_percentage, EXCLUDED.view_percentage),
+                    completed = (GREATEST(user_movie_views.view_percentage, EXCLUDED.view_percentage) >= 90.0),
+                    last_viewed_at = EXCLUDED.last_viewed_at,
+                    updated_at = EXCLUDED.updated_at
+                RETURNING user_id, movie_id, view_percentage, completed, updated_at
+                """,
+                uuid.uuid4(), user_id, movie_uuid, progress_data.view_percentage, completed, now
+            )
+            
+            return ViewProgressResponse(
+                movie_id=str(result["movie_id"]),
+                user_id=str(result["user_id"]),
+                view_percentage=result["view_percentage"],
+                completed=result["completed"],
+                updated_at=result["updated_at"]
+            )
+            
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating view progress: {str(e)}"
+        )
+
+
+@router.post("/{movie_id}/complete", response_model=ViewProgressResponse)
+async def mark_movie_complete(
+    movie_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Marcar película como completamente vista (100%)
+    """
+    return await update_view_progress(
+        movie_id=movie_id,
+        progress_data=ViewProgressUpdate(view_percentage=100.0),
+        current_user=current_user
+    )
+
+
+@router.delete("/{movie_id}/view")
+async def remove_view_progress(
+    movie_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Quitar película de la lista de vistas
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        user_id = current_user["id"]
+        
+        async with get_db_connection() as conn:
+            deleted = await conn.fetchrow(
+                "DELETE FROM user_movie_views WHERE user_id = $1 AND movie_id = $2 RETURNING id",
+                user_id, movie_uuid
+            )
+            
+            if not deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="View record not found"
+                )
+            
+            return {"message": "View progress removed successfully"}
+            
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error removing view progress: {str(e)}"
+        )
+
+
+@router.get("/{movie_id}/view", response_model=Optional[ViewProgressResponse])
+async def get_view_progress(
+    movie_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Obtener el progreso actual de visualización
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        user_id = current_user["id"]
+        
+        async with get_db_connection() as conn:
+            progress = await conn.fetchrow(
+                """
+                SELECT user_id, movie_id, view_percentage, completed, updated_at
+                FROM user_movie_views 
+                WHERE user_id = $1 AND movie_id = $2
+                """,
+                user_id, movie_uuid
+            )
+            
+            if not progress:
+                return None
+            
+            return ViewProgressResponse(
+                movie_id=str(progress["movie_id"]),
+                user_id=str(progress["user_id"]),
+                view_percentage=progress["view_percentage"],
+                completed=progress["completed"],
+                updated_at=progress["updated_at"]
+            )
+            
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting view progress: {str(e)}"
         )

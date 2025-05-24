@@ -17,20 +17,11 @@ async def search_movies(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Busca películas por título o palabra clave y devuelve información básica
+    Busca películas por título o palabra clave y devuelve información básica con estado de visualización
     """
     try:
-        full_results = await SearchService.search_movies(query, page, limit)
-        # Convertir resultados al formato ligero
-        basic_results = [
-            MovieBasicResponse(
-                id=movie["id"],
-                title=movie["title"],
-                poster=movie.get("poster"),
-                year=movie.get("year"),
-                rating=movie.get("rating")
-            ) for movie in full_results
-        ]
+        user_id = current_user["id"]
+        basic_results = await SearchService.search_movies_with_views(query, page, limit, user_id)
         return basic_results
     except Exception as e:
         raise HTTPException(
@@ -46,20 +37,11 @@ async def get_popular_movies(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Obtiene las películas más populares con información básica
+    Obtiene las películas más populares con información básica y estado de visualización
     """
     try:
-        full_results = await SearchService.get_popular_movies(page, limit)
-        # Convertir resultados al formato ligero
-        basic_results = [
-            MovieBasicResponse(
-                id=movie["id"],
-                title=movie["title"],
-                poster=movie.get("poster"),
-                year=movie.get("year"),
-                rating=movie.get("rating")
-            ) for movie in full_results
-        ]
+        user_id = current_user["id"]
+        basic_results = await SearchService.get_popular_movies_with_views(page, limit, user_id)
         return basic_results
     except Exception as e:
         raise HTTPException(
@@ -68,13 +50,13 @@ async def get_popular_movies(
         )
 
 @router.get("/popular_full", response_model=List[MovieSearchResponse])
-async def get_popular_movies(
+async def get_popular_movies_full(
     page: int = Query(1, ge=1, description="Número de página"),
     limit: int = Query(20, ge=1, le=50, description="Resultados por página"),
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Obtiene las películas más populares
+    Obtiene las películas más populares con información completa
     """
     try:
         results = await SearchService.get_popular_movies(page, limit)
@@ -87,14 +69,14 @@ async def get_popular_movies(
 
 
 @router.get("/movies_full", response_model=List[MovieSearchResponse])
-async def search_movies(
+async def search_movies_full(
     query: str = Query("", description="Término de búsqueda"),
     page: int = Query(1, ge=1, description="Número de página"),
     limit: int = Query(20, ge=1, le=50, description="Resultados por página"),
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Busca películas por título o palabra clave
+    Busca películas por título o palabra clave con información completa
     """
     try:
         results = await SearchService.search_movies(query, page, limit)
