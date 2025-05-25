@@ -30,6 +30,8 @@ from starlette import status
 import urllib.parse
 import json
 
+HOST = "192.168.0.12"
+
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 
@@ -232,21 +234,21 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
         encoded_user = urllib.parse.quote(user_json)
         
         # Redirigir al frontend con el token y datos de usuario
-        frontend_url = "http://localhost:3000/auth/callback"
+        frontend_url = f"http://{HOST}:3000/auth/callback"
         redirect_url = f"{frontend_url}?access_token={access_token}&user={encoded_user}"
         
         return RedirectResponse(redirect_url, status_code=303)
             
     except ValueError as e:
         # En caso de error, redirigir al frontend con mensaje de error
-        frontend_url = "http://localhost:3000/login"
+        frontend_url = f"http://{HOST}:3000/login"
         error_message = urllib.parse.quote(str(e))
         return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
     except HTTPException as e:
         raise e
     except Exception as e:
         # En caso de error, redirigir al frontend con mensaje de error
-        frontend_url = "http://localhost:3000/login"
+        frontend_url = f"http://{HOST}:3000/login"
         error_message = urllib.parse.quote(f"Error de autenticación: {str(e)}")
         return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
 
@@ -303,7 +305,7 @@ async def forgot_password(request_data: PasswordResetRequest):
         print(reset_token)
         
         # RESET URL FRONTEND
-        reset_url = f"http://localhost:3000/reset-password?token={reset_token}"
+        reset_url = f"http://{HOST}:3000/reset-password?token={reset_token}"
         
         send_password_reset_email(user["email"], reset_url)
         
