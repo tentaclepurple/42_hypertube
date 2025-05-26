@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -15,9 +15,6 @@ RUN apt-get update && apt-get install -y \
     libboost-system-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Crear symlink para que Python encuentre libtorrent
-RUN ln -sf /usr/lib/python3/dist-packages/libtorrent.cpython-*.so /usr/local/lib/python3.10/site-packages/ || true
-
 # Copiar requirements
 COPY microservices/torrent_service/requirements.txt .
 
@@ -26,6 +23,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código
 COPY microservices/torrent_service/ .
+
+# Test que libtorrent funciona
+RUN python3 -c "import libtorrent as lt; print(f'✅ Libtorrent {lt.version} importado correctamente')"
 
 # Comando
 CMD ["python", "main.py"]

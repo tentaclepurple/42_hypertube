@@ -312,13 +312,14 @@ async def get_view_progress(
             detail=f"Error getting view progress: {str(e)}"
         )
 
+
 @router.post("/{movie_id}/download")
 async def initiate_movie_download(
     movie_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Iniciar descarga de película vía torrent
+    Iniciar descarga de película vía torrent (soporta hashes y magnet links)
     """
     try:
         user_id = current_user["id"]
@@ -336,7 +337,7 @@ async def initiate_movie_download(
                     detail="Movie not found"
                 )
             
-            # Extraer magnet link del primer torrent
+            # Extraer información del torrent
             torrents = movie["torrents"]
             if isinstance(torrents, str):
                 torrents = json.loads(torrents)
@@ -348,19 +349,36 @@ async def initiate_movie_download(
                 )
             
             # Usar el primer torrent disponible
-            magnet_link = torrents[0].get("url")
-            if not magnet_link:
+            torrent_info = torrents[0]
+            
+            # Determinar si tenemos hash o magnet link
+            torrent_hash = torrent_info.get("hash")
+            magnet_link = torrent_info.get("url")
+            
+            if not torrent_hash and not magnet_link:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid torrent data"
+                    detail="Invalid torrent data: no hash or magnet link"
                 )
             
+            # Preparar mensaje para Kafka
+            download_message = {
+                'movie_id': movie_id,
+                'movie_title': movie["title"],
+                'user_id': str(user_id),
+                'timestamp': time.time()
+            }
+            
+            # Añadir hash o magnet según lo que tengamos
+            if torrent_hash:
+                download_message['torrent_hash'] = torrent_hash
+                logger.info(f"Enviando descarga con hash: {torrent_hash}")
+            else:
+                download_message['magnet_link'] = magnet_link
+                logger.info(f"Enviando descarga con magnet link")
+            
             # Enviar petición de descarga
-            success = kafka_service.send_download_request(
-                movie_id=movie_id,
-                magnet_link=magnet_link,
-                user_id=str(user_id)
-            )
+            success = kafka_service.send_download_request_enhanced(download_message)
             
             if not success:
                 raise HTTPException(
@@ -378,7 +396,8 @@ async def initiate_movie_download(
                 "message": "Download initiated successfully",
                 "movie_id": movie_id,
                 "title": movie["title"],
-                "status": "downloading"
+                "status": "downloading",
+                "torrent_type": "hash" if torrent_hash else "magnet"
             }
             
     except HTTPException:

@@ -1,42 +1,50 @@
-from kafka import KafkaProducer, KafkaConsumer
+#!/usr/bin/env python3
+# test_simple_hash.py
+
+from kafka import KafkaProducer
 import json
 import time
-import uuid
 
-def test_kafka():
+def test_single_hash():
+    """Prueba con un solo hash bien conocido"""
     try:
-        # Producer
         producer = KafkaProducer(
             bootstrap_servers=['192.168.0.12:9092'],
             value_serializer=lambda x: json.dumps(x).encode('utf-8')
         )
         
-        # Mensaje único cada vez
-        unique_message = {
-            'message': f'Hello from Hypertube! {uuid.uuid4()}',
+        # Hash conocido de Big Buck Bunny
+        test_hash = 'dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c'
+        movie_id = f'debug-hash-test-{int(time.time())}'
+        
+        message = {
+            'movie_id': movie_id,
+            'torrent_hash': test_hash,
+            'movie_title': 'Big Buck Bunny',
+            'user_id': 'debug-user',
             'timestamp': time.time()
         }
         
-        producer.send('test-topic', unique_message)
-        print(f"✅ Mensaje enviado: {unique_message['message']}")
+        print(f"📤 Enviando hash de prueba:")
+        print(f"   Movie ID: {movie_id}")
+        print(f"   Hash: {test_hash}")
+        print(f"   Título: Big Buck Bunny")
+        print(f"   Mensaje completo: {json.dumps(message, indent=2)}")
         
-        # Consumer con grupo único
-        consumer = KafkaConsumer(
-            'test-topic',
-            bootstrap_servers=['192.168.0.12:9092'],
-            group_id=f'test-group-{uuid.uuid4()}',  # Grupo único
-            auto_offset_reset='latest',  # Solo mensajes nuevos
-            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            consumer_timeout_ms=5000
-        )
+        producer.send('movie-download-requests', message)
+        producer.flush()
+        producer.close()
         
-        print("📡 Esperando mensajes...")
-        for message in consumer:
-            print(f"✅ Mensaje recibido: {message.value['message']}")
-            break
-            
+        print(f"\n✅ Mensaje enviado!")
+        print(f"\n📋 Ahora verifica los logs:")
+        print(f"   docker logs -f torrent_service")
+        print(f"\nBusca estas líneas:")
+        print(f"   📨 Petición recibida: {movie_id}")
+        print(f"   🔍 Tipo detectado: hash")
+        print(f"   🧲 Hash convertido a magnet: ...")
+        
     except Exception as e:
-        print(f"❌ Error con Kafka: {e}")
+        print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
-    test_kafka()
+    test_single_hash()
