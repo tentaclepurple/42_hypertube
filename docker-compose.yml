@@ -45,6 +45,7 @@ services:
       dockerfile: ./microservices/torrent_service/Dockerfile
     volumes:
       - ./data:/data
+     # - ./microservices/torrent_service:/app
     env_file:
       - .env
     networks:
@@ -60,6 +61,7 @@ services:
       dockerfile: ./microservices/conversion_service/Dockerfile
     volumes:
       - ./data:/data
+      #- ./microservices/conversion_service:/app
     env_file:
       - .env
     networks:

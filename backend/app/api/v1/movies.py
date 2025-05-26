@@ -1,6 +1,6 @@
 # backend/app/api/v1/movies.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from typing import List, Optional
 from datetime import datetime
 import json
@@ -11,6 +11,12 @@ from app.db.session import get_db_connection
 from app.models.movie import MovieDetail, MovieSearchResponse
 from app.models.view_progress import ViewProgressUpdate, ViewProgressResponse
 from app.services.imdb_graphql_service import IMDBGraphQLService
+from app.services.kafka_service import kafka_service
+
+from fastapi.responses import StreamingResponse
+import aiofiles
+import os
+
 
 router = APIRouter()
 
@@ -304,4 +310,146 @@ async def get_view_progress(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting view progress: {str(e)}"
+        )
+
+@router.post("/{movie_id}/download")
+async def initiate_movie_download(
+    movie_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Iniciar descarga de película vía torrent
+    """
+    try:
+        user_id = current_user["id"]
+        
+        # Obtener información de la película
+        async with get_db_connection() as conn:
+            movie = await conn.fetchrow(
+                "SELECT id, title, torrents FROM movies WHERE id = $1",
+                uuid.UUID(movie_id)
+            )
+            
+            if not movie:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Movie not found"
+                )
+            
+            # Extraer magnet link del primer torrent
+            torrents = movie["torrents"]
+            if isinstance(torrents, str):
+                torrents = json.loads(torrents)
+            
+            if not torrents or len(torrents) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No torrents available for this movie"
+                )
+            
+            # Usar el primer torrent disponible
+            magnet_link = torrents[0].get("url")
+            if not magnet_link:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid torrent data"
+                )
+            
+            # Enviar petición de descarga
+            success = kafka_service.send_download_request(
+                movie_id=movie_id,
+                magnet_link=magnet_link,
+                user_id=str(user_id)
+            )
+            
+            if not success:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Download service temporarily unavailable"
+                )
+            
+            # Actualizar estado en base de datos
+            await conn.execute(
+                "UPDATE movies SET download_status = $1 WHERE id = $2",
+                "downloading", uuid.UUID(movie_id)
+            )
+            
+            return {
+                "message": "Download initiated successfully",
+                "movie_id": movie_id,
+                "title": movie["title"],
+                "status": "downloading"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error initiating download: {str(e)}"
+        )
+
+
+@router.get("/{movie_id}/stream")
+async def stream_movie(
+    movie_id: str,
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Stream de película (versión básica)
+    """
+    try:
+        # Verificar que la película existe
+        async with get_db_connection() as conn:
+            movie = await conn.fetchrow(
+                "SELECT id, title, file_path FROM movies WHERE id = $1",
+                uuid.UUID(movie_id)
+            )
+            
+            if not movie:
+                raise HTTPException(404, "Movie not found")
+            
+            # Por ahora, buscar archivo en /data/movies
+            # TODO: Mejorar con información real del torrent service
+            movie_files = [
+                f"/data/movies/{movie['title']}.mp4",
+                f"/data/movies/{movie['title']}.mkv",
+                f"/data/movies/{movie_id}.mp4",
+                f"/data/movies/{movie_id}.mkv"
+            ]
+            
+            file_path = None
+            for path in movie_files:
+                if os.path.exists(path):
+                    file_path = path
+                    break
+            
+            if not file_path:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Movie file not available yet. Try downloading first."
+                )
+            
+            # Streaming simple
+            async def file_generator():
+                async with aiofiles.open(file_path, 'rb') as file:
+                    while chunk := await file.read(8192):  # 8KB chunks
+                        yield chunk
+            
+            return StreamingResponse(
+                file_generator(),
+                media_type="video/mp4",
+                headers={
+                    "Accept-Ranges": "bytes",
+                    "Content-Disposition": f"inline; filename={movie['title']}.mp4"
+                }
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Streaming error: {str(e)}"
         )
