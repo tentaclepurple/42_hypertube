@@ -1,10 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation"; 
+import { useParams } from "next/navigation";
+import { Star, MessageCircle, Send } from "lucide-react";
 import { Movie } from "../types/movies";
 import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
+
+interface Comment {
+    id: string;
+    comment: string;
+    rating: number;
+    username: string;
+    createdAt: string;
+}
 
 export default function MovieDetails() {
     const { logout } = useAuth();
@@ -12,34 +21,124 @@ export default function MovieDetails() {
     const [movieData, setMovieData] = useState<Movie | null>(null);
     const [error, setError] = useState<string[] | null>(null);
     const [loading, setLoading] = useState(true);
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [commentsloading, setCommentsLoading] = useState(false);
+    const [newComment, setNewComment] = useState("");
+    const [newRating, setNewRating] = useState(5);
+    const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
+
+    const fectchMovieData = async () => {
         if (!id) return;
         const token = localStorage.getItem("token");
-        const url = process.env.NEXT_PUBLIC_URL;
-        fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}`,
-        {
-            method: "GET",
-            headers: { 
-                Authorization: `Bearer ${token}` 
-            },
-        })
-        .then(async (response) => {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}`, {
+                method: "GET",
+                headers: { 
+                    Authorization: `Bearer ${token}` 
+                },
+            });
             if (!response.ok) {
                 if (response.status === 401) logout();
                 const text = parsedError(await response.json());
                 return Promise.reject(text);
             }
-            return response.json();
-        })
-        .then((data) => {
+            const data = await response.json();
             setMovieData(data);
-            setLoading(false);
-        })
-        .catch((err) => {
-            setError(err);
-            setLoading(false);
+        } catch (err) {
+            setError(err as string[]);
+        }
+    };
+
+    const fetchComments = async () => {
+        if (!id) return;
+        setCommentsLoading(true);
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/movies/${id}/comments`, {
+                method: "GET",
+                headers: { 
+                    Authorization: `Bearer ${token}` 
+                },
+            });
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                const text = parsedError(await response.json());
+                return Promise.reject(text);
+            }
+            const data = await response.json();
+            setComments(data);
+        } catch (err) {
+            setError(err as string[]);
+        } finally {
+            setCommentsLoading(false);
+        }
+    };
+
+    const submitComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newComment.trim() || !id) return;
+
+        setSubmitting(true);
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/movies/${id}/comments`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    comment: newComment.trim(),
+                    movieId: id as string,
+                    rating: newRating,
+                }),
+            });
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                const text = parsedError(await response.json());
+                return Promise.reject(text);
+            }
+            setNewComment("");
+            setNewRating(5);
+            await fetchComments();
+        } catch (err) {
+            setError(err as string[]);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
         });
+    };
+
+    const renderStars = (rating: number) => {
+        return Array.from({ length: 5 }, (_, index) => (
+            <Star 
+                key={index} 
+                className={`h-4 w-4 ${
+                    index < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
+                }`} 
+            />
+        ));
+    };
+
+    useEffect(() => {
+        const loadData = async () => {
+            setLoading(true);
+            setLoading(true);
+            await Promise.all([fectchMovieData(), fetchComments()]);
+            setLoading(false);
+        };
+        loadData();
     }, [id]);
     
     if(error) return (

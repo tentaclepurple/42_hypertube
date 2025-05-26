@@ -30,7 +30,7 @@ from starlette import status
 import urllib.parse
 import json
 
-HOST = "192.168.0.12"
+HOST = "localhost"  # Cambia esto al host de tu frontend si es necesario
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
