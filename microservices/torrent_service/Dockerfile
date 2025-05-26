@@ -2,29 +2,20 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema para libtorrent
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Instalar libtorrent desde repositorios del sistema
+RUN apt-get update && apt-get install -y \
+    python3-libtorrent \
     build-essential \
-    libboost-all-dev \
-    libssl-dev \
-    python3-dev \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar archivos de requisitos
+# Copiar requirements SIN python-libtorrent
 COPY microservices/torrent_service/requirements.txt .
 
-# Instalar dependencias de Python
+# Instalar el resto de dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el código del servicio
+# Copiar código
 COPY microservices/torrent_service/ .
 
-# Crear directorio para datos temporales
-RUN mkdir -p /data/temp
-
-# Set up alias
-RUN echo 'alias py="python3"' >> /root/.bashrc
-
-# Comando para iniciar el servicio
+# Comando
 CMD ["python", "main.py"]
