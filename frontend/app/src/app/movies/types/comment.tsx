@@ -4,4 +4,5 @@ export interface Comment {
     rating: number;
     username: string;
     created_at: string;
+    user_id: string;
 }

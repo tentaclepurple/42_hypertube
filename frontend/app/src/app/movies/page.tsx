@@ -33,6 +33,7 @@ export default function Movies() {
                 if(!response.ok){
                     if(response.status === 401) logout();
                     const errorText = parsedError(await response.json());
+                    console.log(errorText);
                     return Promise.reject(errorText);
                 };
                 const data: Movie[] = await response.json();
