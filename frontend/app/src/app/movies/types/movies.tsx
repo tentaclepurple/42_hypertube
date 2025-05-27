@@ -14,4 +14,6 @@ export interface Movie {
     torrent_hash?: string;
     download_status?: string;
     download_progress?: number;
+    view_percentage?: number;
+    completed?: boolean;
   }
