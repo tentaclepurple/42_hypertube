@@ -66,10 +66,8 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setComments(data);
-            console.log("user:", user);
             if(user){
                 const ownComment = data.find((comment: Comment) => comment.username === user.username);
-                console.log("Own comment:", ownComment);
                 if (ownComment) {
                     setHasCommented(true);
                     setUserComment(ownComment)

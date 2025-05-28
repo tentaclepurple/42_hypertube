@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth, User } from '../../context/authcontext';
 import { Star, MessageCircle, Calendar, UserIcon } from 'lucide-react';
