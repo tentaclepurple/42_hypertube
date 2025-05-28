@@ -17,6 +17,7 @@
  interface AuthContextType {
    user: User | null;
    isLoading: boolean;
+   token: string | null;
    login: (token: string, userData: User) => void;
    logout: () => void;
    updateUser: (userData: Partial<User>) => void;
@@ -27,6 +28,7 @@
  
  export function AuthProvider({ children }: { children: ReactNode }) {
    const [user, setUser] = useState<User | null>(null);
+   const [token, setToken] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const router = useRouter();
  
@@ -37,6 +39,7 @@
      
      if (token && storedUser) {
        try {
+         setToken(token);
          setUser(JSON.parse(storedUser));
        } catch (error) {
          console.error('Error parsing user data:', error);
@@ -52,6 +55,7 @@
      localStorage.setItem('token', token);
      localStorage.setItem('user', JSON.stringify(userData));
      setUser(userData);
+     setToken(token);
    };
  
    const logout = () => {
@@ -67,6 +71,7 @@
      localStorage.removeItem('token');
      localStorage.removeItem('user');
      setUser(null);
+     setToken(null);
      router.push('/login');
    };
 
@@ -85,7 +90,8 @@
      <AuthContext.Provider 
        value={{ 
          user, 
-         isLoading, 
+         isLoading,
+         token,
          login, 
          logout,
          updateUser,

@@ -8,7 +8,7 @@ import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
 
 export default function Search() {
-    const { logout } = useAuth();
+    const { token, logout } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
     const [error, setError] = useState<string[] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,7 +36,6 @@ export default function Search() {
         if(!debouncedQuery) return;
         const fetchMovies = async () => {
             setLoading(true);
-            const token = localStorage.getItem('token');
             try{
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/movies?query=${encodeURIComponent(debouncedQuery)}&page=${page}`, {
                     method: 'GET',

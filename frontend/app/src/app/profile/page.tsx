@@ -116,7 +116,7 @@ function AvatarUpload({
 }
 
 export default function Profile() {
-  const { logout, updateUser } = useAuth();
+  const { token, logout, updateUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState <string[] | null>(null);
@@ -128,7 +128,6 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/me`, {
         method: 'GET',
         headers: {
@@ -171,7 +170,6 @@ export default function Profile() {
   const handleSave = () => {
       setIsLoading(true);
       setEditError(null);
-      const token = localStorage.getItem('token');
       fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/profile`, {
         method: 'PUT',
         headers: {
@@ -215,7 +213,6 @@ export default function Profile() {
       return 
     }
     setUploading(true);
-    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('profile_picture', profilePicture);
     fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/users/profile/image`, {

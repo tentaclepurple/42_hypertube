@@ -9,7 +9,7 @@ import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
 
 export default function MovieDetails() {
-    const { user, logout } = useAuth();
+    const { user, token, logout, isLoading: authLoading } = useAuth();
     const { id } = useParams();
     const [movieData, setMovieData] = useState<Movie | null>(null);
     const [error, setError] = useState<string[] | null>(null);
@@ -24,8 +24,8 @@ export default function MovieDetails() {
     const [userComment, setUserComment] = useState<Comment | null>(null);
 
     const fectchMovieData = async () => {
-        if (!id) return;
-        const token = localStorage.getItem("token");
+        if (!id || !token) return;
+
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}`, {
                 method: "GET",
@@ -49,7 +49,6 @@ export default function MovieDetails() {
     const fetchComments = async () => {
         if (!id) return;
         setCommentsLoading(true);
-        const token = localStorage.getItem("token");
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/movies/${id}/comments`, {
                 method: "GET",
@@ -65,8 +64,10 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setComments(data);
+            console.log("user:", user);
             if(user){
-                const ownComment = data.find((comment: Comment) => comment.user_id === user.id);
+                const ownComment = data.find((comment: Comment) => comment.username === user.username);
+                console.log("Own comment:", ownComment);
                 if (ownComment) {
                     setHasCommented(true);
                     setUserComment(ownComment)
@@ -85,7 +86,6 @@ export default function MovieDetails() {
 
         setSubmitting(true);
         setCommentError(null);
-        const token = localStorage.getItem("token");
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/`, {
                 method: "POST",
@@ -138,14 +138,15 @@ export default function MovieDetails() {
     };
 
     useEffect(() => {
+        if (authLoading) return;
         const loadData = async () => {
             setLoading(true);
             await Promise.all([fectchMovieData(), fetchComments()]);
             setLoading(false);
         };
         loadData();
-    }, [id]);
-    
+    }, [id, authLoading]);
+
     if(error) return (
         <div className="text-center mt-4 py-2">
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -161,7 +162,6 @@ export default function MovieDetails() {
         </div>
     );
     const movie = movieData;
-    console.log("Movie data:", movie);
     return (
         <div className="p-4 bg-dark-900 text-white">
             <div className="max-w-4xl mx-auto mx-auto flex flex-col md:flex-row">
