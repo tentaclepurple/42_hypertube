@@ -2,16 +2,18 @@
  
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
  import { useRouter } from 'next/navigation';
+ import { Comment } from '../movies/types/comment';
  
  export interface User {
    id: string;
-   email: string;
+   email?: string;
    username: string;
    first_name?: string;
    last_name?: string;
    profile_picture?: string;
    birth_year?: number;
    gender?: string;
+   comments: Comment[];
  }
  
  interface AuthContextType {
@@ -36,7 +38,6 @@
      // Check if user is logged in on mount
      const token = localStorage.getItem('token');
      const storedUser = localStorage.getItem('user');
-     
      if (token && storedUser) {
        try {
          setToken(token);
@@ -80,7 +81,9 @@
         if (!prevUser) return null;
         const newUser = { ...prevUser, ...userData };
 
-        localStorage.setItem('user', JSON.stringify(newUser));
+        if (localStorage.getItem('user')) {
+          localStorage.setItem('user', JSON.stringify(newUser));
+        }
 
         return newUser;
       });

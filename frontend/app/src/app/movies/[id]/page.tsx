@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Star, MessageCircle, Send } from "lucide-react";
 import { Movie } from "../types/movies";
 import { Comment } from "../types/comment";
 import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
+import { formatDate, renderStars } from "../../ui/comments";
 
 export default function MovieDetails() {
     const { user, token, logout, isLoading: authLoading } = useAuth();
@@ -113,28 +115,6 @@ export default function MovieDetails() {
         } finally {
             setSubmitting(false);
         }
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const renderStars = (rating: number) => {
-        return Array.from({ length: 5 }, (_, index) => (
-            <Star 
-                key={index} 
-                className={`h-4 w-4 ${
-                    index < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
-                }`} 
-            />
-        ));
     };
 
     useEffect(() => {
@@ -319,7 +299,11 @@ export default function MovieDetails() {
                                         {comment.username.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        <p className="font-medium">{comment.username}</p>
+                                        <Link href={`/profile/${comment.username}`}>
+                                            <p className="font-medium hover:text-blue-400 cursor-pointer">
+                                                {comment.username}
+                                            </p>
+                                        </Link>
                                         <p className="text-xs text-gray-400">
                                             {formatDate(comment.created_at)}
                                         </p>
