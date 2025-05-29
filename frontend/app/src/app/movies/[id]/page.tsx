@@ -11,7 +11,7 @@ import { parsedError } from "../../ui/error/parsedError";
 import { formatDate, renderStars } from "../../ui/comments";
 
 export default function MovieDetails() {
-    const { user, token, logout, isLoading: authLoading } = useAuth();
+    const { user, logout, isLoading: authLoading } = useAuth();
     const { id } = useParams();
     const [movieData, setMovieData] = useState<Movie | null>(null);
     const [error, setError] = useState<string[] | null>(null);
@@ -26,8 +26,8 @@ export default function MovieDetails() {
     const [userComment, setUserComment] = useState<Comment | null>(null);
 
     const fectchMovieData = async () => {
-        if (!id || !token) return;
-
+        if (!id) return;
+        const token = localStorage.getItem("token");
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}`, {
                 method: "GET",
@@ -51,6 +51,7 @@ export default function MovieDetails() {
     const fetchComments = async () => {
         if (!id) return;
         setCommentsLoading(true);
+        const token = localStorage.getItem("token");
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/movies/${id}/comments`, {
                 method: "GET",
@@ -66,6 +67,7 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setComments(data);
+            console.log("Fetched comments:", data);
             if(user){
                 const ownComment = data.find((comment: Comment) => comment.username === user.username);
                 if (ownComment) {
@@ -83,9 +85,9 @@ export default function MovieDetails() {
     const submitComment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newComment.trim() || !id) return;
-
         setSubmitting(true);
         setCommentError(null);
+        const token = localStorage.getItem("token");
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/`, {
                 method: "POST",

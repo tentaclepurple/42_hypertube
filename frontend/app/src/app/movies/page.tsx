@@ -7,7 +7,7 @@ import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
 
 export default function Movies() {
-    const { token, logout } = useAuth();
+    const { logout } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
     const [error, setError] = useState<string[] | null>(null);
     const [page, setPage] = useState(1);
@@ -19,6 +19,7 @@ export default function Movies() {
         const fetchMovies = async () => {
             if(!hasMore) return;
             setLoading(true);
+            const token = localStorage.getItem('token');
             try
             {
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}&limit=10`, 

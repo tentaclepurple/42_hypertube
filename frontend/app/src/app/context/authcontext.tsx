@@ -19,7 +19,6 @@
  interface AuthContextType {
    user: User | null;
    isLoading: boolean;
-   token: string | null;
    login: (token: string, userData: User) => void;
    logout: () => void;
    updateUser: (userData: Partial<User>) => void;
@@ -94,7 +93,6 @@
        value={{ 
          user, 
          isLoading,
-         token,
          login, 
          logout,
          updateUser,
