@@ -32,7 +32,6 @@ export default function UserPublicProfile() {
       })
       .then((data) => {
           setUserProfile(data);
-          console.log(data);
           setIsLoading(false);
       })
       .catch((err) => {

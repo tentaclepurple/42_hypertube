@@ -65,6 +65,7 @@ function AvatarUpload({
           onChange={handleImageChange}
           className="hidden"
           id="avatar-upload"
+          name="avatar-upload"
         />
         <label
           htmlFor="avatar-upload"

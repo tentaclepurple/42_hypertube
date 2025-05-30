@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Movie } from "../movies/types/movies";
-import { Search as SearchIcon, X, Film } from "lucide-react";
+import { Search as SearchIcon, X, Film, Filter, ChevronDown, SlidersHorizontal } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
 
+interface SearchFilters {
+    query: string;
+    yearFrom: string;
+    yearTo: string;
+    ratingFrom: string;
+    ratingTo: string;
+    sortBy: string;
+    sortOrder: string;
+}
+
 export default function Search() {
     const { logout } = useAuth();
-    const [movies, setMovies] = useState<Movie[]>([]);
+    const [allMovies, setAllMovies] = useState<Movie[]>([]);
+    const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
     const [error, setError] = useState<string[] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebounceQuery] = useState('');
@@ -17,85 +28,202 @@ export default function Search() {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [initialSearch, setInitialSearch] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+    const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
+
+    const [filters, setFilters] = useState<SearchFilters>({
+        query: '',
+        yearFrom: '',
+        yearTo: '',
+        ratingFrom: '',
+        ratingTo: '',
+        sortBy: 'title',
+        sortOrder: 'asc'
+    });
+
+    const sortOptions = [
+        { value: 'title', label: 'Title' },
+        { value: 'year', label: 'Year' },
+        { value: 'rating', label: 'Rating' },
+        { value: 'view_percentage', label: 'Watch Progress' }
+    ];
+
+    const limitOptions = [10, 20, 30, 50];
+
+    useEffect(() => {
+        const filtered = filterAndSortMovies(allMovies);
+        setFilteredMovies(filtered);
+    }, [allMovies, filters]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebounceQuery(searchQuery);
-            if (searchQuery){
+            setFilters(prev => ({ ...prev, query: searchQuery }));
+            if (searchQuery) {
                 setInitialSearch(true);
                 setPage(1);
-                setMovies([]);
+                setAllMovies([]);
             }
         }, 500);
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Effect for movie search
+    const buildQueryString = (currentPage: number) => {
+        const params = new URLSearchParams();
+        
+        if (filters.query.trim()) {
+            params.append('query', filters.query.trim());
+        }
+        
+        params.append('page', currentPage.toString());
+        params.append('limit', limit.toString());
+        
+        return params.toString();
+    };
+
+    const filterAndSortMovies = (movieList: Movie[]) => {
+        let filtered = [...movieList];
+
+        if (filters.yearFrom) {
+            filtered = filtered.filter(movie => movie.year >= parseInt(filters.yearFrom));
+        }
+        if (filters.yearTo) {
+            filtered = filtered.filter(movie => movie.year <= parseInt(filters.yearTo));
+        }
+
+        if (filters.ratingFrom) {
+            filtered = filtered.filter(movie => movie.rating >= parseFloat(filters.ratingFrom));
+        }
+        if (filters.ratingTo) {
+            filtered = filtered.filter(movie => movie.rating <= parseFloat(filters.ratingTo));
+        }
+
+        filtered.sort((a, b) => {
+            let aValue: any;
+            let bValue: any;
+
+            switch (filters.sortBy) {
+                case 'title':
+                    aValue = a.title.toLowerCase();
+                    bValue = b.title.toLowerCase();
+                    break;
+                case 'year':
+                    aValue = a.year;
+                    bValue = b.year;
+                    break;
+                case 'rating':
+                    aValue = a.rating;
+                    bValue = b.rating;
+                    break;
+                case 'view_percentage':
+                    aValue = a.view_percentage || 0;
+                    bValue = b.view_percentage || 0;
+                    break;
+                default:
+                    aValue = a.title.toLowerCase();
+                    bValue = b.title.toLowerCase();
+            }
+
+            if (aValue < bValue) {
+                return filters.sortOrder === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return filters.sortOrder === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+
+        return filtered;
+    };
+
     useEffect(() => {
-        if(!debouncedQuery) return;
+        if (!debouncedQuery && !hasActiveFilters()) return;
+        
         const fetchMovies = async () => {
             setLoading(true);
             const token = localStorage.getItem('token');
-            try{
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/movies?query=${encodeURIComponent(debouncedQuery)}&page=${page}`, {
+            try {
+                const queryString = buildQueryString(page);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/movies?${queryString}`, {
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                if(!response.ok) {
-                    if(response.status === 401) logout();
+                
+                if (!response.ok) {
+                    if (response.status === 401) logout();
                     const errorText = parsedError(await response.json());
                     return Promise.reject(errorText);
                 }
+                
                 const data: Movie[] = await response.json();
-                if (page === 1){
-                    setMovies(data);
+                if (page === 1) {
+                    setAllMovies(data);
                 } else {
-                    setMovies((prevMovies) => {
-                        // Crear un conjunto de IDs existentes
+                    setAllMovies((prevMovies) => {
                         const existingIds = new Set(prevMovies.map(m => m.imdb_id || m.id));
-                        // Filtrar películas nuevas que no existan ya
                         const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
                         return [...prevMovies, ...newMovies];
                     });
                 }
-                setHasMore(data.length === 20); // Si la respuesta tiene 20 películas, hay más por cargar
-            } catch(err){
+                setHasMore(data.length === limit);
+            } catch (err) {
                 setHasMore(false);
                 setError(err as string[]);
-            } finally{
+            } finally {
                 setLoading(false);
             }
         };
+        
         fetchMovies();
-    }, [debouncedQuery, page]);
+    }, [debouncedQuery, page, filters, limit]);
 
     useEffect(() => {
-        if(!hasMore || loading) return;
+        if (!hasMore || loading) return;
         const observer = new IntersectionObserver((entries) => {
-            if(entries[0].isIntersecting && hasMore && debouncedQuery){
+            if (entries[0].isIntersecting && hasMore && (debouncedQuery || hasActiveFilters())) {
                 setPage((prevPage) => prevPage + 1);
             }
-        }, {threshold: 1});
-        if(observerRef.current) observer.observe(observerRef.current);
+        }, { threshold: 1 });
+        if (observerRef.current) observer.observe(observerRef.current);
         return () => observer.disconnect();
-    }, [hasMore, loading, debouncedQuery]);
+    }, [hasMore, loading, debouncedQuery, filters]);
 
-     // Función para renderizar el contenido de la página
+    const hasActiveFilters = () => {
+        return filters.yearFrom || filters.yearTo || 
+               filters.ratingFrom || filters.ratingTo;
+    };
+
+    const handleFilterChange = (key: keyof SearchFilters, value: string) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const clearAllFilters = () => {
+        setFilters({
+            query: searchQuery,
+            yearFrom: '',
+            yearTo: '',
+            ratingFrom: '',
+            ratingTo: '',
+            sortBy: 'title',
+            sortOrder: 'asc'
+        });
+    };
+
     const renderContent = () => {
-        if(movies.length === 0 && !loading && initialSearch){
-            return (        
+        if (filteredMovies.length === 0 && !loading && initialSearch) {
+            return (
                 <div className="text-center py-10">
-                    <p className="text-xl text-gray-400">No movies found for “{debouncedQuery}”</p>
+                    <p className="text-xl text-gray-400">No movies found with current filters</p>
                 </div>
             );
         }
 
         return (
             <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {movies.map((movie) => (
+                {filteredMovies.map((movie) => (
                     <Link key={movie.imdb_id || movie.id} href={`/movies/${movie.id}`} passHref>
                         <div className="bg-gray-800 p-2 rounded-lg transition-transform hover:scale-105">
                             <div className="relative pb-[150%]">
@@ -121,8 +249,9 @@ export default function Search() {
     };
 
     return (
-        <div className="p-4 bg-dark-900 text-white">
-            <div className="relative mb-8 max-w-2xl mx-auto">
+        <div className="p-4 bg-dark-900 text-white min-h-screen">
+            {/* Search Bar */}
+            <div className="relative mb-4 max-w-2xl mx-auto">
                 <input
                     type="text"
                     id="search"
@@ -143,18 +272,133 @@ export default function Search() {
                     </button>
                 )}
             </div>
-            { error && (
+            <div className="flex justify-center mb-6">
+                <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Advanced Filters
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+            {showFilters && (
+                <div className="bg-gray-800 p-6 rounded-lg mb-6 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Year From</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 2000"
+                                value={filters.yearFrom}
+                                onChange={(e) => handleFilterChange('yearFrom', e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="1900"
+                                max={new Date().getFullYear()}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Year To</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 2024"
+                                value={filters.yearTo}
+                                onChange={(e) => handleFilterChange('yearTo', e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="1900"
+                                max={new Date().getFullYear()}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Min Rating</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 7.0"
+                                value={filters.ratingFrom}
+                                onChange={(e) => handleFilterChange('ratingFrom', e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Max Rating</label>
+                            <input
+                                type="number"
+                                placeholder="e.g. 10.0"
+                                value={filters.ratingTo}
+                                onChange={(e) => handleFilterChange('ratingTo', e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Sort By</label>
+                            <select
+                                value={filters.sortBy}
+                                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {sortOptions.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Order</label>
+                            <select
+                                value={filters.sortOrder}
+                                onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="asc">Ascending</option>
+                                <option value="desc">Descending</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Results per page</label>
+                            <select
+                                value={limit}
+                                onChange={(e) => {
+                                    setLimit(Number(e.target.value));
+                                    setPage(1);
+                                    setAllMovies([]);
+                                }}
+                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {limitOptions.map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <button
+                            onClick={clearAllFilters}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                        >
+                            Clear All Filters
+                        </button>
+                    </div>
+                </div>
+            )}
+            {error && (
                 <div className="text-center mt-4 py-2">
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                         {error}
                     </div>
                 </div>
             )}
-            {!initialSearch && !loading && movies.length === 0 && (
-                    <div className="text-center py-10">
-                        <Film className="h-16 w-16 mx-auto text-gray-600 mb-4" />
-                        <p className="text-xl text-gray-400">Search for movies to display here</p>
-                    </div>
+            {!initialSearch && !loading && filteredMovies.length === 0 && (
+                <div className="text-center py-10">
+                    <Film className="h-16 w-16 mx-auto text-gray-600 mb-4" />
+                    <p className="text-xl text-gray-400">Search for movies or use filters to display results</p>
+                </div>
             )}
             {renderContent()}
             {loading && (
@@ -163,7 +407,8 @@ export default function Search() {
                     <p className="mt-2">Loading more movies...</p>
                 </div>
             )}
+
             <div ref={observerRef} className="h-10" />
         </div>
     );
-  }
+}

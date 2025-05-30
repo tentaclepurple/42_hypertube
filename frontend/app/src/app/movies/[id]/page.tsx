@@ -67,7 +67,6 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setComments(data);
-            console.log("Fetched comments:", data);
             if(user){
                 const ownComment = data.find((comment: Comment) => comment.username === user.username);
                 if (ownComment) {
