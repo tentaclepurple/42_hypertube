@@ -38,8 +38,8 @@ export default function Search() {
         yearTo: '',
         ratingFrom: '',
         ratingTo: '',
-        sortBy: 'title',
-        sortOrder: 'asc'
+        sortBy: 'rating',
+        sortOrder: 'desc'
     });
 
     const sortOptions = [
@@ -121,8 +121,8 @@ export default function Search() {
                     bValue = b.view_percentage || 0;
                     break;
                 default:
-                    aValue = a.title.toLowerCase();
-                    bValue = b.title.toLowerCase();
+                    aValue = a.rating;
+                    bValue = b.rating;
             }
 
             if (aValue < bValue) {
