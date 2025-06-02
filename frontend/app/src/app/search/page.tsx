@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Movie } from "../movies/types/movies";
-import { Search as SearchIcon, X, Film, Filter, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Search as SearchIcon, X, Film, ChevronDown, SlidersHorizontal } from "lucide-react";
 import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
@@ -207,8 +207,8 @@ export default function Search() {
             yearTo: '',
             ratingFrom: '',
             ratingTo: '',
-            sortBy: 'title',
-            sortOrder: 'asc'
+            sortBy: 'rating',
+            sortOrder: 'desc'
         });
     };
 
@@ -250,7 +250,6 @@ export default function Search() {
 
     return (
         <div className="p-4 bg-dark-900 text-white min-h-screen">
-            {/* Search Bar */}
             <div className="relative mb-4 max-w-2xl mx-auto">
                 <input
                     type="text"

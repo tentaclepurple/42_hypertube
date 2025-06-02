@@ -1,6 +1,12 @@
+"use client";
+
 import Image from "next/image";
+import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [randomImage, setRandomImage] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const images = [
     "/hypertube42.png",
@@ -8,10 +14,18 @@ export default function Home() {
     "/hyperheros.png",
   ];
 
-  const randomImage = images[Math.floor(Math.random() * images.length)];
+  useEffect(() => {
+    const image = images[Math.floor(Math.random() * images.length)];
+    setRandomImage(image);
+  }, []);
+
+  if (!randomImage) {
+    return <div>Loading...</div>; 
+  }
+
   return (
     <main className="flex flex-col items-center justify-between p-4 sm:p-10">
-      <h1 className="text-2xl sm:text-4xl font-bold text-center">Welcome to Hypertube</h1>
+      <h1 className="text-2xl sm:text-4xl font-bold text-center">{t("welcome")}</h1>
       <div className="w-full max-w-md sm:max-w-lg">
         <Image 
           src={randomImage}
@@ -24,7 +38,7 @@ export default function Home() {
           priority
         />
       </div>
-      <p className="mt-2 sm:mt-4 text-base sm:text-lg text-center">Dive into the ultimate movie universe</p>
+      <p className="mt-2 sm:mt-4 text-base sm:text-lg text-center">{t("dive")}</p>
     </main>
   )
 }
