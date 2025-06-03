@@ -7,6 +7,7 @@ import { parsedError } from '../ui/error/parsedError';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -18,7 +19,8 @@ export default function Login() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
   const router = useRouter();
-  
+  const { t } = useTranslation();
+
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam) {
@@ -88,7 +90,7 @@ export default function Login() {
         <div className="space-y-4">
           <div>
             <label htmlFor='username' className="block text-sm font-medium mb-1">
-              Username
+              {t("login.username")}
             </label>
             <input
               type='text'
@@ -103,7 +105,7 @@ export default function Login() {
           </div>
           <div>
             <label htmlFor='password' className="block text-sm font-medium mb-1">
-              Password
+              {t("login.password")}
             </label>
             <div className="relative">
               <input
@@ -131,10 +133,10 @@ export default function Login() {
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-200"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t("login.logginIn") : t("login.submit")}
             </button>
             <p className='text-blue-600 hover:underline ml-4'>
-              <Link href="/forgot-password">Forgot password?</Link>
+              <Link href="/forgot-password">{t("login.forgotPassword")}</Link>
             </p>
           </div>
         </div>
@@ -145,27 +147,27 @@ export default function Login() {
           onClick={() => handleLogin('42')}
           className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded transition duration-200"
         >
-          Login with 42
+          {t("login.42Login")}
         </button>
         
         <button
           onClick={() => handleLogin('google')}
           className="w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded transition duration-200"
         >
-          Login with Google
+          {t("login.googleLogin")}
         </button>
         
         <button
           onClick={() => handleLogin('github')}
           className="w-full py-2 px-4 bg-gray-700 hover:bg-gray-800 text-white rounded transition duration-200"
         >
-          Login with GitHub
+          {t("login.githubLogin")}
         </button>
       </div>
       
       <div className="text-center mt-10">
         <p className="text-gray-400">
-          Don't have an account? <Link href="/register" className="text-blue-400 hover:text-blue-300">Register here</Link>
+          {t("login.noAccount")} <Link href="/register" className="text-blue-400 hover:text-blue-300">{t("login.registerHere")}</Link>
         </p>
       </div>
     </div>

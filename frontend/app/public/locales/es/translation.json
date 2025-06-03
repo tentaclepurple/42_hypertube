@@ -1,4 +1,78 @@
 {
-    "welcome": "Bienvenido a Hypertube",
-    "dive": "Sumérgete en el mundo de Hypertube"
+    "main": {
+        "welcome": "Bienvenido a Hypertube",
+        "dive": "Sumérgete en el mundo de Hypertube"
+    },
+    "footer": {
+        "madeBy": "Hecho por ",
+        "and": " y "
+    },
+    "navbar": {
+        "movies": "Peliculas",
+        "search": "Buscar",
+        "login": "Iniciar sesión",
+        "register": "Registrarse"
+    },
+    "login": {
+        "username": "Usuario",
+        "password": "Contraseña",
+        "submit": "Iniciar sesión",
+        "loggingIn": "Iniciando sesión...",
+        "42Login": "Iniciar sesión con 42",
+        "googleLogin": "Iniciar sesión con Google",
+        "githubLogin": "Iniciar sesión con GitHub",
+        "forgotPassword": "¿Olvidaste tu contraseña?",
+        "noAccount": "¿No tienes una cuenta?",
+        "registerHere": "Regístrate aquí"
+    },
+    "movies": {
+        "loadingMore": "Cargando más películas...",
+        "loading":  "Cargando película...",
+        "genres": "Géneros",
+        "noDirector": "No hay director disponible",
+        "cast": "Reparto",
+        "noCast": "No hay reparto disponible",
+        "viewing": "Progreso de visualización",
+        "completed": "✅ Visto completamente",
+        "comment": "Tu comentario",
+        "rating": "Tu valoración",
+        "placeholder": "Escribe tu opinión sobre la película...",
+        "character": "carácter",
+        "sending": "Enviando...",
+        "submitComment": "Enviar un comentario",
+        "loadingComments": "Cargando comentarios...",
+        "firstComment": "¡Aún no hay comentarios, sé el primero en comentar!"
+    },
+    "profile": {
+        "loading": "Cargando prefil...",
+        "userloading": "Cargando perfil de usuario...",
+        "notfound": "Perfil de usuario no encontrado.",
+        "year": "Año de nacimiento: ",
+        "gender": "Género: ",
+        "comments": "Comentarios recientes",
+        "nocomments": "No se encontraron comentarios recientes",
+        "uploading": "Subiendo...",
+        "upload": "Subir",
+        "cancel": "Cancelar",
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "email": "Correo electrónico",
+        "birth": "Fecha de nacimiento",
+        "genderEdit": "Género",
+        "save": "Guardar",
+        "selectGender": "Selecciona tu género",
+        "male": "Masculino",
+        "female": "Femenino",
+        "other": "Otro",
+        "noBinary": "No binario",
+        "notsay": "Prefiero no decirlo",
+        "born": "Nacido en ",
+        "allGenders": {
+            "male": "Masculino",
+            "female": "Femenino",
+            "other": "Otro",
+            "non-binary": "No binario",
+            "prefer-not-to-say": "Prefiero no decirlo"
+        }
+    }
 }

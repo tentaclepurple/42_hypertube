@@ -1,4 +1,81 @@
 {
-    "welcome": "Welcome to Hypertube",
-    "dive": "Dive into the world of Hypertube"
+    "main": {
+        "welcome": "Welcome to Hypertube",
+        "dive": "Dive into the world of Hypertube"
+    },
+    "footer": {
+        "madeBy": "Made by ",
+        "and": " and "
+    },
+    "navbar": {
+        "movies": "Movies",
+        "search": "Search",
+        "login": "Login",
+        "register": "Register"
+    },
+    "login": {
+        "username": "Username",
+        "password": "Password",
+        "submit": "Login",
+        "loggingIn": "Logging in...",
+        "42Login": "Login with 42",
+        "googleLogin": "Login with Google",
+        "githubLogin": "Login with GitHub",
+        "forgotPassword": "Forgot your password?",
+        "noAccount": "Don't have an account?",
+        "registerHere": "Register here"
+    },
+    "movies": {
+        "loadingMore": "Loading more movies...",
+        "loading":  "Loading movie...",
+        "genres": "Genres",
+        "director": "Director",
+        "noDirector": "No director available",
+        "cast": "Cast",
+        "noCast": "No cast available",
+        "viewing": "Viewing progress",
+        "completed": "✅ Fully watched",
+        "comment": "Your comment",
+        "rating": "Your rating",
+        "placeholder": "Write your opinion about the movie...",
+        "character": "character",
+        "sending": "Sending...",
+        "submitComment": "Send a comment",
+        "loadingComments": "Loading comments...",
+        "firstComment": "There are no comments yet, be the first to comment!"
+    },
+    "profile": {
+        "loading": "Loading profile...",
+        "userloading": "Loading user profile...",
+        "notfound": "User profile not found.",
+        "year": "Year of birth: ",
+        "gender": "Gender: ",
+        "comments": "Recent comments",
+        "nocomments": "No recent comments found",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "cancel": "Cancel",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "birth": "Year of Birth",
+        "genderEdit": "Gender",
+        "save": "Save",
+        "selectGender": "Select Gender",
+        "male": "Male",
+        "female": "Female",
+        "other": "Other",
+        "noBinary": "Non-binary",
+        "notsay": "Prefer not to say",
+        "recent": "Recent comments",
+        "norecent": "No recent comments found",
+        "born": "Born in ",
+        "allGenders": {
+            "male": "Male",
+            "female": "Female",
+            "other": "Other",
+            "non-binary": "Non-binary",
+            "prefer-not-to-say": "Prefer not to say"
+        }
+    }
 }

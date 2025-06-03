@@ -6,6 +6,7 @@ import { useAuth, User } from '../../context/authcontext';
 import { MessageCircle, Calendar, UserIcon } from 'lucide-react';
 import { parsedError } from '../../ui/error/parsedError';
 import { formatDate, renderStars } from '../../ui/comments';
+import { useTranslation } from 'react-i18next';
 
 export default function UserPublicProfile() {
   const { logout } = useAuth();
@@ -13,6 +14,7 @@ export default function UserPublicProfile() {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [error, setError] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
       const token = localStorage.getItem('token');
@@ -59,7 +61,7 @@ export default function UserPublicProfile() {
         <div className="p-6 bg-dark-900 text-white ">
           <div className="text-center mt-4 py-2">
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-            <p className="mt-2">Loading user profile...</p>
+            <p className="mt-2">{t("profile.userloading")}</p>
           </div>
         </div>
       );
@@ -69,7 +71,7 @@ export default function UserPublicProfile() {
       return (
         <div className="p-6 bg-dark-900 text-white ">
           <div className="text-center mt-4 py-2">
-            <p className="text-lg">User profile not found.</p>
+            <p className="text-lg">{t("profile.notfound")}</p>
           </div>
         </div>
       );
@@ -94,23 +96,23 @@ export default function UserPublicProfile() {
               {userProfile.birth_year && (
                   <div className="flex items-center mt-2 text-gray-400">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>Born in {userProfile.birth_year}</span>
+                  <span>{t("profile.born")} {userProfile.birth_year}</span>
                   </div>
               )}
               {userProfile.gender && (
                   <div className="flex items-center mt-1 text-gray-400">
                   <UserIcon className="h-4 w-4 mr-2" />
-                  <span className="capitalize">{userProfile.gender}</span>
+                  <span className="capitalize">{t(`profile.allGenders.${userProfile.gender}`)}</span>
                   </div>
               )}
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-semibold mb-4 text-center">Recent comments</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-center">{t("profile.comments")}</h2>
             {userProfile.comments.length == 0 ? (
               <div className='text-center py-8 text-gray-400'>
                 <MessageCircle className='iw-12 h-12 mx-auto mb-2 opacity-50' />
-                <p>No recent comments found.</p>
+                <p>{t("profile.nocomments")}</p>
               </div>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto rounded-lg p-4">

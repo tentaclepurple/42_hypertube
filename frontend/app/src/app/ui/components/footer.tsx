@@ -13,7 +13,7 @@ const Footer = () => {
         <div className="container mx-auto text-center flex justify-center items-center flex-wrap gap-2">
           <p>&copy; 2025 Hypertube.</p>
           <p>
-            Made by{" "}
+            {t("footer.madeBy")}{" "}
             <a
               href="https://github.com/johnconh"
               target="_blank"
@@ -22,7 +22,7 @@ const Footer = () => {
             >
               jdasilva
             </a>{" "}
-            and{" "}
+            {t("footer.and")}{" "}
             <a
               href="https://github.com/tentaclepurple"
               target="_blank"

@@ -25,7 +25,7 @@ export default function Home() {
 
   return (
     <main className="flex flex-col items-center justify-between p-4 sm:p-10">
-      <h1 className="text-2xl sm:text-4xl font-bold text-center">{t("welcome")}</h1>
+      <h1 className="text-2xl sm:text-4xl font-bold text-center">{t("main.welcome")}</h1>
       <div className="w-full max-w-md sm:max-w-lg">
         <Image 
           src={randomImage}
@@ -38,7 +38,7 @@ export default function Home() {
           priority
         />
       </div>
-      <p className="mt-2 sm:mt-4 text-base sm:text-lg text-center">{t("dive")}</p>
+      <p className="mt-2 sm:mt-4 text-base sm:text-lg text-center">{t("main.dive")}</p>
     </main>
   )
 }

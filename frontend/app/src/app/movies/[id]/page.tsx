@@ -9,6 +9,7 @@ import { Comment } from "../types/comment";
 import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
 import { formatDate, renderStars } from "../../ui/comments";
+import { useTranslation } from "react-i18next";
 
 export default function MovieDetails() {
     const { user, logout, isLoading: authLoading } = useAuth();
@@ -24,6 +25,7 @@ export default function MovieDetails() {
     const [submitting, setSubmitting] = useState(false);
     const [hascommented, setHasCommented] = useState(false);
     const [userComment, setUserComment] = useState<Comment | null>(null);
+    const { t } = useTranslation();
 
     const fectchMovieData = async () => {
         if (!id) return;
@@ -137,7 +139,7 @@ export default function MovieDetails() {
     if (loading) return (
         <div className="text-center mt-4 py-2">
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-            <p className="mt-2">Loading movie...</p>
+            <p className="mt-2">{t("movies.loading")}</p>
         </div>
     );
     const movie = movieData;
@@ -150,11 +152,11 @@ export default function MovieDetails() {
                     <p className="text-gray-400">{movie?.runtime ?? "N/A"} • {movie?.year ?? "N/A"} • {movie?.rating ?? "N/A"}/10⭐ </p>
                     <p className="text-lg mt-4 max-h-40 overflow-auto no-scrollbar">{movie?.summary}</p>
                     <h3 className="mt-6 text-xl font-semibold">Director</h3>
-                    <p>{movie?.director?.length? movie.director.join(", ") : "No director available"}</p>
+                    <p>{movie?.director?.length? movie.director.join(", ") : t("movies.noDirector")}</p>
 
-                    <h3 className="mt-6 text-xl font-semibold">Cast</h3>
-                    <p>{movie?.cast?.length? movie.cast.join(", ") : "No cast available"}</p>
-                    <h3 className="text-2xl mt-8">Genres</h3>
+                    <h3 className="mt-6 text-xl font-semibold">{t("movies.cast")}</h3>
+                    <p>{movie?.cast?.length? movie.cast.join(", ") : t("movies.noCast")}</p>
+                    <h3 className="text-2xl mt-8">{t("movies.genres")}</h3>
                     <ul className="grid grid-cols-3 gap-4">
                         {movie?.genres.map((genre) => (
                             <li key={genre} className="bg-gray-800 px-2 py-1 rounded-lg text-center">{genre}</li>
@@ -162,7 +164,7 @@ export default function MovieDetails() {
                     </ul>
                     {typeof movie?.view_percentage === "number" && (
                         <div className="mt-6">
-                            <p className="text-sm text-gray-400 mb-1">Viewing progress</p>
+                            <p className="text-sm text-gray-400 mb-1">{t("movies.viewing")}</p>
                             <div className="w-full h-4 bg-gray-800 rounded-full overflow-hidden">
                             <div
                                 className={`h-full transition-all duration-500 ease-in-out ${
@@ -179,7 +181,7 @@ export default function MovieDetails() {
                             </div>
                             <p className="text-xs text-gray-400 mt-1">
                             {movie.view_percentage === 100
-                                ? "✅ Fully watched"
+                                ? t("movies.completed")
                                 : `${movie.view_percentage}%`}
                             </p>
                         </div>
@@ -193,7 +195,7 @@ export default function MovieDetails() {
 
             {hascommented && userComment ? (
                 <div className="mb-8">
-                    <h2 className="text-xl font-semibold mb-4">Your comment</h2>
+                    <h2 className="text-xl font-semibold mb-4">{t("movies.comment")}</h2>
                     <div className="bg-gray-700 rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-3">
@@ -227,7 +229,7 @@ export default function MovieDetails() {
                         </div>
                     )}               
                     <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">You rating</label>
+                        <label className="block text-sm font-medium mb-2">{t("movies.rating")}</label>
                         <div className="flex gap-1">
                             {Array.from({ length: 5 }, (_, i) => (
                                 <button
@@ -251,7 +253,7 @@ export default function MovieDetails() {
 
                     <div className="mb-4">
                         <label htmlFor="comment" className="block text-sm font-medium mb-2">
-                            Your comment
+                            {t("movies.comment")}
                         </label>
                         <textarea
                             id="comment"
@@ -259,12 +261,12 @@ export default function MovieDetails() {
                             onChange={(e) => setNewComment(e.target.value)}
                             className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
                             rows={4}
-                            placeholder="Write your opinion about the movie..."
+                            placeholder={t("movies.placeholder")}
                             disabled={submitting}
                             maxLength={1000}
                         />
                         <div className="text-xs text-gray-400 mt-1">
-                            {newComment.length}/1000 characters
+                            {newComment.length}/1000 {t("movies.character")}
                         </div>
                     </div>
 
@@ -274,7 +276,7 @@ export default function MovieDetails() {
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-colors"
                     >
                         <Send className="w-4 h-4" />
-                        {submitting ? "Sending..." : "Send a comment"}
+                        {submitting ? t("movies.sending") : t("movies.submitComment")}
                     </button>
                 </form>
             )}
@@ -282,12 +284,12 @@ export default function MovieDetails() {
                 {commentsLoading ? (
                     <div className="text-center py-8">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-                        <p className="mt-2">Loading comments...</p>
+                        <p className="mt-2">{t("movies.loading")}</p>
                     </div>
                 ) : comments.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                         <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>There are no comments yet, be the first to comment!</p>
+                        <p>{t("movies.firstComment")}</p>
                     </div>
                 ) : (
                     comments.map((comment) => (
