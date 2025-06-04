@@ -115,7 +115,7 @@ export default function UserPublicProfile() {
                 <p>{t("profile.nocomments")}</p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto rounded-lg p-4">
+              <div className="space-y-4 max-h-96 overflow-y-auto rounded-lg p-4 no-scrollbar">
               {userProfile.comments.map((comment) => (
                 <div key={comment.id} className="bg-gray-800 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">

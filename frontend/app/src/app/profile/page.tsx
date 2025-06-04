@@ -320,7 +320,7 @@ export default function Profile() {
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (window.confirm("Are you sure you want to delete this comment?")) {
+    if (window.confirm(t("profile.delete"))) {
       const token = localStorage.getItem('token');
       fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/${commentId}`, {
         method: 'DELETE',
@@ -395,7 +395,7 @@ export default function Profile() {
                     <p>{t("profile.nocomments")}</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-96 overflow-y-auto rounded-lg p-4">
+                  <div className="space-y-4 max-h-96 overflow-y-auto rounded-lg p-4 no-scrollbar">
                   {user.comments.map((comment) => (
                     <div key={comment.id} className="bg-gray-800 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">

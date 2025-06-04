@@ -70,12 +70,70 @@
         "recent": "Recent comments",
         "norecent": "No recent comments found",
         "born": "Born in ",
+        "delete":"Are you sure you want to delete this comment?",
         "allGenders": {
             "male": "Male",
             "female": "Female",
             "other": "Other",
             "non-binary": "Non-binary",
             "prefer-not-to-say": "Prefer not to say"
+        }
+    },
+    "register": {
+        "loading": "Loading...",
+        "success": "Registration successful! You can now ",
+        "login": "log in",
+        "passPlaceholder": "Password minimum 8 characters",
+        "emailPlaceholder": "Enter your email",
+        "confirmPassword": "Confirm Password",
+        "register": "Register",
+        "registering": "Registering...",
+        "errors": {
+            "general": "Something went wrong. Please try again.",
+            "username": "ensure this value has at least 3 characters",
+            "email": "value is not a valid email address",
+            "password": "ensure this value has at least 8 characters",
+            "confirmPassword": "Passwords do not match",
+            "firstName": "ensure this value has at least 1 characters",
+            "lastName": "ensure this value has at least 1 characters"
+        }
+    },
+    "resetPassword": {
+        "processing": "Processing...",
+        "success": "Password reset successfully. Redirecting to login... ",
+        "resetPassword": "Reset Password",
+        "newPassword": "New Password",
+        "remenberPassword": "Remember your password?",
+        "errors": {
+            "token": "Invalid token",
+            "password": "Passwords do not match"
+        }
+    },
+    "search": {
+        "loading": "Loading more movies...",
+        "noResults": "No movies found with current filters",
+        "searchPlaceholder": "Search movies...",
+        "search": "Search for movies or use filters to display results",
+        "filter": {
+            "advanced": "Advanced Filters",
+            "yearTo": "Year to",
+            "yearFrom": "Year from",
+            "minRating": "Min Rating",
+            "maxRating": "Max Rating",
+            "sort": "Sort by",
+            "sortOptions": {
+                "title": "Title",
+                "year": "Year",
+                "rating": "Rating",
+                "viewPercentage": "View Percentage"
+            },
+            "order": {
+                "orderBy": "Order by",
+                "asc": "Ascending",
+                "desc": "Descending"
+            },
+            "resultsPerPage": "Results per page",
+            "clear": "Clear all filters"
         }
     }
 }

@@ -6,6 +6,7 @@ import { Search as SearchIcon, X, Film, ChevronDown, SlidersHorizontal } from "l
 import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
+import { useTranslation } from "react-i18next";
 
 interface SearchFilters {
     query: string;
@@ -31,6 +32,7 @@ export default function Search() {
     const [showFilters, setShowFilters] = useState(false);
     const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
+    const { t } = useTranslation();
 
     const [filters, setFilters] = useState<SearchFilters>({
         query: '',
@@ -43,10 +45,10 @@ export default function Search() {
     });
 
     const sortOptions = [
-        { value: 'title', label: 'Title' },
-        { value: 'year', label: 'Year' },
-        { value: 'rating', label: 'Rating' },
-        { value: 'view_percentage', label: 'Watch Progress' }
+        { value: 'title', label: t("search.filter.sortOptions.title") },
+        { value: 'year', label: t("search.filter.sortOptions.year") },
+        { value: 'rating', label: t("search.filter.sortOptions.rating") },
+        { value: 'view_percentage', label: t("search.filter.sortOptions.viewPercentage") }
     ];
 
     const limitOptions = [10, 20, 30, 50];
@@ -216,7 +218,7 @@ export default function Search() {
         if (filteredMovies.length === 0 && !loading && initialSearch) {
             return (
                 <div className="text-center py-10">
-                    <p className="text-xl text-gray-400">No movies found with current filters</p>
+                    <p className="text-xl text-gray-400">{t("search.noResults")}</p>
                 </div>
             );
         }
@@ -249,13 +251,13 @@ export default function Search() {
     };
 
     return (
-        <div className="p-4 bg-dark-900 text-white min-h-screen">
+        <div className="p-4 bg-dark-900 text-white">
             <div className="relative mb-4 max-w-2xl mx-auto">
                 <input
                     type="text"
                     id="search"
                     name="search"
-                    placeholder="Search movies..."
+                    placeholder={t("search.searchPlaceholder")}
                     className="w-full p-4 pl-12 pr-4 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -277,16 +279,15 @@ export default function Search() {
                     className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
                 >
                     <SlidersHorizontal className="h-4 w-4" />
-                    Advanced Filters
+                        {t("search.filter.advanced")}
                     <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                 </button>
             </div>
             {showFilters && (
                 <div className="bg-gray-800 p-6 rounded-lg mb-6 max-w-4xl mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
                         <div>
-                            <label className="block text-sm font-medium mb-2">Year From</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.yearFrom")}</label>
                             <input
                                 type="number"
                                 placeholder="e.g. 2000"
@@ -298,7 +299,7 @@ export default function Search() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-2">Year To</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.yearTo")}</label>
                             <input
                                 type="number"
                                 placeholder="e.g. 2024"
@@ -310,7 +311,7 @@ export default function Search() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-2">Min Rating</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.minRating")}</label>
                             <input
                                 type="number"
                                 placeholder="e.g. 7.0"
@@ -323,7 +324,7 @@ export default function Search() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-2">Max Rating</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.maxRating")}</label>
                             <input
                                 type="number"
                                 placeholder="e.g. 10.0"
@@ -336,7 +337,7 @@ export default function Search() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-2">Sort By</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.sort")}</label>
                             <select
                                 value={filters.sortBy}
                                 onChange={(e) => handleFilterChange('sortBy', e.target.value)}
@@ -348,19 +349,19 @@ export default function Search() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-2">Order</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.order.orderBy")}</label>
                             <select
                                 value={filters.sortOrder}
                                 onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
                                 className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                <option value="asc">Ascending</option>
-                                <option value="desc">Descending</option>
+                                <option value="asc">{t("search.filter.order.asc")}</option>
+                                <option value="desc">{t("search.filter.order.desc")}</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2">Results per page</label>
+                            <label className="block text-sm font-medium mb-2">{t("search.filter.resultsPerPage")}</label>
                             <select
                                 value={limit}
                                 onChange={(e) => {
@@ -381,7 +382,7 @@ export default function Search() {
                             onClick={clearAllFilters}
                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                         >
-                            Clear All Filters
+                            {t("search.filter.clear")}
                         </button>
                     </div>
                 </div>
@@ -396,14 +397,14 @@ export default function Search() {
             {!initialSearch && !loading && filteredMovies.length === 0 && (
                 <div className="text-center py-10">
                     <Film className="h-16 w-16 mx-auto text-gray-600 mb-4" />
-                    <p className="text-xl text-gray-400">Search for movies or use filters to display results</p>
+                    <p className="text-xl text-gray-400">{t("search.search")}</p>
                 </div>
             )}
             {renderContent()}
             {loading && (
                 <div className="text-center mt-4 py-2">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-                    <p className="mt-2">Loading more movies...</p>
+                    <p className="mt-2">{t("search.loading")}</p>
                 </div>
             )}
 

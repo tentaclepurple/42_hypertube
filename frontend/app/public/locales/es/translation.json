@@ -67,12 +67,70 @@
         "noBinary": "No binario",
         "notsay": "Prefiero no decirlo",
         "born": "Nacido en ",
+        "delete":"¿Estás seguro de que quieres eliminar este comentario?",
         "allGenders": {
             "male": "Masculino",
             "female": "Femenino",
             "other": "Otro",
             "non-binary": "No binario",
             "prefer-not-to-say": "Prefiero no decirlo"
+        }
+    },
+    "register": {
+        "loading": "Cargando...",
+        "success": "Cuenta creada con éxito. Por favor,",
+        "login": "inicia sesión",
+        "passPlaceholder": "La contraseña debe tener al menos 8 caracteres",
+        "emailPlaceholder": "Mete tu correo electrónico",
+        "confirmPassword": "Confirmar contraseña",
+        "register": "Registrarse",
+        "registering": "Registrando...",
+        "errors": {
+            "general": "Algo salió mal. Por favor, inténtalo de nuevo.",
+            "username": "El nombre de usuario debe tener al menos 3 caracteres",
+            "email": "El valor no es una dirección de correo electrónico válida",
+            "password": "Asegúrate de que la contraseña tenga al menos 8 caracteres",
+            "confirmPassword": "Las contraseñas no coinciden",
+            "firstName": "Asegúrate de que este valor tenga al menos 1 carácter",
+            "lastName": "Asegúrate de que este valor tenga al menos 1 carácter"
+        }
+    },
+    "resetPassword": {
+        "processing": "Procesando...",
+        "success": "La contraseña se ha restablecido correctamente. Redirigiendo al inicio de sesión...",
+        "resetPassword": "Restablecer contraseña",
+        "newPassword": "Nueva contraseña",
+        "remenberPassword": "¿Recuerdas tu contraseña?",
+        "errors": {
+            "token": "Token inválido",
+            "password": "Las contraseñas no coinciden"
+        }
+    },
+    "search": {
+        "loading": "Cargando películas...",
+        "noResults": "No se han encontrado películas con los filtros actuales",
+        "searchPlaceholder": "Busca peliculas",
+        "search": "Buscar películas o utilizar filtros para mostrar los resultados",
+        "filter": {
+            "advanced": "Filtros avanzados",
+            "yearTo": "Año hasta",
+            "yearFrom": "Año desde",
+            "minRating": "Valoración mínima",
+            "maxRating": "Valoración máxima",
+            "sort": "Clasificar por",
+            "sortOptions": {
+                "title": "Título",
+                "year": "Año",
+                "rating": "Valoración",
+                "viewPercentage": "Porcentaje de visualización"
+            },
+            "order": {
+                "orderBy": "Ordenar por",
+                "asc": "Ascendente",
+                "desc": "Descendente"
+            },
+            "resultsPerPage": "Resultados por página",
+            "clear": "Limpiar todos los filtros"
         }
     }
 }

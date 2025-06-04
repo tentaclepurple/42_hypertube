@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { parsedEditError } from "../ui/error/parsedError";
+import { useTranslation } from "react-i18next";
 
 export default function Register() {
   const [ formData, setFormData ] = useState({
@@ -28,6 +29,7 @@ export default function Register() {
   const [ showConfirmPassword, setShowConfirmPassword ] = useState(false);
   const [ loading, setLoading ] = useState(false);
   const [ success, setSuccess ] = useState(false);
+  const { t } = useTranslation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -48,13 +50,13 @@ export default function Register() {
     });
 
     if(formData.password !== formData.confirm_password) {
-      setError((prev) => ({ ...prev, confirm_password: "Passwords do not match." }));
+      setError((prev) => ({ ...prev, confirm_password: `${t("register.errors.confirmPassword")}` }));
       return;
     }
 
     setLoading(true);
     try{
-      const { confirm_password, ...data } = formData; // Exclude confirm_password from the data sent to the backend
+      const { confirm_password, ...data } = formData;
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/register`, {
         method: "POST",
@@ -79,7 +81,7 @@ export default function Register() {
         last_name: ""
       });
     } catch (error) {
-      setError((prev) => ({ ...prev, general: "Something went wrong. Please try again." }));
+      setError((prev) => ({ ...prev, general: `${t("register.errors.general")}` }));
     } finally {
       setLoading(false);
     }
@@ -98,20 +100,20 @@ export default function Register() {
       {loading && (
         <div className="text-center mb-4 py-2">
           <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-          <p className="mt-2">Loading...</p>
+          <p className="mt-2">{t("register.loading")}</p>
         </div>
       )}
 
       {success && (
         <div className="text-center mt-4 py-2">
           <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-            Registration successful! You can now <a href="/login" className="text-blue-600 hover:underline">log in</a>.
+            {t("register.success")} <a href="/login" className="text-blue-600 hover:underline">{t("register.login")}</a>.
           </div>
         </div>
       )}
 
       {error.general && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-center">
           {error.general}
         </div>
       )}
@@ -120,7 +122,7 @@ export default function Register() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="first_name" className="block text-sm font-medium mb-1">
-              First Name
+              {t("profile.firstName")}
             </label>
             <input
               type="text"
@@ -129,14 +131,14 @@ export default function Register() {
               value={formData.first_name}
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.first_name ? "border-red-500" : "border-gray-300"}`}
-              placeholder="First Name"
+              placeholder={t("profile.firstName")}
               autoComplete="on"
             />
-            {error.first_name && <p className="text-red-500 text-sm mt-1">{error.first_name}</p>}
+            {error.first_name && <p className="text-red-500 text-sm mt-1">{t("register.errors.firstName")}</p>}
           </div>
           <div>
             <label htmlFor="last_name" className="block text-sm font-medium mb-1">
-              Last Name
+              {t("profile.lastName")}
             </label>
             <input
               type="text"
@@ -145,14 +147,14 @@ export default function Register() {
               value={formData.last_name}
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.last_name ? "border-red-500" : "border-gray-300"}`}
-              placeholder="Last Name"
+              placeholder={t("profile.lastName")}
               autoComplete="on"
             />
-            {error.last_name && <p className="text-red-500 text-sm mt-1">{error.last_name}</p>}
+            {error.last_name && <p className="text-red-500 text-sm mt-1">{t("register.errors.lastName")}</p>}
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
-              Email
+              {t("profile.email")}
             </label>
             <input
               type="email"
@@ -161,14 +163,14 @@ export default function Register() {
               value={formData.email}
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.email ? "border-red-500" : "border-gray-300"}`}
-              placeholder="you@email.com"
+              placeholder={t("register.emailPlaceholder")}
               autoComplete="on"
             />
-            {error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
+            {error.email && <p className="text-red-500 text-sm mt-1">{t("register.errors.email")}</p>}
           </div>
           <div>
             <label htmlFor="username" className="block text-sm font-medium mb-1">
-              Username
+              {t("login.username")}
             </label>
             <input
               type="text"
@@ -177,14 +179,14 @@ export default function Register() {
               value={formData.username}
               onChange={handleChange}
               className={`w-full p-2 border rounded ${error.username ? "border-red-500" : "border-gray-300"}`}
-              placeholder="Username"
+              placeholder={t("login.username")}
               autoComplete="on"
             />
-            {error.username && <p className="text-red-500 text-sm mt-1">{error.username}</p>}
+            {error.username && <p className="text-red-500 text-sm mt-1">{t("register.errors.username")}</p>}
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-1">
-              Password
+              {t("login.password")}
             </label>
             <div className="relative">
               <input
@@ -194,7 +196,7 @@ export default function Register() {
                 value={formData.password}
                 onChange={handleChange}
                 className={`w-full p-2 border rounded ${error.password ? "border-red-500" : "border-gray-300"}`}
-                placeholder="Password minimum 8 characters"
+                placeholder={t("register.passPlaceholder")}
                 autoComplete="off"
               />
               <button
@@ -205,11 +207,11 @@ export default function Register() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
+            {error.password && <p className="text-red-500 text-sm mt-1">{t("register.errors.password")}</p>}
           </div>
           <div>
             <label htmlFor="confirm_password" className="block text-sm font-medium mb-1">
-              Confirm Password
+              {t("register.confirmPassword")}
             </label>
             <div className="relative">
               <input
@@ -219,7 +221,7 @@ export default function Register() {
                 value={formData.confirm_password}
                 onChange={handleChange}
                 className={`w-full p-2 border rounded ${error.confirm_password ? "border-red-500" : "border-gray-300"}`}
-                placeholder="Confirm Password"
+                placeholder={t("register.confirmPassword")}
                 autoComplete="off"
               />
               <button
@@ -238,7 +240,7 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-blue-500 px-4 py-2 rounded text-white hover:bg-blue-600"
             >
-              {loading ? "Registering..." : "Register"}
+              {loading ? t("register.registering") : t("register.register")}
             </button>
           </div>
         </div>

@@ -19,16 +19,12 @@ export default function Home() {
     setRandomImage(image);
   }, []);
 
-  if (!randomImage) {
-    return <div>Loading...</div>; 
-  }
-
   return (
     <main className="flex flex-col items-center justify-between p-4 sm:p-10">
       <h1 className="text-2xl sm:text-4xl font-bold text-center">{t("main.welcome")}</h1>
       <div className="w-full max-w-md sm:max-w-lg">
         <Image 
-          src={randomImage}
+          src={randomImage || "/hypertube42.png"}
           alt="Home Image"
           width={0}
           height={0}
