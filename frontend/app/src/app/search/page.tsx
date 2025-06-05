@@ -32,6 +32,7 @@ export default function Search() {
     const [showFilters, setShowFilters] = useState(false);
     const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { t } = useTranslation();
 
     const [filters, setFilters] = useState<SearchFilters>({
@@ -140,8 +141,7 @@ export default function Search() {
     };
 
     useEffect(() => {
-        if (!debouncedQuery && !hasActiveFilters()) return;
-        
+        if ( isLoggingOut ||(!debouncedQuery && !hasActiveFilters())) return;
         const fetchMovies = async () => {
             setLoading(true);
             const token = localStorage.getItem('token');
@@ -155,12 +155,15 @@ export default function Search() {
                 });
                 
                 if (!response.ok) {
-                    if (response.status === 401) logout();
+                    if (response.status === 401) {
+                        setIsLoggingOut(true);
+                        logout();
+                    }
                     const errorText = parsedError(await response.json());
                     return Promise.reject(errorText);
                 }
                 
-                const data: Movie[] = await response.json();
+                const data: Movie[] = await response.json(); 
                 if (page === 1) {
                     setAllMovies(data);
                 } else {
@@ -183,7 +186,7 @@ export default function Search() {
     }, [debouncedQuery, page, filters, limit]);
 
     useEffect(() => {
-        if (!hasMore || loading) return;
+        if (!hasMore || loading || isLoggingOut) return;
         const observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && hasMore && (debouncedQuery || hasActiveFilters())) {
                 setPage((prevPage) => prevPage + 1);
@@ -241,6 +244,11 @@ export default function Search() {
                             <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>
                             <div className="flex justify-between text-sm text-gray-400">
                                 <span>{movie.year}</span>
+                                {movie.completed && (
+                                    <span className="flex items-center gap-1 text-green-500">
+                                        {t("movies.watched")}
+                                    </span>
+                                )}
                                 <span>⭐ {movie.rating}/10</span>
                             </div>
                         </div>

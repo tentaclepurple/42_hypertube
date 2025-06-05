@@ -91,6 +91,11 @@ export default function Movies() {
                         <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>
                         <div className="flex justify-between text-sm text-gray-400">
                             <span>{movie.year}</span>
+                            {movie.completed && (
+                                <span className="flex items-center gap-1 text-green-500">
+                                    {t("movies.watched")}
+                                </span>
+                            )}
                             <span>⭐ {movie.rating}/10</span>
                         </div>
                     </div>

@@ -23,7 +23,13 @@
         "githubLogin": "Iniciar sesión con GitHub",
         "forgotPassword": "¿Olvidaste tu contraseña?",
         "noAccount": "¿No tienes una cuenta?",
-        "registerHere": "Regístrate aquí"
+        "registerHere": "Regístrate aquí",
+        "processing": "Processing login...",
+        "errors": {
+            "invalidCredentials": "Usuario y contraseña invalidas.",
+            "processingData": "Error al procesar los datos de autenticación",
+            "incompleteData": "Datos de autenticación incompletos"
+        }
     },
     "movies": {
         "loadingMore": "Cargando más películas...",
@@ -41,7 +47,8 @@
         "sending": "Enviando...",
         "submitComment": "Enviar un comentario",
         "loadingComments": "Cargando comentarios...",
-        "firstComment": "¡Aún no hay comentarios, sé el primero en comentar!"
+        "firstComment": "¡Aún no hay comentarios, sé el primero en comentar!",
+        "watched": "✅ Visto"
     },
     "profile": {
         "loading": "Cargando prefil...",
@@ -132,5 +139,14 @@
             "resultsPerPage": "Resultados por página",
             "clear": "Limpiar todos los filtros"
         }
+    },
+    "forgotPassword": {
+        "emailPlaceholder": "Introduce tu correo",
+        "sendEmail": "Enviar correo electrónico",
+        "processing": "Procesando...",
+        "success": "¡Correo electrónico enviado con éxito! Revisa tu bandeja de entrada.",
+        "sending": "Enviando...",
+        "remenberPassword": "¿Recuerdas tu contraseña?",
+        "goToLogin": "Ir a iniciar sesión" 
     }
 }

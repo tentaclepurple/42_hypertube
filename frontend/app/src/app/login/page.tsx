@@ -32,6 +32,12 @@ export default function Login() {
     setShowPassword(!showPassword);
   };
 
+  const errorMap: Record<string, string> = {
+    "Invalid username or password": "login.errors.invalidCredentials",
+    "Error processing authentication data": "login.errors.processingData",
+    "Data of authentication incomplete": "login.errors.incompleteData",
+  };
+  
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -83,7 +89,7 @@ export default function Login() {
       )}
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded space-y-1">
-          {error}
+          {t(errorMap[error])}
         </div>
       )}
       <form onSubmit={handleSubmit} className="mt-6 mb-6">
@@ -133,7 +139,7 @@ export default function Login() {
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-200"
             >
-              {loading ? t("login.logginIn") : t("login.submit")}
+              {loading ? t("login.loggingIn") : t("login.submit")}
             </button>
             <p className='text-blue-600 hover:underline ml-4'>
               <Link href="/forgot-password">{t("login.forgotPassword")}</Link>
