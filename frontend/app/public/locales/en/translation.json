@@ -151,5 +151,16 @@
         "sending": "Sending...",
         "remenberPassword": "Remember your password?",
         "goToLogin": "Go to login" 
+    },
+    "api":{
+        "description": "Generate API credentials to access HYPERTUBE programmatically",
+        "key_generated": "Generate Your API Credentials",
+        "key_info": "Click the button below to generate your API key and secret",
+        "button": "Generate API Key",
+        "generating": "Generating API key...",
+        "important": "Important",
+        "warning_info": "Save these credentials now! They will disappear when you navigate away from this page.",
+        "copy": "Copy",
+        "copied": "Copied!"
     }
 }
