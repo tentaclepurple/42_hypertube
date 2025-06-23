@@ -5,7 +5,6 @@ import { useAuth } from '../context/authcontext';
 import { useTranslation } from 'react-i18next';
 import { parsedError} from '../ui/error/parsedError';
 import { Key, Copy, AlertTriangle, Dice1 } from 'lucide-react';
-import { text } from 'stream/consumers';
 
 interface ApiKeyProps {
   apiKey: string;
