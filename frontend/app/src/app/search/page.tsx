@@ -163,7 +163,8 @@ export default function Search() {
                     return Promise.reject(errorText);
                 }
                 
-                const data: Movie[] = await response.json(); 
+                const data: Movie[] = await response.json();
+
                 if (page === 1) {
                     setAllMovies(data);
                 } else {
