@@ -20,16 +20,6 @@ export default function Apipage(){
     const [error, setError] = useState<string[] | null>(null);
     const [copyField, setCopyField] = useState<string>('');
 
-    const prueba = () => {
-        setLoading(true);
-        console.log('Prueba function called');
-        setApiKey({ 
-            apiKey: "prueba_api_key",
-            apiSecret: "prueba_api_secret",
-        });
-        setLoading(false);
-    };
-
     const generateApiKey = async () => {
         setLoading(true);
         setError(null);
@@ -102,7 +92,7 @@ export default function Apipage(){
                             </div>
                         )}
                         <button
-                            onClick={prueba}
+                            onClick={generateApiKey}
                             className=' hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mx-auto'
                             disabled={loading}
                         >

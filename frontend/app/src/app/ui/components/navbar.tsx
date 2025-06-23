@@ -35,6 +35,9 @@ export default function Navbar() {
                         </>
                     ) : (
                         <div className="flex items-center gap-4">
+                            <button onClick={() => router.push('/api')} className="hover:text-gray-300 text-xl py-2 px-4">
+                                API
+                            </button>
                             <button onClick={() => router.push('/movies')} className="hover:text-gray-300 text-xl py-2 px-4">
                                 {t("navbar.movies")}
                             </button>
@@ -96,6 +99,9 @@ export default function Navbar() {
                                 <Link href="/profile"> {user?.username} </Link>
                                 </button>
                             </div>
+                            <button onClick={() => {router.push('/api'); closeMenu();}} className="text-white-400 hover:text-white-500">
+                                API
+                            </button>
                             <button onClick={() => {router.push('/search'); closeMenu();}} className="text-white-400 hover:text-white-500">
                                 {t("navbar.search")}
                             </button>

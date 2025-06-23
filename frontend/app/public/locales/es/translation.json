@@ -148,5 +148,16 @@
         "sending": "Enviando...",
         "remenberPassword": "¿Recuerdas tu contraseña?",
         "goToLogin": "Ir a iniciar sesión" 
+    },
+    "api":{
+        "description": "Genera credenciales API para acceder a HYPERTUBE programáticamente",
+        "key_generated": "Genera tus credenciales API",
+        "key_info": "Haz clic en el botón de abajo para generar tu clave API y secreto",
+        "button": "Generar clave API",
+        "generating": "Generando clave API...",
+        "important": "Importante",
+        "warning_info": "¡Guarda estas credenciales ahora! Desaparecerán cuando salgas de esta página.",
+        "copy": "Copiar",
+        "copied": "¡Copiado!"
     }
 }
