@@ -16,7 +16,29 @@ interface SearchFilters {
     ratingTo: string;
     sortBy: string;
     sortOrder: string;
+    genres: string[];
 }
+
+const GENRE_OPTIONS = [
+    {tag: 'Action', key: 'search.filter.genres.action'},
+    {tag: 'Adventure', key: 'search.filter.genres.adventure'},
+    {tag: 'Animation', key: 'search.filter.genres.animation'},
+    {tag: 'Documentary', key: 'search.filter.genres.documentary'},
+    {tag: 'Comedy', key: 'search.filter.genres.comedy'},
+    {tag: 'Crime', key: 'search.filter.genres.crime'},
+    {tag: 'Drama', key: 'search.filter.genres.drama'},
+    {tag: 'Family', key: 'search.filter.genres.family'},
+    {tag: 'Fantasy', key: 'search.filter.genres.fantasy'},
+    {tag: 'Horror', key: 'search.filter.genres.horror'},
+    {tag: 'History', key: 'search.filter.genres.history'},
+    {tag: 'Mystery', key: 'search.filter.genres.mystery'},
+    {tag: 'Musical', key: 'search.filter.genres.musical'},
+    {tag: 'Romance', key: 'search.filter.genres.romance'},
+    {tag: 'Sci-Fi', key: 'search.filter.genres.scifi'},
+    {tag: 'Thriller', key: 'search.filter.genres.thriller'},
+    {tag: 'Western', key: 'search.filter.genres.western'},
+    {tag: 'War', key: 'search.filter.genres.war'},
+];
 
 export default function Search() {
     const { logout } = useAuth();
@@ -42,7 +64,8 @@ export default function Search() {
         ratingFrom: '',
         ratingTo: '',
         sortBy: 'rating',
-        sortOrder: 'desc'
+        sortOrder: 'desc',
+        genres: []
     });
 
     const sortOptions = [
@@ -78,7 +101,13 @@ export default function Search() {
         if (filters.query.trim()) {
             params.append('query', filters.query.trim());
         }
-        
+
+        if (filters.genres.length > 0) {
+            filters.genres.forEach(genre => {
+                params.append('genres', genre);
+            });
+        }
+
         params.append('page', currentPage.toString());
         params.append('limit', limit.toString());
         
@@ -100,6 +129,15 @@ export default function Search() {
         }
         if (filters.ratingTo) {
             filtered = filtered.filter(movie => movie.rating <= parseFloat(filters.ratingTo));
+        }
+
+        if (filters.genres.length > 0) {
+            filtered = filtered.filter(movie => {
+                const movieGenresLower = movie.genres.map(g => g.toLowerCase());
+                return filters.genres.every(selectedGenre =>
+                    movieGenresLower.includes(selectedGenre.toLowerCase())
+                );
+            });
         }
 
         filtered.sort((a, b) => {
@@ -164,7 +202,7 @@ export default function Search() {
                 }
                 
                 const data: Movie[] = await response.json();
-
+                console.log("Fetched movies:", data);
                 if (page === 1) {
                     setAllMovies(data);
                 } else {
@@ -199,13 +237,25 @@ export default function Search() {
 
     const hasActiveFilters = () => {
         return filters.yearFrom || filters.yearTo || 
-               filters.ratingFrom || filters.ratingTo;
+               filters.ratingFrom || filters.ratingTo ||
+               filters.genres.length > 0;
     };
 
-    const handleFilterChange = (key: keyof SearchFilters, value: string) => {
+    const handleFilterChange = (key: keyof SearchFilters, value: string | string[]) => {
         setFilters(prev => ({ ...prev, [key]: value }));
+        if (key === 'genres') {
+            setPage(1);
+            setAllMovies([]);
+        }
     };
 
+    const toggleGenre = (genreTag: string) => {
+        const newGenres = filters.genres.includes(genreTag)
+            ? filters.genres.filter(g => g !== genreTag)
+            : [...filters.genres, genreTag];
+        
+        handleFilterChange('genres', newGenres);
+    };
     const clearAllFilters = () => {
         setFilters({
             query: searchQuery,
@@ -214,7 +264,8 @@ export default function Search() {
             ratingFrom: '',
             ratingTo: '',
             sortBy: 'rating',
-            sortOrder: 'desc'
+            sortOrder: 'desc',
+            genres: []
         });
     };
 
@@ -386,6 +437,24 @@ export default function Search() {
                             </select>
                         </div>
                     </div>
+                    <div className="mt-6">
+                        <label className="block text-sm font-medium mb-3 text-center">{t("search.filter.selectGenres")}</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                            {GENRE_OPTIONS.map((genre) => (
+                                <button
+                                    key={genre.tag}
+                                    onClick={() => toggleGenre(genre.tag)}
+                                    className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                                        filters.genres.includes(genre.tag)
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    }`}
+                                >
+                                    {t(genre.key)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>                   
                     <div className="mt-4 flex justify-end">
                         <button
                             onClick={clearAllFilters}
