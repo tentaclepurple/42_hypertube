@@ -45,7 +45,6 @@ services:
       dockerfile: ./microservices/torrent_service/Dockerfile
     volumes:
       - ./data:/data
-      - ./microservices/torrent_service:/app
     env_file:
       - .env
     networks:
@@ -61,7 +60,6 @@ services:
       dockerfile: ./microservices/conversion_service/Dockerfile
     volumes:
       - ./data:/data
-      #- ./microservices/conversion_service:/app
     env_file:
       - .env
     networks:
@@ -69,21 +67,6 @@ services:
     depends_on:
       - kafka
     restart: unless-stopped
-  
-  # recommendation_service:
-  #   container_name: recommendation_service
-  #   build:
-  #     context: .
-  #     dockerfile: ./microservices/recommendation_service/Dockerfile
-  #   volumes:
-  #     - ./data:/data
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - hypertube-network
-  #   depends_on:
-  #     - kafka
-  #   restart: unless-stopped
   
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.0
@@ -93,6 +76,9 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
     networks:
       - hypertube-network
     restart: unless-stopped
@@ -112,16 +98,40 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # 🔧 Configuración de persistencia
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_LOG_RETENTION_HOURS: 168  # 7 días
+      KAFKA_LOG_RETENTION_BYTES: 1073741824  # 1GB
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_CLEANUP_POLICY: delete
+    volumes:
+      - kafka_data:/var/lib/kafka/data  
     networks:
       - hypertube-network
     restart: unless-stopped
-
 
 networks:
   hypertube-network:
     name: hypertube-network
     driver: bridge
 
-
 volumes:
   data:
+  kafka_data:
+  zookeeper_data: 
+  zookeeper_logs:
+
+  # recommendation_service:
+  #   container_name: recommendation_service
+  #   build:
+  #     context: .
+  #     dockerfile: ./microservices/recommendation_service/Dockerfile
+  #   volumes:
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - hypertube-network
+  #   depends_on:
+  #     - kafka
+  #   restart: unless-stopped

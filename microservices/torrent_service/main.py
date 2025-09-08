@@ -8,6 +8,9 @@ import os
 import re
 import time
 
+
+HOST = '192.168.0.12'
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -46,7 +49,7 @@ class TorrentDownloader:
         # Kafka producer
         try:
             self.producer = KafkaProducer(
-                bootstrap_servers=['192.168.0.12:9092'],
+                bootstrap_servers=[f'{HOST}:9092'],
                 value_serializer=lambda x: json.dumps(x).encode('utf-8'),
                 retries=3,
                 acks=1

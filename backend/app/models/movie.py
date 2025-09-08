@@ -5,6 +5,12 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
 
+
+class DownloadRequest(BaseModel):
+    hash: str
+    title: str = "Movie Download"
+
+
 class TorrentInfo(BaseModel):
     url: Optional[str] = None
     hash: Optional[str] = None

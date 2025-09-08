@@ -6,6 +6,9 @@ from kafka import KafkaProducer
 from typing import Dict, Any
 import time
 
+
+HOST = '192.168.0.12'
+
 logger = logging.getLogger(__name__)
 
 class KafkaService:
@@ -19,7 +22,7 @@ class KafkaService:
         if self.producer is None:
             try:
                 self.producer = KafkaProducer(
-                    bootstrap_servers=['192.168.0.12:9092'],
+                    bootstrap_servers=[f'{HOST}:9092'],
                     value_serializer=lambda x: json.dumps(x).encode('utf-8'),
                     request_timeout_ms=5000,
                     retries=3
@@ -49,6 +52,28 @@ class KafkaService:
             producer.flush()  # Asegurar envío
             
             logger.info(f"📤 Petición enviada: {movie_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error enviando petición: {e}")
+            # Reset producer para reintento
+            self.producer = None
+            return False
+    
+    def send_download_request_enhanced(self, download_data: dict):
+        """Enviar petición de descarga con datos completos"""
+        producer = self._get_producer()
+        if not producer:
+            logger.error("❌ Kafka Producer no disponible")
+            return False
+        
+        try:
+            logger.info(f"📤 Enviando descarga: {download_data.get('movie_title')} ({download_data.get('torrent_hash', 'no-hash')[:8]}...)")
+            
+            producer.send('movie-download-requests', download_data)
+            producer.flush()  # Asegurar envío
+            
+            logger.info(f"✅ Petición enviada exitosamente")
             return True
             
         except Exception as e:
