@@ -6,6 +6,7 @@ import { Eye, EyeOff, Check } from "lucide-react";
 import Link from "next/link";
 import { parsedEditError } from "../ui/error/parsedError";
 import { useAuth } from "../context/authcontext";
+import { useTranslation } from "react-i18next";
 
 export default function ResetPassword() {
     const searchParams = useSearchParams();
@@ -18,10 +19,11 @@ export default function ResetPassword() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string[] | null>(null);
     const [success, setSuccess] = useState(false);
+    const { t } = useTranslation();
 
     useEffect(() => {
         if (!token) {
-            setError(["Invalid token"]);
+            setError([t("resetPassword.errors.token")]);
         }
     }, [token]);
 
@@ -35,7 +37,7 @@ export default function ResetPassword() {
         setLoading(true);
 
         if (newPassword !== confirmPassword) {
-            setError(["Passwords do not match"]);
+            setError([t("resetPassword.errors.password")]);
             setLoading(false);
             return;
         }
@@ -64,14 +66,14 @@ export default function ResetPassword() {
             setLoading(false);
         }
     }
-
+    console.log("error", error);
     return (
         <div className="flex items-center justify-center ">
             <div className="max-w-md mt-auto p-6">
                 {loading && (
                     <div className="text-center mt-4 py-2">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-                        <p className="mt-2">Processing...</p>
+                        <p className="mt-2">{t("resetPassword.processing")}</p>
                     </div>
                 )}
                 {error && (
@@ -84,13 +86,13 @@ export default function ResetPassword() {
                 {success ? (
                     <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
                         <Check className="inline mr-2" />
-                        Password reset successfully. Redirecting to login...
+                        {t("resetPassword.success")}
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                                New Password
+                                {t("resetPassword.newPassword")}
                             </label>
                             <div className="mt-1 relative">
                                 <input
@@ -114,7 +116,7 @@ export default function ResetPassword() {
                         </div>
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                Confirm Password
+                                {t("register.confirmPassword")}
                             </label>
                             <input
                                 type={showPassword ? "text" : "password"}
@@ -131,15 +133,15 @@ export default function ResetPassword() {
                             type="submit"
                             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-200"
                         >
-                            Reset Password
+                            {t("resetPassword.resetPassword")}
                         </button>
                     </form>
                 )}
                 <div className="mt-4 text-center">
                     <p className="text-sm text-gray-500">
-                        Remembered your password?{" "}
+                        {t("resetPassword.remenberPassword")}{" "}
                         <Link href="/login" className="text-blue-500 hover:underline">
-                            Login
+                            {t("login.submit")}
                         </Link>
                     </p>
                 </div>

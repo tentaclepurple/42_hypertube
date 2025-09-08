@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Send } from "lucide-react"
 import  Link  from "next/link";
-import { parsedError, parsedEditError } from "../ui/error/parsedError";
+import { parsedEditError } from "../ui/error/parsedError";
 import { useAuth } from "../context/authcontext";
+import { useTranslation } from "react-i18next";
 
 export default function ForgotPassword() {
     const [ email, setEmail ] = useState("");
@@ -12,6 +13,7 @@ export default function ForgotPassword() {
     const [ error, setError ] = useState<string[] | null>(null);
     const [ success, setSuccess ] = useState(false);
     const { logout } = useAuth();
+    const { t } = useTranslation();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,7 +47,7 @@ export default function ForgotPassword() {
                 {loading && (
                     <div className="text-center mt-4 py-2">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-                        <p className="mt-2">Sending email...</p>
+                        <p className="mt-2">{t("forgotPassword.sendEmail")}</p>
                     </div>
                 )}
                 {error && (
@@ -57,9 +59,9 @@ export default function ForgotPassword() {
                 )}
                 {success ? (
                     <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-                        <p className="text-center">Email sent successfully! Check your inbox.</p>
+                        <p className="text-center">{t("forgotPassword.success")}.</p>
                         <Link href="/login" className="text-blue-500 hover:underline">
-                            Go to Login
+                            {t("forgotPassword.goToLogin")}
                         </Link>
                     </div>
                 ) : (
@@ -67,7 +69,7 @@ export default function ForgotPassword() {
                         <form onSubmit={handleSubmit} className="mb-6 mt-6">
                             <div className="space-y-4">
                                 <label htmlFor="email" className="block text-sm font-medium mb-1">
-                                    Email
+                                {t("profile.email")}
                                 </label>
                                 <div className="flex rounded overflow-hidden border border-gray-300">
                                     <input
@@ -78,7 +80,7 @@ export default function ForgotPassword() {
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                         className="w-full p-2 outline-none"
-                                        placeholder="Enter your email"
+                                        placeholder={t("forgotPassword.emailPlaceholder")}
                                         autoComplete="on"
                                     />
                                     <button
@@ -91,9 +93,9 @@ export default function ForgotPassword() {
                                     </button>
                                 </div>
                                 <p className="text-sm text-gray-500">
-                                    Remembered your password?{" "}
+                                    {t("forgotPassword.remenberPassword")}{" "}
                                     <Link href="/login" className="text-blue-500 hover:underline">
-                                        Login
+                                        {t("login.submit")}
                                     </Link>
                                 </p>
                             </div>

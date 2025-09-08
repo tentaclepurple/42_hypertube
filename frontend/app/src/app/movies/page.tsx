@@ -5,6 +5,7 @@ import { Movie } from "./types/movies";
 import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
+import { useTranslation } from 'react-i18next';
 
 export default function Movies() {
     const { logout } = useAuth();
@@ -14,6 +15,7 @@ export default function Movies() {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const observerRef = useRef<HTMLDivElement | null>(null);
+    const { t } = useTranslation();
     
     useEffect(() => {
         const fetchMovies = async () => {
@@ -89,6 +91,11 @@ export default function Movies() {
                         <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>
                         <div className="flex justify-between text-sm text-gray-400">
                             <span>{movie.year}</span>
+                            {movie.completed && (
+                                <span className="flex items-center gap-1 text-green-500">
+                                    {t("movies.watched")}
+                                </span>
+                            )}
                             <span>⭐ {movie.rating}/10</span>
                         </div>
                     </div>
@@ -98,7 +105,7 @@ export default function Movies() {
         {loading && (
         <div className="text-center mt-4 py-2">
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-            <p className="mt-2">Loading more movies...</p>
+            <p className="mt-2">{t("movies.loadingMore")}</p>
         </div>
         )}
         <div ref={observerRef} className="h-10" />

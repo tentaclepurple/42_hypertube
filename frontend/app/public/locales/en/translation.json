@@ -1,0 +1,187 @@
+{
+    "main": {
+        "welcome": "Welcome to Hypertube",
+        "dive": "Dive into the world of Hypertube"
+    },
+    "footer": {
+        "madeBy": "Made by ",
+        "and": " and "
+    },
+    "navbar": {
+        "movies": "Movies",
+        "search": "Search",
+        "login": "Login",
+        "register": "Register"
+    },
+    "login": {
+        "username": "Username",
+        "password": "Password",
+        "submit": "Login",
+        "loggingIn": "Logging in...",
+        "42Login": "Login with 42",
+        "googleLogin": "Login with Google",
+        "githubLogin": "Login with GitHub",
+        "forgotPassword": "Forgot your password?",
+        "noAccount": "Don't have an account?",
+        "registerHere": "Register here",
+        "processing": "Processing login...",
+        "errors": {
+            "invalidCredentials": "Invalid username or password.",
+            "processingData": "Error processing authentication data",
+            "incompleteData": "Data of authentication incomplete"
+        }
+    },
+    "movies": {
+        "loadingMore": "Loading more movies...",
+        "loading":  "Loading movie...",
+        "genres": "Genres",
+        "director": "Director",
+        "noDirector": "No director available",
+        "cast": "Cast",
+        "noCast": "No cast available",
+        "viewing": "Viewing progress",
+        "completed": "✅ Fully watched",
+        "comment": "Your comment",
+        "rating": "Your rating",
+        "placeholder": "Write your opinion about the movie...",
+        "character": "character",
+        "sending": "Sending...",
+        "submitComment": "Send a comment",
+        "loadingComments": "Loading comments...",
+        "firstComment": "There are no comments yet, be the first to comment!",
+        "watched": "✅ Watched"
+    },
+    "profile": {
+        "loading": "Loading profile...",
+        "userloading": "Loading user profile...",
+        "notfound": "User profile not found.",
+        "year": "Year of birth: ",
+        "gender": "Gender: ",
+        "comments": "Recent comments",
+        "nocomments": "No recent comments found",
+        "uploading": "Uploading...",
+        "upload": "Upload",
+        "cancel": "Cancel",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "birth": "Year of Birth",
+        "genderEdit": "Gender",
+        "save": "Save",
+        "selectGender": "Select Gender",
+        "male": "Male",
+        "female": "Female",
+        "other": "Other",
+        "noBinary": "Non-binary",
+        "notsay": "Prefer not to say",
+        "recent": "Recent comments",
+        "norecent": "No recent comments found",
+        "born": "Born in ",
+        "delete":"Are you sure you want to delete this comment?",
+        "allGenders": {
+            "male": "Male",
+            "female": "Female",
+            "other": "Other",
+            "non-binary": "Non-binary",
+            "prefer-not-to-say": "Prefer not to say"
+        }
+    },
+    "register": {
+        "loading": "Loading...",
+        "success": "Registration successful! You can now ",
+        "login": "log in",
+        "passPlaceholder": "Password minimum 8 characters",
+        "emailPlaceholder": "Enter your email",
+        "confirmPassword": "Confirm Password",
+        "register": "Register",
+        "registering": "Registering...",
+        "errors": {
+            "general": "Something went wrong. Please try again.",
+            "username": "ensure this value has at least 3 characters",
+            "email": "value is not a valid email address",
+            "password": "ensure this value has at least 8 characters",
+            "confirmPassword": "Passwords do not match",
+            "firstName": "ensure this value has at least 1 characters",
+            "lastName": "ensure this value has at least 1 characters"
+        }
+    },
+    "resetPassword": {
+        "processing": "Processing...",
+        "success": "Password reset successfully. Redirecting to login... ",
+        "resetPassword": "Reset Password",
+        "newPassword": "New Password",
+        "remenberPassword": "Remember your password?",
+        "errors": {
+            "token": "Invalid token",
+            "password": "Passwords do not match"
+        }
+    },
+    "search": {
+        "loading": "Loading more movies...",
+        "noResults": "No movies found with current filters",
+        "searchPlaceholder": "Search movies...",
+        "search": "Search for movies or use filters to display results",
+        "filter": {
+            "selectGenres": "Select Genres",
+            "genres":{
+                "action": "Action",
+                "adventure": "Adventure",
+                "animation": "Animation",
+                "comedy": "Comedy",
+                "crime": "Crime",
+                "documentary": "Documentary",
+                "drama": "Drama",
+                "family": "Family",
+                "fantasy": "Fantasy",
+                "history": "History",
+                "horror": "Horror",
+                "musical": "Musical",
+                "mystery": "Mystery",
+                "romance": "Romance",
+                "scifi": "Sci-Fi",
+                "thriller": "Thriller",
+                "war": "War",
+                "western": "Western"
+            },
+            "advanced": "Advanced Filters",
+            "yearTo": "Year to",
+            "yearFrom": "Year from",
+            "minRating": "Min Rating",
+            "maxRating": "Max Rating",
+            "sort": "Sort by",
+            "sortOptions": {
+                "title": "Title",
+                "year": "Year",
+                "rating": "Rating",
+                "viewPercentage": "View Percentage"
+            },
+            "order": {
+                "orderBy": "Order by",
+                "asc": "Ascending",
+                "desc": "Descending"
+            },
+            "resultsPerPage": "Results per page",
+            "clear": "Clear all filters"
+        }
+    },
+    "forgotPassword": {
+        "emailPlaceholder": "Enter your email",
+        "sendEmail": "Sending email...",
+        "processing": "Processing...",
+        "success": "Email sent successfully! Check your inbox.",
+        "sending": "Sending...",
+        "remenberPassword": "Remember your password?",
+        "goToLogin": "Go to login" 
+    },
+    "api":{
+        "description": "Generate API credentials to access HYPERTUBE programmatically",
+        "key_generated": "Generate Your API Credentials",
+        "key_info": "Click the button below to generate your API key and secret",
+        "button": "Generate API Key",
+        "generating": "Generating API key...",
+        "important": "Important",
+        "warning_info": "Save these credentials now! They will disappear when you navigate away from this page.",
+        "copy": "Copy",
+        "copied": "Copied!"
+    }
+}

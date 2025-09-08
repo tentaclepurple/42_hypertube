@@ -1,0 +1,184 @@
+{
+    "main": {
+        "welcome": "Bienvenido a Hypertube",
+        "dive": "Sumérgete en el mundo de Hypertube"
+    },
+    "footer": {
+        "madeBy": "Hecho por ",
+        "and": " y "
+    },
+    "navbar": {
+        "movies": "Peliculas",
+        "search": "Buscar",
+        "login": "Iniciar sesión",
+        "register": "Registrarse"
+    },
+    "login": {
+        "username": "Usuario",
+        "password": "Contraseña",
+        "submit": "Iniciar sesión",
+        "loggingIn": "Iniciando sesión...",
+        "42Login": "Iniciar sesión con 42",
+        "googleLogin": "Iniciar sesión con Google",
+        "githubLogin": "Iniciar sesión con GitHub",
+        "forgotPassword": "¿Olvidaste tu contraseña?",
+        "noAccount": "¿No tienes una cuenta?",
+        "registerHere": "Regístrate aquí",
+        "processing": "Processing login...",
+        "errors": {
+            "invalidCredentials": "Usuario y contraseña invalidas.",
+            "processingData": "Error al procesar los datos de autenticación",
+            "incompleteData": "Datos de autenticación incompletos"
+        }
+    },
+    "movies": {
+        "loadingMore": "Cargando más películas...",
+        "loading":  "Cargando película...",
+        "genres": "Géneros",
+        "noDirector": "No hay director disponible",
+        "cast": "Reparto",
+        "noCast": "No hay reparto disponible",
+        "viewing": "Progreso de visualización",
+        "completed": "✅ Visto completamente",
+        "comment": "Tu comentario",
+        "rating": "Tu valoración",
+        "placeholder": "Escribe tu opinión sobre la película...",
+        "character": "carácter",
+        "sending": "Enviando...",
+        "submitComment": "Enviar un comentario",
+        "loadingComments": "Cargando comentarios...",
+        "firstComment": "¡Aún no hay comentarios, sé el primero en comentar!",
+        "watched": "✅ Visto"
+    },
+    "profile": {
+        "loading": "Cargando prefil...",
+        "userloading": "Cargando perfil de usuario...",
+        "notfound": "Perfil de usuario no encontrado.",
+        "year": "Año de nacimiento: ",
+        "gender": "Género: ",
+        "comments": "Comentarios recientes",
+        "nocomments": "No se encontraron comentarios recientes",
+        "uploading": "Subiendo...",
+        "upload": "Subir",
+        "cancel": "Cancelar",
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "email": "Correo electrónico",
+        "birth": "Fecha de nacimiento",
+        "genderEdit": "Género",
+        "save": "Guardar",
+        "selectGender": "Selecciona tu género",
+        "male": "Masculino",
+        "female": "Femenino",
+        "other": "Otro",
+        "noBinary": "No binario",
+        "notsay": "Prefiero no decirlo",
+        "born": "Nacido en ",
+        "delete":"¿Estás seguro de que quieres eliminar este comentario?",
+        "allGenders": {
+            "male": "Masculino",
+            "female": "Femenino",
+            "other": "Otro",
+            "non-binary": "No binario",
+            "prefer-not-to-say": "Prefiero no decirlo"
+        }
+    },
+    "register": {
+        "loading": "Cargando...",
+        "success": "Cuenta creada con éxito. Por favor,",
+        "login": "inicia sesión",
+        "passPlaceholder": "La contraseña debe tener al menos 8 caracteres",
+        "emailPlaceholder": "Mete tu correo electrónico",
+        "confirmPassword": "Confirmar contraseña",
+        "register": "Registrarse",
+        "registering": "Registrando...",
+        "errors": {
+            "general": "Algo salió mal. Por favor, inténtalo de nuevo.",
+            "username": "El nombre de usuario debe tener al menos 3 caracteres",
+            "email": "El valor no es una dirección de correo electrónico válida",
+            "password": "Asegúrate de que la contraseña tenga al menos 8 caracteres",
+            "confirmPassword": "Las contraseñas no coinciden",
+            "firstName": "Asegúrate de que este valor tenga al menos 1 carácter",
+            "lastName": "Asegúrate de que este valor tenga al menos 1 carácter"
+        }
+    },
+    "resetPassword": {
+        "processing": "Procesando...",
+        "success": "La contraseña se ha restablecido correctamente. Redirigiendo al inicio de sesión...",
+        "resetPassword": "Restablecer contraseña",
+        "newPassword": "Nueva contraseña",
+        "remenberPassword": "¿Recuerdas tu contraseña?",
+        "errors": {
+            "token": "Token inválido",
+            "password": "Las contraseñas no coinciden"
+        }
+    },
+    "search": {
+        "loading": "Cargando películas...",
+        "noResults": "No se han encontrado películas con los filtros actuales",
+        "searchPlaceholder": "Busca peliculas",
+        "search": "Buscar películas o utilizar filtros para mostrar los resultados",
+        "filter": {
+            "selectGenres": "Selecciona géneros",
+            "genres":{
+                "action": "Acción",
+                "adventure": "Aventura",
+                "animation": "Animación",
+                "comedy": "Comedia",
+                "crime": "Crimen",
+                "documentary": "Documental",
+                "drama": "Drama",
+                "family": "Familia",
+                "fantasy": "Fantasía",
+                "history": "Historia",
+                "horror": "Terror",
+                "musical": "Musical",
+                "mystery": "Misterio",
+                "romance": "Romance",
+                "scifi": "Sci-Fi",
+                "thriller": "Suspense",
+                "war": "Guerra",
+                "western": "Western"
+            },
+            "advanced": "Filtros avanzados",
+            "yearTo": "Año hasta",
+            "yearFrom": "Año desde",
+            "minRating": "Valoración mínima",
+            "maxRating": "Valoración máxima",
+            "sort": "Clasificar por",
+            "sortOptions": {
+                "title": "Título",
+                "year": "Año",
+                "rating": "Valoración",
+                "viewPercentage": "Porcentaje de visualización"
+            },
+            "order": {
+                "orderBy": "Ordenar por",
+                "asc": "Ascendente",
+                "desc": "Descendente"
+            },
+            "resultsPerPage": "Resultados por página",
+            "clear": "Limpiar todos los filtros"
+        }
+    },
+    "forgotPassword": {
+        "emailPlaceholder": "Introduce tu correo",
+        "sendEmail": "Enviar correo electrónico",
+        "processing": "Procesando...",
+        "success": "¡Correo electrónico enviado con éxito! Revisa tu bandeja de entrada.",
+        "sending": "Enviando...",
+        "remenberPassword": "¿Recuerdas tu contraseña?",
+        "goToLogin": "Ir a iniciar sesión" 
+    },
+    "api":{
+        "description": "Genera credenciales API para acceder a HYPERTUBE programáticamente",
+        "key_generated": "Genera tus credenciales API",
+        "key_info": "Haz clic en el botón de abajo para generar tu clave API y secreto",
+        "button": "Generar clave API",
+        "generating": "Generando clave API...",
+        "important": "Importante",
+        "warning_info": "¡Guarda estas credenciales ahora! Desaparecerán cuando salgas de esta página.",
+        "copy": "Copiar",
+        "copied": "¡Copiado!"
+    }
+}

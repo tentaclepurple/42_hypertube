@@ -39,10 +39,13 @@ class SearchService:
                 transformed_results = await SearchService._transform_yts_results(yts_movies)
                 await SearchService._save_to_database(transformed_results)
                 
-                # Añadir información de visualización (serán 0.0 y false para películas nuevas)
+                # Añadir información de visualización y asegurar géneros
                 for movie in transformed_results:
                     movie["view_percentage"] = 0.0
                     movie["completed"] = False
+                    # Asegurar que genres esté presente
+                    if "genres" not in movie:
+                        movie["genres"] = []
                 
                 if db_results:
                     db_imdb_ids = {movie.get("imdb_id") for movie in db_results if movie.get("imdb_id")}
@@ -80,10 +83,13 @@ class SearchService:
         transformed_results = await SearchService._transform_yts_results(yts_movies)
         await SearchService._save_to_database(transformed_results)
         
-        # Añadir información de visualización
+        # Añadir información de visualización y asegurar géneros
         for movie in transformed_results:
             movie["view_percentage"] = 0.0
             movie["completed"] = False
+            # Asegurar que genres esté presente
+            if "genres" not in movie:
+                movie["genres"] = []
         
         return transformed_results
 
@@ -159,8 +165,8 @@ class SearchService:
         
         sql = f"""
             SELECT 
-                m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres, m.summary,
-                m.cover_image, m.director, m.casting, m.torrents,
+                m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres,
+                m.cover_image,
                 COALESCE(umv.view_percentage, 0.0) as view_percentage,
                 COALESCE(umv.completed, false) as completed
             FROM movies m
@@ -180,19 +186,19 @@ class SearchService:
                     movie_dict["id"] = str(movie_dict["id"])
                     movie_dict["poster"] = movie_dict.pop("cover_image")
                     movie_dict["rating"] = movie_dict.pop("imdb_rating")
-                    movie_dict["runtime"] = movie_dict.get("duration")
-                    movie_dict["source"] = "database"
                     
-                    # Decodificar torrents
-                    torrents = movie_dict.get("torrents")
-                    if torrents and isinstance(torrents, str):
+                    # Asegurar que genres es una lista
+                    genres = movie_dict.get("genres", [])
+                    if genres is None:
+                        movie_dict["genres"] = []
+                    elif isinstance(genres, str):
+                        # Si por alguna razón está como string, intentar parsear
                         try:
-                            movie_dict["torrents"] = json.loads(torrents)
-                        except Exception as e:
-                            print(f"Error parsing torrents JSON for movie {movie_dict['id']}: {str(e)}")
-                            movie_dict["torrents"] = []
-                    elif torrents is None:
-                        movie_dict["torrents"] = []
+                            movie_dict["genres"] = json.loads(genres)
+                        except:
+                            movie_dict["genres"] = []
+                    else:
+                        movie_dict["genres"] = genres
                     
                     movies_list.append(movie_dict)
                 
@@ -208,8 +214,8 @@ class SearchService:
         """
         sql = """
             SELECT 
-                m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres, m.summary,
-                m.cover_image, m.director, m.casting, m.torrents,
+                m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres,
+                m.cover_image,
                 COALESCE(umv.view_percentage, 0.0) as view_percentage,
                 COALESCE(umv.completed, false) as completed
             FROM movies m
@@ -229,22 +235,18 @@ class SearchService:
                     movie_dict["id"] = str(movie_dict["id"])
                     movie_dict["poster"] = movie_dict.pop("cover_image")
                     movie_dict["rating"] = movie_dict.pop("imdb_rating")
-                    movie_dict["runtime"] = movie_dict.get("duration")
-                    movie_dict["source"] = "database"
                     
-                    # Decodificar torrents
-                    torrents = movie_dict.get("torrents")
-                    if torrents and isinstance(torrents, str):
+                    # Asegurar que genres es una lista
+                    genres = movie_dict.get("genres", [])
+                    if genres is None:
+                        movie_dict["genres"] = []
+                    elif isinstance(genres, str):
                         try:
-                            movie_dict["torrents"] = json.loads(torrents)
+                            movie_dict["genres"] = json.loads(genres)
                         except:
-                            movie_dict["torrents"] = []
-                    
-                    # Extraer torrent_hash
-                    if movie_dict.get("torrents") and isinstance(movie_dict["torrents"], list) and len(movie_dict["torrents"]) > 0:
-                        movie_dict["torrent_hash"] = movie_dict["torrents"][0].get("hash")
+                            movie_dict["genres"] = []
                     else:
-                        movie_dict["torrent_hash"] = None
+                        movie_dict["genres"] = genres
                     
                     movies_list.append(movie_dict)
                 
@@ -253,7 +255,7 @@ class SearchService:
             print(f"Error getting popular movies from database with views: {str(e)}")
             return []
 
-    # Mantener métodos existentes sin cambios
+
     @staticmethod
     async def _transform_yts_results(yts_movies: List[Dict]) -> List[Dict]:
         """

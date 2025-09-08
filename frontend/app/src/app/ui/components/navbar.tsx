@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Menu, X, LogOutIcon } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 
 
 export default function Navbar() {
@@ -14,6 +15,8 @@ export default function Navbar() {
     const router = useRouter();
     const toggleMenu = () => setIsOpen(!isOpen);
     const closeMenu = () => setIsOpen(false);
+
+    const { t } = useTranslation();
 
     return (
         <nav className='bg-dark-900 text-white p-4'>
@@ -24,20 +27,22 @@ export default function Navbar() {
                 >
                     HYPERTUBE
                 </div>
-                {/* CONTENT FOR LARGE SCREENS */}
                 <div className="hidden md:flex items-center gap-6">
                     {!isAuthenticated ? (
                         <>
-                            <button onClick={() => router.push('/login')} className="hover:text-gray-300">Login</button>
-                            <button onClick={() => router.push('/register')} className="hover:text-gray-300">Register</button>
+                            <button onClick={() => router.push('/login')} className="hover:text-gray-300">{t("navbar.login")}</button>
+                            <button onClick={() => router.push('/register')} className="hover:text-gray-300">{t("navbar.register")}</button>
                         </>
                     ) : (
                         <div className="flex items-center gap-4">
+                            <button onClick={() => router.push('/api')} className="hover:text-gray-300 text-xl py-2 px-4">
+                                API
+                            </button>
                             <button onClick={() => router.push('/movies')} className="hover:text-gray-300 text-xl py-2 px-4">
-                                Movies
+                                {t("navbar.movies")}
                             </button>
                             <button onClick={() => router.push('/search')} className="hover:text-gray-300 text-xl py-2 px-4">
-                                Search
+                                {t("navbar.search")}
                             </button>
                             <Image
                                 src={user?.profile_picture || "/default-avatar.png"}
@@ -59,12 +64,10 @@ export default function Navbar() {
                         </div>
                     )}
                 </div>
-            {/* Hamburger button (only visible on mobile) */}
             <button onClick={toggleMenu} className="md:hidden">
                 {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             </div>
-            {/* Mobile drop-down menu */}
             {isOpen && (
                 <div className="md:hidden flex flex-col bg-black-800 mt-2 p-4 rounded-lg">
                     {!isAuthenticated ? (
@@ -73,13 +76,13 @@ export default function Navbar() {
                                 onClick={() => { router.push('/login'); closeMenu(); }} 
                                 className="py-2 hover:text-gray-300"
                             >
-                                Login
+                                {t("navbar.login")}
                             </button>
                             <button 
                                 onClick={() => { router.push('/register'); closeMenu(); }} 
                                 className="py-2 hover:text-gray-300"
                             >
-                                Register
+                                {t("navbar.register")}
                             </button>
                         </>
                     ) : (
@@ -96,11 +99,14 @@ export default function Navbar() {
                                 <Link href="/profile"> {user?.username} </Link>
                                 </button>
                             </div>
+                            <button onClick={() => {router.push('/api'); closeMenu();}} className="text-white-400 hover:text-white-500">
+                                API
+                            </button>
                             <button onClick={() => {router.push('/search'); closeMenu();}} className="text-white-400 hover:text-white-500">
-                                Search
+                                {t("navbar.search")}
                             </button>
                             <button onClick={() => {router.push('/movies'); closeMenu();}} className="text-white-400 hover:text-white-500 py-2">
-                                Movies
+                                {t("navbar.movies")}
                             </button>
                             <button 
                                 onClick={() => { logout(); closeMenu(); }} 
