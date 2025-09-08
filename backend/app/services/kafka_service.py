@@ -7,7 +7,7 @@ from typing import Dict, Any
 import time
 
 
-HOST = '192.168.0.12'
+HOST = 'imontero.ddns.net'
 
 logger = logging.getLogger(__name__)
 

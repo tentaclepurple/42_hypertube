@@ -9,7 +9,7 @@ import re
 import time
 
 
-HOST = '192.168.0.12'
+HOST = 'imontero.ddns.net'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -332,7 +332,7 @@ async def start_kafka_consumer(downloader):
         try:
             consumer = KafkaConsumer(
                 'movie-download-requests',
-                bootstrap_servers=['192.168.0.12:9092'],
+                bootstrap_servers=['imontero.ddns.net:9092'],
                 group_id='torrent-service',
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',

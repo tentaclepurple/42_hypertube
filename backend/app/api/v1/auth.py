@@ -30,7 +30,7 @@ from starlette import status
 import urllib.parse
 import json
 
-HOST = "192.168.0.12"
+HOST = "imontero.ddns.net"
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
