@@ -7,7 +7,7 @@ from typing import Dict, Any
 import time
 
 
-HOST = 'imontero.ddns.net'
+HOST = 'kafka'
 
 logger = logging.getLogger(__name__)
 

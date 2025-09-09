@@ -9,7 +9,7 @@ def test_single_hash():
     """Prueba con un solo hash bien conocido"""
     try:
         producer = KafkaProducer(
-            bootstrap_servers=['imontero.ddns.net:9092'],
+            bootstrap_servers=['kafka:9092'],
             value_serializer=lambda x: json.dumps(x).encode('utf-8')
         )
         

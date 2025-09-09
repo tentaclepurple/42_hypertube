@@ -1,3 +1,6 @@
+# microservices/torrent_service/main.py
+
+
 import asyncio
 import logging
 import json
@@ -9,7 +12,7 @@ import re
 import time
 
 
-HOST = 'imontero.ddns.net'
+HOST = 'kafka'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -332,7 +335,7 @@ async def start_kafka_consumer(downloader):
         try:
             consumer = KafkaConsumer(
                 'movie-download-requests',
-                bootstrap_servers=['imontero.ddns.net:9092'],
+                bootstrap_servers=['kafka:9092'],
                 group_id='torrent-service',
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
