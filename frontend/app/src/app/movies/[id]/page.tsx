@@ -45,6 +45,7 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setMovieData(data);
+            console.log("Movie data:", data);
         } catch (err) {
             setError(err as string[]);
         }
@@ -186,10 +187,26 @@ export default function MovieDetails() {
                             </p>
                         </div>
                     )}
-                    <div className="flex space-x-4 mt-8">
-                        <span className="bg-gray-800 px-4 py-2 rounded-lg text-center">720p</span>
-                        <span className="bg-gray-800 px-4 py-2 rounded-lg text-center">1080p</span>
+                    {movie?.torrents && movie.torrents.length > 0 && (
+                    <div className="mt-8">
+                        <div className="flex flex-wrap gap-3">
+                            {movie.torrents.map((torrent, index) => (
+                                <button
+                                    key={index}
+                                    className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-center transition-colors cursor-pointer border border-gray-600 hover:border-gray-500"
+                                    onClick={() => {
+                                        // Aquí puedes agregar la lógica para manejar la selección del torrent
+                                        console.log('Torrent seleccionado:', torrent);
+                                    }}
+                                >
+                                    <div className="flex flex-col items-center">
+                                        <span className="font-medium">{torrent.quality}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
+                    )}
                 </div>
             </div>
 

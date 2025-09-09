@@ -66,7 +66,6 @@ export default function ResetPassword() {
             setLoading(false);
         }
     }
-    console.log("error", error);
     return (
         <div className="flex items-center justify-center ">
             <div className="max-w-md mt-auto p-6">

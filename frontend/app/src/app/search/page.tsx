@@ -202,7 +202,6 @@ export default function Search() {
                 }
                 
                 const data: Movie[] = await response.json();
-                console.log("Fetched movies:", data);
                 if (page === 1) {
                     setAllMovies(data);
                 } else {
