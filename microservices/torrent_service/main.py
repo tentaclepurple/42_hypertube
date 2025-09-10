@@ -335,7 +335,7 @@ async def start_kafka_consumer(downloader):
         try:
             consumer = KafkaConsumer(
                 'movie-download-requests',
-                bootstrap_servers=['kafka:9092'],
+                bootstrap_servers=['172.18.0.4:9092'],
                 group_id='torrent-service',
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
@@ -348,7 +348,7 @@ async def start_kafka_consumer(downloader):
                 process_kafka_message(downloader, message)
                 
         except Exception as e:
-            logger.error(f"❌ Error en consumer de Kafka: {e}")
+            logger.error(f"❌ Error en consumer de Kafka: {e}", exc_info=True)
     
     # Iniciar en hilo separado
     kafka_thread = threading.Thread(target=kafka_consumer_thread, daemon=True)

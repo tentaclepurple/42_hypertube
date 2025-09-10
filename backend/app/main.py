@@ -15,9 +15,9 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    #allow_origins=["http://localhost:3000", "http://83.59.57.242", "http://imontero.ddns.net"], 
+    allow_origins=["http://localhost:3000"], 
     #allow_origins=["*"], # In production, specify allowed origins
-    allow_origins=["http://imontero.ddns.net:3000"],
+    #allow_origins=["http://imontero.ddns.net:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
