@@ -1,11 +1,17 @@
 # backend/app/api/v1/movies.py
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Header
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from datetime import datetime
 import json
 import time
 import uuid
+import os
+import mimetypes
+from pathlib import Path
+import aiofiles
+import logging
 
 from app.api.deps import get_current_user
 from app.db.session import get_db_connection
@@ -14,11 +20,7 @@ from app.models.view_progress import ViewProgressUpdate, ViewProgressResponse
 from app.services.imdb_graphql_service import IMDBGraphQLService
 from app.services.kafka_service import kafka_service
 
-from fastapi.responses import StreamingResponse
-import aiofiles
-import os
-
-
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -145,6 +147,489 @@ async def get_movie_details(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting movie details: {str(e)}"
         )
+
+
+@router.get("/{movie_id}/stream")
+async def stream_movie(
+    movie_id: str,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    torrent_hash: str = Query(..., description="Specific torrent hash (quality)"),
+    range: str = Header(None)
+):
+    """
+    Unified streaming endpoint that:
+    1. Checks if movie with specific hash is downloaded
+    2. Initiates download if not exists
+    3. Streams when sufficient data is available
+    4. Handles progressive streaming during download
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        user_id = current_user["id"]
+        
+        logger.info(f"BACKEND: Stream request for movie {movie_id}, hash {torrent_hash}")
+        
+        async with get_db_connection() as conn:
+            # Check if movie exists in movies table
+            movie_info = await conn.fetchrow(
+                "SELECT id, title, torrents FROM movies WHERE id = $1",
+                movie_uuid
+            )
+            
+            if not movie_info:
+                raise HTTPException(404, "Movie not found")
+            
+            movie_title = movie_info["title"]
+            logger.info(f"BACKEND: Movie found: {movie_title}")
+            
+            # Validate that the hash exists in movie's torrents
+            torrents = movie_info["torrents"]
+            if isinstance(torrents, str):
+                try:
+                    torrents = json.loads(torrents)
+                except:
+                    torrents = []
+            
+            valid_hash = False
+            if torrents and isinstance(torrents, list):
+                valid_hash = any(t.get("hash", "").lower() == torrent_hash.lower() 
+                               for t in torrents)
+            
+            if not valid_hash:
+                raise HTTPException(400, f"Invalid torrent hash for this movie")
+            
+            # Check download status for this specific hash
+            download_info = await conn.fetchrow(
+                """
+                SELECT downloaded_lg, filepath_ds, hash_id, update_dt
+                FROM movie_downloads 
+                WHERE movie_id = $1 AND hash_id = $2
+                ORDER BY update_dt DESC
+                LIMIT 1
+                """,
+                movie_uuid, torrent_hash.lower()
+            )
+            
+            logger.info(f"BACKEND: Download info query result: {download_info}")
+        
+        # CASE 1: Already fully downloaded
+        if download_info and download_info["downloaded_lg"] and download_info["filepath_ds"]:
+            file_path = download_info["filepath_ds"]
+            
+            if os.path.exists(file_path):
+                logger.info(f"BACKEND: Serving fully downloaded file: {file_path}")
+                return await _serve_complete_file(file_path, movie_title, range)
+            else:
+                # File was deleted, mark as not downloaded
+                async with get_db_connection() as conn:
+                    await conn.execute(
+                        "UPDATE movie_downloads SET downloaded_lg = false WHERE hash_id = $1",
+                        torrent_hash.lower()
+                    )
+                logger.warning(f"BACKEND: Downloaded file missing, marked as not downloaded: {file_path}")
+        
+        # CASE 2: Currently downloading
+        if download_info and download_info["filepath_ds"]:
+            file_path = download_info["filepath_ds"]
+            
+            if os.path.exists(file_path):
+                can_stream = await _check_streaming_threshold(Path(file_path))
+                file_size = Path(file_path).stat().st_size
+                
+                logger.info(f"BACKEND: Found downloading file: {file_path}, size: {file_size}, can_stream: {can_stream}")
+                
+                if can_stream:
+                    logger.info(f"BACKEND: Serving partial file during download: {file_path}")
+                    return await _serve_partial_file(Path(file_path), movie_title, range)
+                else:
+                    # Not enough data yet, return status
+                    logger.info(f"BACKEND: File too small for streaming: {file_size} bytes")
+                    raise HTTPException(
+                        status_code=202,  # Accepted, processing
+                        detail={
+                            "message": "Download in progress, please wait",
+                            "downloaded_bytes": file_size,
+                            "status": "downloading",
+                            "estimated_wait": "1-2 minutes"
+                        }
+                    )
+            else:
+                logger.warning(f"BACKEND: Filepath in DB but file doesn't exist: {file_path}")
+        
+        # Check if we found ANY download info but without filepath
+        if download_info:
+            logger.info(f"BACKEND: Download info found but no valid filepath: {download_info}")
+            raise HTTPException(
+                status_code=202,
+                detail={
+                    "message": "Download in progress, file not detected yet",
+                    "status": "downloading",
+                    "estimated_wait": "30 seconds"
+                }
+            )
+        
+        # CASE 3: Not downloaded, need to start download
+        logger.info(f"BACKEND: No download found for movie {movie_id}, hash {torrent_hash} - starting new download")
+        
+        # Initiate download via Kafka
+        download_message = {
+            'movie_id': str(movie_uuid),
+            'torrent_hash': torrent_hash,
+            'movie_title': movie_title,
+            'user_id': str(user_id),
+            'timestamp': time.time(),
+            'initiated_by': 'streaming_request'
+        }
+        
+        success = kafka_service.send_download_request_enhanced(download_message)
+        
+        if not success:
+            raise HTTPException(503, "Download service unavailable")
+        
+        # Return immediate response that download has started
+        raise HTTPException(
+            status_code=202,  # Accepted, processing
+            detail={
+                "message": "Download initiated, please wait",
+                "status": "starting_download",
+                "movie_id": str(movie_uuid),
+                "torrent_hash": torrent_hash,
+                "estimated_wait": "2-5 minutes",
+                "retry_after": 30  # Suggest client retry after 30 seconds
+            }
+        )
+        
+    except ValueError:
+        raise HTTPException(400, "Invalid movie ID format")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"BACKEND: Streaming error: {str(e)}")
+        raise HTTPException(500, f"Streaming error: {str(e)}")
+
+
+async def _serve_complete_file(file_path: str, movie_title: str, range_header: str = None):
+    """Serve a completely downloaded file with range support"""
+    file_path_obj = Path(file_path)
+    
+    if not file_path_obj.exists():
+        raise HTTPException(404, "Movie file not found on disk")
+    
+    file_size = file_path_obj.stat().st_size
+    content_type = _get_video_content_type(file_path)
+    
+    # Handle range requests (for video seeking)
+    if range_header:
+        return await _serve_range_request(file_path, file_size, range_header, content_type, movie_title)
+    
+    # Serve complete file
+    async def file_generator():
+        async with aiofiles.open(file_path, 'rb') as file:
+            while chunk := await file.read(8192):  # 8KB chunks
+                yield chunk
+    
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(file_size),
+        "Content-Disposition": f"inline; filename={_sanitize_filename(movie_title)}.mp4"
+    }
+    
+    return StreamingResponse(
+        file_generator(),
+        media_type=content_type,
+        headers=headers
+    )
+
+
+async def _serve_partial_file(file_path: Path, movie_title: str, range_header: str = None):
+    """Serve a partially downloaded file"""
+    file_size = file_path.stat().st_size
+    content_type = _get_video_content_type(str(file_path))
+    
+    # For partial files, we can only serve from the beginning
+    if range_header:
+        # Parse range to see if it's asking for the beginning
+        try:
+            range_match = range_header.replace('bytes=', '').split('-')
+            start = int(range_match[0]) if range_match[0] else 0
+            
+            # If requesting data beyond what we have, return error
+            if start >= file_size:
+                raise HTTPException(
+                    status_code=416,  # Range Not Satisfiable
+                    detail="Requested range not available yet"
+                )
+        except ValueError:
+            pass  # Invalid range format, serve from beginning
+    
+    async def partial_file_generator():
+        async with aiofiles.open(file_path, 'rb') as file:
+            while chunk := await file.read(8192):
+                yield chunk
+    
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(file_size),
+        "Content-Disposition": f"inline; filename={_sanitize_filename(movie_title)}.mp4",
+        "X-Content-Status": "partial"  # Custom header to indicate partial content
+    }
+    
+    return StreamingResponse(
+        partial_file_generator(),
+        media_type=content_type,
+        headers=headers
+    )
+
+
+async def _serve_range_request(file_path: str, file_size: int, range_header: str, content_type: str, movie_title: str):
+    """Handle HTTP range requests for video seeking"""
+    try:
+        # Parse range header: "bytes=start-end"
+        range_match = range_header.replace('bytes=', '').split('-')
+        start = int(range_match[0]) if range_match[0] else 0
+        end = int(range_match[1]) if range_match[1] else file_size - 1
+        
+        # Validate range
+        if start >= file_size or end >= file_size or start > end:
+            raise HTTPException(416, "Range Not Satisfiable")
+        
+        content_length = end - start + 1
+        
+        async def range_generator():
+            async with aiofiles.open(file_path, 'rb') as file:
+                await file.seek(start)
+                remaining = content_length
+                
+                while remaining > 0:
+                    chunk_size = min(8192, remaining)
+                    chunk = await file.read(chunk_size)
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+        
+        headers = {
+            "Content-Range": f"bytes {start}-{end}/{file_size}",
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(content_length),
+            "Content-Disposition": f"inline; filename={_sanitize_filename(movie_title)}.mp4"
+        }
+        
+        return StreamingResponse(
+            range_generator(),
+            status_code=206,  # Partial Content
+            media_type=content_type,
+            headers=headers
+        )
+        
+    except ValueError:
+        raise HTTPException(400, "Invalid range header")
+
+
+async def _check_streaming_threshold(file_path: Path) -> bool:
+    """Check if we have enough data downloaded to start streaming"""
+    
+    file_size = file_path.stat().st_size
+    
+    # Minimum thresholds
+    MIN_SIZE_MB = 10  # At least 10MB
+    MIN_PERCENTAGE = 0.05  # At least 5% of estimated final size
+    
+    # Basic size check
+    if file_size < MIN_SIZE_MB * 1024 * 1024:
+        return False
+    
+    # For more sophisticated checking, we could:
+    # 1. Estimate final file size from torrent metadata
+    # 2. Check if video headers are complete
+    # 3. Use ffprobe to verify the file is playable
+    
+    # For now, use simple heuristics
+    ESTIMATED_MOVIE_SIZE = 1.5 * 1024 * 1024 * 1024  # 1.5GB average
+    
+    if file_size >= MIN_PERCENTAGE * ESTIMATED_MOVIE_SIZE:
+        return True
+    
+    # Additional check: if file is actively being written to
+    # (modification time is very recent)
+    import time
+    mtime = file_path.stat().st_mtime
+    if time.time() - mtime < 60:  # Modified in last minute
+        return file_size > MIN_SIZE_MB * 1024 * 1024
+    
+    return False
+
+
+def _get_video_content_type(file_path: str) -> str:
+    """Determine MIME type for video file"""
+    
+    extension = Path(file_path).suffix.lower()
+    
+    mime_types = {
+        '.mp4': 'video/mp4',
+        '.mkv': 'video/x-matroska',
+        '.avi': 'video/x-msvideo', 
+        '.mov': 'video/quicktime',
+        '.wmv': 'video/x-ms-wmv',
+        '.flv': 'video/x-flv',
+        '.webm': 'video/webm',
+        '.m4v': 'video/mp4'
+    }
+    
+    return mime_types.get(extension, 'video/mp4')
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Sanitize filename for Content-Disposition header"""
+    import re
+    # Remove special characters, keep alphanumeric, spaces, hyphens, underscores
+    sanitized = re.sub(r'[^\w\s-]', '', filename)
+    # Replace spaces with underscores
+    sanitized = re.sub(r'\s+', '_', sanitized)
+    return sanitized[:100]  # Limit length
+
+
+@router.get("/{movie_id}/stream/status")
+async def get_streaming_status(
+    movie_id: str,
+    torrent_hash: str = Query(..., description="Specific torrent hash"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Check streaming status for specific movie + hash combination
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        
+        async with get_db_connection() as conn:
+            download_info = await conn.fetchrow(
+                """
+                SELECT md.downloaded_lg, md.filepath_ds, md.hash_id, md.update_dt,
+                       m.title
+                FROM movie_downloads md
+                JOIN movies m ON m.id = md.movie_id  
+                WHERE md.movie_id = $1 AND md.hash_id = $2
+                ORDER BY md.update_dt DESC
+                LIMIT 1
+                """,
+                movie_uuid, torrent_hash.lower()
+            )
+            
+            if not download_info:
+                return {
+                    "status": "not_started",
+                    "message": "Download not initiated",
+                    "ready_for_streaming": False,
+                    "action_needed": "Call stream endpoint to start download"
+                }
+            
+            # Check if fully downloaded
+            if download_info["downloaded_lg"] and download_info["filepath_ds"]:
+                if os.path.exists(download_info["filepath_ds"]):
+                    file_size = os.path.getsize(download_info["filepath_ds"])
+                    return {
+                        "status": "ready",
+                        "message": "Movie fully downloaded and ready",
+                        "ready_for_streaming": True,
+                        "file_size": file_size,
+                        "download_complete": True,
+                        "file_path": download_info["filepath_ds"]
+                    }
+            
+            # Check partial download
+            if download_info["filepath_ds"] and os.path.exists(download_info["filepath_ds"]):
+                file_path = Path(download_info["filepath_ds"])
+                can_stream = await _check_streaming_threshold(file_path)
+                file_size = file_path.stat().st_size
+                
+                # Estimate progress (rough calculation)
+                estimated_total = 1.5 * 1024 * 1024 * 1024  # 1.5GB estimate
+                progress_percent = min(100, (file_size / estimated_total) * 100)
+                
+                return {
+                    "status": "downloading",
+                    "message": "Download in progress",
+                    "ready_for_streaming": can_stream,
+                    "file_size": file_size,
+                    "download_complete": False,
+                    "estimated_progress": f"{progress_percent:.1f}%",
+                    "file_path": str(file_path),
+                    "streaming_available": can_stream
+                }
+            
+            return {
+                "status": "starting",
+                "message": "Download initiated but file not detected yet",
+                "ready_for_streaming": False,
+                "retry_in": "30 seconds"
+            }
+            
+    except ValueError:
+        raise HTTPException(400, "Invalid movie ID")
+    except Exception as e:
+        raise HTTPException(500, f"Error checking status: {str(e)}")
+
+
+@router.get("/{movie_id}/qualities")
+async def get_movie_qualities(
+    movie_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get available torrent qualities/hashes for a movie
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        
+        async with get_db_connection() as conn:
+            movie = await conn.fetchrow(
+                "SELECT title, torrents FROM movies WHERE id = $1",
+                movie_uuid
+            )
+            
+            if not movie:
+                raise HTTPException(404, "Movie not found")
+            
+            torrents = movie["torrents"]
+            if isinstance(torrents, str):
+                try:
+                    torrents = json.loads(torrents)
+                except:
+                    torrents = []
+            
+            if not torrents:
+                return {
+                    "movie_id": movie_id,
+                    "title": movie["title"],
+                    "qualities": [],
+                    "message": "No torrents available"
+                }
+            
+            # Format torrent info for frontend
+            qualities = []
+            for torrent in torrents:
+                if isinstance(torrent, dict) and torrent.get("hash"):
+                    quality_info = {
+                        "hash": torrent.get("hash"),
+                        "quality": torrent.get("quality", "Unknown"),
+                        "size": torrent.get("size", "Unknown"),
+                        "seeds": torrent.get("seeds", 0),
+                        "peers": torrent.get("peers", 0)
+                    }
+                    qualities.append(quality_info)
+            
+            return {
+                "movie_id": movie_id,
+                "title": movie["title"],
+                "qualities": qualities
+            }
+            
+    except ValueError:
+        raise HTTPException(400, "Invalid movie ID")
+    except Exception as e:
+        raise HTTPException(500, f"Error getting qualities: {str(e)}")
+
 
 @router.put("/{movie_id}/view", response_model=ViewProgressResponse)
 async def update_view_progress(
@@ -314,33 +799,23 @@ async def get_view_progress(
         )
 
 
-@router.post("/{movie_id}/download")
-async def download_movie(
-    movie_id: str,
-    request: DownloadRequest,  # Solo necesita hash ahora
+@router.post("/download")
+async def download_by_hash(
+    request: DownloadRequest,
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Descargar película específica por hash
+    Descargar película directamente por hash
     """
     try:
         user_id = current_user["id"]
-        
-        # Verificar que la película existe
-        async with get_db_connection() as conn:
-            movie = await conn.fetchrow(
-                "SELECT id, title FROM movies WHERE id = $1",
-                uuid.UUID(movie_id)
-            )
-            
-            if not movie:
-                raise HTTPException(404, "Movie not found")
+        movie_id = f"direct-{int(time.time())}"
         
         # Preparar mensaje para Kafka
         download_message = {
             'movie_id': movie_id,
             'torrent_hash': request.hash,
-            'movie_title': movie["title"],  # Título desde BD
+            'movie_title': request.title,
             'user_id': str(user_id),
             'timestamp': time.time()
         }
@@ -358,7 +833,7 @@ async def download_movie(
             "message": "Download initiated",
             "movie_id": movie_id,
             "hash": request.hash,
-            "title": movie["title"],
+            "title": request.title,
             "status": "downloading"
         }
         
@@ -366,151 +841,4 @@ async def download_movie(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error: {str(e)}"
-        )
-
-
-@router.get("/{movie_id}/download-status/{torrent_hash}")
-async def get_download_status(
-    movie_id: str,
-    torrent_hash: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """Verificar estado de descarga de un hash específico"""
-    try:
-        async with get_db_connection() as conn:
-            result = await conn.fetchrow(
-                """
-                SELECT downloaded_lg, filepath_ds, lastview_dt, insert_dt
-                FROM movie_downloads 
-                WHERE movie_id = $1 AND hash_id = $2
-                """,
-                uuid.UUID(movie_id), torrent_hash
-            )
-            
-            if result:
-                return {
-                    "downloaded": result['downloaded_lg'],
-                    "file_path": result['filepath_ds'],
-                    "last_viewed": result['lastview_dt'],
-                    "added_at": result['insert_dt']
-                }
-            else:
-                return {
-                    "downloaded": False,
-                    "file_path": None,
-                    "last_viewed": None,
-                    "added_at": None
-                }
-                
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error checking download status: {str(e)}"
-        )
-
-
-@router.post("/cleanup")
-async def cleanup_old_downloads(
-    current_user: dict = Depends(get_current_user)
-):
-    """Limpiar descargas antiguas no vistas en 30 días"""
-    try:
-        async with get_db_connection() as conn:
-            # Encontrar descargas para borrar
-            old_downloads = await conn.fetch(
-                """
-                SELECT hash_id, filepath_ds 
-                FROM movie_downloads 
-                WHERE lastview_dt < NOW() - INTERVAL '30 days'
-                OR (lastview_dt IS NULL AND insert_dt < NOW() - INTERVAL '30 days')
-                """
-            )
-            
-            deleted_count = 0
-            for download in old_downloads:
-                # Borrar archivo físico
-                if download['filepath_ds'] and os.path.exists(download['filepath_ds']):
-                    os.unlink(download['filepath_ds'])
-                
-                # Borrar registro de BD
-                await conn.execute(
-                    "DELETE FROM movie_downloads WHERE hash_id = $1",
-                    download['hash_id']
-                )
-                deleted_count += 1
-            
-            return {
-                "message": f"Cleanup completed: {deleted_count} downloads removed",
-                "deleted_count": deleted_count
-            }
-            
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error during cleanup: {str(e)}"
-        )
-
-
-@router.get("/{movie_id}/stream")
-async def stream_movie(
-    movie_id: str,
-    request: Request,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Stream de película (versión básica)
-    """
-    try:
-        # Verificar que la película existe
-        async with get_db_connection() as conn:
-            movie = await conn.fetchrow(
-                "SELECT id, title, file_path FROM movies WHERE id = $1",
-                uuid.UUID(movie_id)
-            )
-            
-            if not movie:
-                raise HTTPException(404, "Movie not found")
-            
-            # Por ahora, buscar archivo en /data/movies
-            # TODO: Mejorar con información real del torrent service
-            movie_files = [
-                f"/data/movies/{movie['title']}.mp4",
-                f"/data/movies/{movie['title']}.mkv",
-                f"/data/movies/{movie_id}.mp4",
-                f"/data/movies/{movie_id}.mkv"
-            ]
-            
-            file_path = None
-            for path in movie_files:
-                if os.path.exists(path):
-                    file_path = path
-                    break
-            
-            if not file_path:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Movie file not available yet. Try downloading first."
-                )
-            
-            # Streaming simple
-            async def file_generator():
-                async with aiofiles.open(file_path, 'rb') as file:
-                    while chunk := await file.read(8192):  # 8KB chunks
-                        yield chunk
-            
-            return StreamingResponse(
-                file_generator(),
-                media_type="video/mp4",
-                headers={
-                    "Accept-Ranges": "bytes",
-                    "Content-Disposition": f"inline; filename={movie['title']}.mp4"
-                }
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Streaming error: {str(e)}"
         )
