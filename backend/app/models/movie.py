@@ -7,8 +7,7 @@ import uuid
 
 
 class DownloadRequest(BaseModel):
-    hash: str
-    title: str = "Movie Download"
+    hash: str = Field(..., min_length=40, max_length=40, description="Torrent hash")
 
 
 class TorrentInfo(BaseModel):

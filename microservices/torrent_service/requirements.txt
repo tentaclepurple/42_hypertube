@@ -6,4 +6,8 @@ aiokafka==0.12.0
 aiofiles==23.2.0
 libtorrent
 
+asyncpg==0.30.0
+
+
+
 # NO incluir python-libtorrent - se instala desde sistema

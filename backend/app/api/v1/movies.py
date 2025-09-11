@@ -314,23 +314,33 @@ async def get_view_progress(
         )
 
 
-@router.post("/download")
-async def download_by_hash(
-    request: DownloadRequest,
+@router.post("/{movie_id}/download")
+async def download_movie(
+    movie_id: str,
+    request: DownloadRequest,  # Solo necesita hash ahora
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Descargar película directamente por hash
+    Descargar película específica por hash
     """
     try:
         user_id = current_user["id"]
-        movie_id = f"direct-{int(time.time())}"
+        
+        # Verificar que la película existe
+        async with get_db_connection() as conn:
+            movie = await conn.fetchrow(
+                "SELECT id, title FROM movies WHERE id = $1",
+                uuid.UUID(movie_id)
+            )
+            
+            if not movie:
+                raise HTTPException(404, "Movie not found")
         
         # Preparar mensaje para Kafka
         download_message = {
             'movie_id': movie_id,
             'torrent_hash': request.hash,
-            'movie_title': request.title,
+            'movie_title': movie["title"],  # Título desde BD
             'user_id': str(user_id),
             'timestamp': time.time()
         }
@@ -348,7 +358,7 @@ async def download_by_hash(
             "message": "Download initiated",
             "movie_id": movie_id,
             "hash": request.hash,
-            "title": request.title,
+            "title": movie["title"],
             "status": "downloading"
         }
         
@@ -357,6 +367,89 @@ async def download_by_hash(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error: {str(e)}"
         )
+
+
+@router.get("/{movie_id}/download-status/{torrent_hash}")
+async def get_download_status(
+    movie_id: str,
+    torrent_hash: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Verificar estado de descarga de un hash específico"""
+    try:
+        async with get_db_connection() as conn:
+            result = await conn.fetchrow(
+                """
+                SELECT downloaded_lg, filepath_ds, lastview_dt, insert_dt
+                FROM movie_downloads 
+                WHERE movie_id = $1 AND hash_id = $2
+                """,
+                uuid.UUID(movie_id), torrent_hash
+            )
+            
+            if result:
+                return {
+                    "downloaded": result['downloaded_lg'],
+                    "file_path": result['filepath_ds'],
+                    "last_viewed": result['lastview_dt'],
+                    "added_at": result['insert_dt']
+                }
+            else:
+                return {
+                    "downloaded": False,
+                    "file_path": None,
+                    "last_viewed": None,
+                    "added_at": None
+                }
+                
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error checking download status: {str(e)}"
+        )
+
+
+@router.post("/cleanup")
+async def cleanup_old_downloads(
+    current_user: dict = Depends(get_current_user)
+):
+    """Limpiar descargas antiguas no vistas en 30 días"""
+    try:
+        async with get_db_connection() as conn:
+            # Encontrar descargas para borrar
+            old_downloads = await conn.fetch(
+                """
+                SELECT hash_id, filepath_ds 
+                FROM movie_downloads 
+                WHERE lastview_dt < NOW() - INTERVAL '30 days'
+                OR (lastview_dt IS NULL AND insert_dt < NOW() - INTERVAL '30 days')
+                """
+            )
+            
+            deleted_count = 0
+            for download in old_downloads:
+                # Borrar archivo físico
+                if download['filepath_ds'] and os.path.exists(download['filepath_ds']):
+                    os.unlink(download['filepath_ds'])
+                
+                # Borrar registro de BD
+                await conn.execute(
+                    "DELETE FROM movie_downloads WHERE hash_id = $1",
+                    download['hash_id']
+                )
+                deleted_count += 1
+            
+            return {
+                "message": f"Cleanup completed: {deleted_count} downloads removed",
+                "deleted_count": deleted_count
+            }
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error during cleanup: {str(e)}"
+        )
+
 
 @router.get("/{movie_id}/stream")
 async def stream_movie(

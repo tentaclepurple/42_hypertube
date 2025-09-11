@@ -1,6 +1,5 @@
 # microservices/torrent_service/main.py
 
-
 import asyncio
 import logging
 import json
@@ -10,7 +9,8 @@ from pathlib import Path
 import os
 import re
 import time
-
+import asyncpg
+import uuid
 
 HOST = 'kafka'
 
@@ -23,6 +23,11 @@ class TorrentDownloader:
         self.download_path = Path("/data/movies")
         self.download_path.mkdir(exist_ok=True)
         self.active_torrents = {}
+        
+        # Conexión a base de datos
+        self.db_url = os.environ.get("DATABASE_URL")
+        if not self.db_url:
+            logger.warning("⚠️ DATABASE_URL no está configurada, no se actualizará la BD")
         
         # Lista de trackers populares para construir magnet links
         self.default_trackers = [
@@ -62,6 +67,39 @@ class TorrentDownloader:
             logger.error(f"❌ Error inicializando Kafka Producer: {e}")
             self.producer = None
     
+    async def _update_download_record(self, movie_id: str, torrent_hash: str, status: str, progress: int, file_path: str = None):
+        """Actualizar registro de descarga en movie_downloads"""
+        print(f"DEBUG: Intentando actualizar BD - movie_id: {movie_id}, hash: {torrent_hash}, status: {status}")
+
+        if not self.db_url:
+            return
+            
+        try:
+            conn = await asyncpg.connect(self.db_url, statement_cache_size=0)
+            
+            # Determinar si está descargado
+            is_downloaded = (status == 'completed' and progress >= 100)
+            
+            # Insertar o actualizar registro de descarga
+            await conn.execute(
+                """
+                INSERT INTO movie_downloads (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
+                VALUES ($1::uuid, $2, $3, $4, NOW())
+                ON CONFLICT (hash_id) DO UPDATE SET
+                    downloaded_lg = $3,
+                    filepath_ds = COALESCE($4, movie_downloads.filepath_ds),
+                    update_dt = NOW()
+                """,
+                movie_id, torrent_hash, is_downloaded, file_path
+            )
+            
+            logger.info(f"📊 Descarga actualizada: {torrent_hash[:8]}... - {status} {progress}%")
+            
+            await conn.close()
+            
+        except Exception as e:
+            logger.error(f"❌ Error actualizando registro de descarga: {e}")
+    
     def _hash_to_magnet(self, torrent_hash: str, movie_title: str = None) -> str:
         """Convierte un hash de torrent a magnet link"""
         clean_hash = torrent_hash.strip().lower()
@@ -92,18 +130,25 @@ class TorrentDownloader:
         else:
             raise ValueError(f"Input no reconocido como hash o magnet: {input_string[:50]}...")
     
-    def _send_progress_update(self, movie_id: str, data: dict):
-        """Envía actualización de progreso a Kafka"""
-        if not self.producer:
-            logger.warning("⚠️ No hay producer de Kafka disponible")
-            return
-            
-        try:
-            message = {'movie_id': movie_id, **data}
-            self.producer.send('download-progress', message)
-            logger.debug(f"📤 Progreso enviado: {movie_id} - {data.get('status', 'progress')}")
-        except Exception as e:
-            logger.error(f"❌ Error enviando progreso: {e}")
+    def _send_progress_update(self, movie_id: str, torrent_hash: str, data: dict):
+        """Envía actualización de progreso a Kafka Y actualiza BD"""
+        # Enviar a Kafka
+        if self.producer:
+            try:
+                message = {'movie_id': movie_id, 'torrent_hash': torrent_hash, **data}
+                self.producer.send('download-progress', message)
+                logger.debug(f"📤 Progreso enviado a Kafka: {torrent_hash[:8]}... - {data.get('status', 'progress')}")
+            except Exception as e:
+                logger.error(f"❌ Error enviando progreso a Kafka: {e}")
+        
+        # Actualizar base de datos
+        asyncio.create_task(self._update_download_record(
+            movie_id, 
+            torrent_hash,
+            data.get('status', 'downloading'), 
+            data.get('progress', 0),
+            data.get('file_path')
+        ))
     
     def _validate_magnet_link(self, magnet_link: str) -> bool:
         """Valida que el magnet link tenga el formato correcto"""
@@ -126,6 +171,13 @@ class TorrentDownloader:
         except Exception:
             return False
     
+    def _extract_hash_from_magnet(self, magnet_link: str) -> str:
+        """Extrae el hash de un magnet link"""
+        hash_match = re.search(r'xt=urn:btih:([a-fA-F0-9]{40})', magnet_link)
+        if hash_match:
+            return hash_match.group(1).lower()
+        return None
+    
     async def start_download(self, movie_id: str, torrent_input: str, movie_title: str = None):
         """Iniciar descarga de torrent desde hash o magnet link"""
         logger.info(f"🔥 Iniciando descarga: {movie_id}")
@@ -136,56 +188,68 @@ class TorrentDownloader:
             input_type, processed_input = self._detect_input_type(torrent_input)
             logger.info(f"🔍 Tipo detectado: {input_type}")
             
-            # Convertir a magnet si es necesario
+            # Obtener hash del torrent
             if input_type == 'hash':
+                torrent_hash = processed_input
                 magnet_link = self._hash_to_magnet(processed_input, movie_title)
                 logger.info(f"🧲 Hash convertido a magnet: {magnet_link[:100]}...")
             else:
                 magnet_link = processed_input
+                torrent_hash = self._extract_hash_from_magnet(magnet_link)
+                if not torrent_hash:
+                    raise ValueError("No se pudo extraer hash del magnet link")
+            
+            logger.info(f"🎯 Hash del torrent: {torrent_hash}")
+            
+            # Marcar como iniciando descarga en BD
+            await self._update_download_record(movie_id, torrent_hash, 'downloading', 0)
             
             # Validar magnet link
             if not self._validate_magnet_link(magnet_link):
                 error_msg = "Magnet link inválido después de procesar"
                 logger.error(f"❌ {error_msg}")
-                self._send_progress_update(movie_id, {
+                self._send_progress_update(movie_id, torrent_hash, {
                     'status': 'error',
                     'error': error_msg,
-                    'progress': 0
+                    'progress': 0,
+                    'title': movie_title
                 })
                 return
             
-            # Verificar si ya está siendo descargado
-            if movie_id in self.active_torrents:
-                logger.warning(f"⚠️ La película {movie_id} ya se está descargando")
+            # Verificar si ya está siendo descargado (usar hash como clave)
+            if torrent_hash in self.active_torrents:
+                logger.warning(f"⚠️ El torrent {torrent_hash[:8]}... ya se está descargando")
                 return
             
-            # Configurar parámetros de descarga (método simplificado)
+            # Configurar parámetros de descarga
             add_torrent_params = {
                 'save_path': str(self.download_path),
                 'storage_mode': lt.storage_mode_t.storage_mode_sparse,
-                'url': magnet_link,  # Usar directamente la URL del magnet
+                'url': magnet_link,
                 'flags': lt.torrent_flags.sequential_download | lt.torrent_flags.auto_managed,
             }
             
-            # Añadir torrent a la sesión (método directo)
+            # Añadir torrent a la sesión
             try:
                 handle = self.session.add_torrent(add_torrent_params)
                 logger.info(f"✅ Torrent añadido con magnet link directo")
             except Exception as e:
                 logger.error(f"❌ Error añadiendo torrent: {e}")
-                self._send_progress_update(movie_id, {
+                self._send_progress_update(movie_id, torrent_hash, {
                     'status': 'error',
                     'error': f"Error añadiendo torrent: {str(e)}",
-                    'progress': 0
+                    'progress': 0,
+                    'title': movie_title
                 })
                 return
             
             # Configurar prioridades para streaming
             handle.set_sequential_download(True)
             
-            # Guardar handle
-            self.active_torrents[movie_id] = {
+            # Guardar handle (usar hash como clave)
+            self.active_torrents[torrent_hash] = {
                 'handle': handle,
+                'movie_id': movie_id,
                 'start_time': time.time(),
                 'last_progress': 0,
                 'title': movie_title or movie_id,
@@ -193,7 +257,7 @@ class TorrentDownloader:
             }
             
             # Reportar inicio exitoso
-            self._send_progress_update(movie_id, {
+            self._send_progress_update(movie_id, torrent_hash, {
                 'status': 'downloading',
                 'progress': 0,
                 'message': 'Descarga iniciada exitosamente',
@@ -201,21 +265,24 @@ class TorrentDownloader:
                 'title': movie_title
             })
             
-            logger.info(f"✅ Torrent añadido exitosamente: {movie_id}")
+            logger.info(f"✅ Torrent añadido exitosamente: {torrent_hash[:8]}...")
             
         except ValueError as e:
             logger.error(f"❌ Error de validación para {movie_id}: {e}")
-            self._send_progress_update(movie_id, {
+            # Si no tenemos hash, usar movie_id como fallback
+            self._send_progress_update(movie_id, movie_id, {
                 'status': 'error',
                 'error': str(e),
-                'progress': 0
+                'progress': 0,
+                'title': movie_title
             })
         except Exception as e:
             logger.error(f"❌ Error añadiendo torrent {movie_id}: {e}")
-            self._send_progress_update(movie_id, {
+            self._send_progress_update(movie_id, movie_id, {
                 'status': 'error',
                 'error': str(e),
-                'progress': 0
+                'progress': 0,
+                'title': movie_title
             })
     
     async def monitor_downloads(self):
@@ -226,13 +293,14 @@ class TorrentDownloader:
             try:
                 current_time = time.time()
                 
-                for movie_id in list(self.active_torrents.keys()):
-                    torrent_info = self.active_torrents[movie_id]
+                for torrent_hash in list(self.active_torrents.keys()):
+                    torrent_info = self.active_torrents[torrent_hash]
                     handle = torrent_info['handle']
+                    movie_id = torrent_info['movie_id']
                     
                     if not handle.is_valid():
-                        logger.warning(f"⚠️ Handle inválido para {movie_id}, removiendo...")
-                        self.active_torrents.pop(movie_id, None)
+                        logger.warning(f"⚠️ Handle inválido para {torrent_hash[:8]}..., removiendo...")
+                        self.active_torrents.pop(torrent_hash, None)
                         continue
                     
                     status = handle.status()
@@ -266,21 +334,25 @@ class TorrentDownloader:
                         if status.error:
                             progress_data['status'] = 'error'
                             progress_data['error'] = status.error
-                            logger.error(f"❌ Error en descarga {movie_id}: {status.error}")
+                            logger.error(f"❌ Error en descarga {torrent_hash[:8]}...: {status.error}")
                         elif status.is_seeding:
                             progress_data['status'] = 'completed'
-                            logger.info(f"✅ Descarga completada: {movie_id}")
-                            self.active_torrents.pop(movie_id, None)
+                            logger.info(f"✅ Descarga completada: {torrent_hash[:8]}...")
+                            
+                            # Escanear archivos descargados al completarse
+                            await self._scan_downloaded_files(torrent_hash, torrent_info)
+                            
+                            self.active_torrents.pop(torrent_hash, None)
                         else:
                             progress_data['status'] = 'downloading'
                         
-                        self._send_progress_update(movie_id, progress_data)
+                        self._send_progress_update(movie_id, torrent_hash, progress_data)
                         
                         torrent_info['last_progress'] = progress
                         torrent_info['last_update'] = current_time
                         
                         if progress != last_progress:
-                            logger.info(f"📊 {movie_id}: {progress}% "
+                            logger.info(f"📊 {torrent_hash[:8]}...: {progress}% "
                                       f"({status.download_rate/1024:.1f} KB/s, "
                                       f"{status.num_peers} peers)")
                 
@@ -288,6 +360,82 @@ class TorrentDownloader:
                 logger.error(f"❌ Error en monitor de descargas: {e}")
             
             await asyncio.sleep(5)
+    
+    async def _scan_downloaded_files(self, torrent_hash: str, torrent_info: dict):
+        """Escanear archivos descargados y actualizar BD con paths"""
+        try:
+            movie_id = torrent_info.get('movie_id')
+            title = torrent_info.get('title', movie_id)
+            
+            # Buscar archivos de video y subtítulos
+            video_files = []
+            subtitle_files = []
+            
+            # Extensiones de video comunes
+            video_extensions = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v'}
+            subtitle_extensions = {'.srt', '.sub', '.vtt', '.ass', '.ssa'}
+            
+            # Escanear directorio de descarga
+            for file_path in self.download_path.rglob("*"):
+                if file_path.is_file():
+                    file_ext = file_path.suffix.lower()
+                    
+                    if file_ext in video_extensions:
+                        video_files.append(str(file_path))
+                    elif file_ext in subtitle_extensions:
+                        subtitle_files.append(str(file_path))
+            
+            if video_files:
+                # Tomar el archivo de video más grande (probablemente la película principal)
+                largest_video = max(video_files, key=lambda f: Path(f).stat().st_size)
+                
+                # Actualizar BD con información de archivos
+                await self._update_download_record(
+                    movie_id, 
+                    torrent_hash, 
+                    'completed', 
+                    100, 
+                    largest_video
+                )
+                
+                logger.info(f"📁 Archivos escaneados para {torrent_hash[:8]}...:")
+                logger.info(f"   Video principal: {largest_video}")
+                if subtitle_files:
+                    logger.info(f"   Subtítulos encontrados: {len(subtitle_files)}")
+                    
+        except Exception as e:
+            logger.error(f"❌ Error escaneando archivos para {torrent_hash[:8]}...: {e}")
+
+    async def check_download_status(self, torrent_hash: str) -> dict:
+        """Verificar estado de descarga por hash"""
+        if not self.db_url:
+            return {"downloaded": False, "path": None}
+            
+        try:
+            conn = await asyncpg.connect(self.db_url, statement_cache_size=0)
+            
+            result = await conn.fetchrow(
+                """
+                SELECT downloaded_lg, filepath_ds 
+                FROM movie_downloads 
+                WHERE hash_id = $1
+                """,
+                torrent_hash
+            )
+            
+            await conn.close()
+            
+            if result:
+                return {
+                    "downloaded": result['downloaded_lg'],
+                    "path": result['filepath_ds']
+                }
+            else:
+                return {"downloaded": False, "path": None}
+                
+        except Exception as e:
+            logger.error(f"❌ Error verificando estado de descarga: {e}")
+            return {"downloaded": False, "path": None}
 
 # Función separada para manejar Kafka de forma síncrona
 def process_kafka_message(downloader, message):
@@ -335,7 +483,7 @@ async def start_kafka_consumer(downloader):
         try:
             consumer = KafkaConsumer(
                 'movie-download-requests',
-                bootstrap_servers=['kafka:9092'],
+                bootstrap_servers=[f'{HOST}:9092'],
                 group_id='torrent-service',
                 value_deserializer=lambda m: json.loads(m.decode('utf-8')),
                 auto_offset_reset='latest',
@@ -348,7 +496,7 @@ async def start_kafka_consumer(downloader):
                 process_kafka_message(downloader, message)
                 
         except Exception as e:
-            logger.error(f"❌ Error en consumer de Kafka: {e}")
+            logger.error(f"❌ Error en consumer de Kafka: {e}", exc_info=True)
     
     # Iniciar en hilo separado
     kafka_thread = threading.Thread(target=kafka_consumer_thread, daemon=True)
@@ -357,7 +505,7 @@ async def start_kafka_consumer(downloader):
     logger.info("✅ Consumer de Kafka iniciado en hilo separado")
 
 async def main():
-    logger.info("🔥 Torrent Service iniciado (con soporte para hashes)")
+    logger.info("🔥 Torrent Service iniciado (con movie_downloads)")
     logger.info(f"📂 Directorio de descarga: /data/movies")
     
     try:
