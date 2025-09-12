@@ -123,23 +123,32 @@ export default function MovieDetails() {
     };
 
     const  handleTorrentSelect = async (torrent: Torrent) => {
+        if (!id) return;
         setSelectedTorrent(torrent);
         setisStreamModalOpen(true);
-        if (!id || !videoRef.current) return;
-
-        const token = localStorage.getItem("token");
+        setTimeout(() => {
+            if (videoRef.current) {
+                videoRef.current.src = URL.createObjectURL(mediaSource);
+                console.log("Iniciando streaming para torrent:", torrent);
+            } else {
+                console.error("videoRef no está asignado");
+            }
+        }, 0);
         const mediaSource = new MediaSource();
-        videoRef.current.src = URL.createObjectURL(mediaSource);
+        const token = localStorage.getItem("token");
         mediaSource.addEventListener("sourceopen", async () => {
+            console.log("MediaSource abierto correctamente");
             try {
                 const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
                 const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+                console.log("SourceBuffer creado con codec:", mimeCodec);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`, {
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
+                console.log("Respuesta del servidor:", response);
                 if (!response.ok) {
                     if (response.status === 401) logout();
                     const text = parsedError(await response.json());
@@ -151,21 +160,31 @@ export default function MovieDetails() {
                     setCommentError(["No response body"]);
                     return;
                 }
+                console.log("Comenzando a leer el stream...");
                 while(true) {
                     const { done, value } = await reader.read();
-                    if (done) break;
+                    if (done) {
+                        console.log("Lectura del stream completada");
+                        break;
+                    }
                     if (value) {
+                        console.log("Datos leidos:", value);
                         await new Promise((resolve, reject) => {
                             sourceBuffer.appendBuffer(value);
                             sourceBuffer.addEventListener("updateend", resolve, { once: true });
-                            sourceBuffer.addEventListener("error", reject, { once: true });
+                            sourceBuffer.addEventListener("error", (err) => {
+                                console.log("Error al actualizar el SourceBuffer:", err);
+                                reject(err);
+                            }, { once: true });
                         });
                     }
                 }
                 mediaSource.endOfStream();
             }catch (err) {
                 setCommentError(err as string[]);
-                mediaSource.endOfStream();
+                if (mediaSource.readyState === "open") {
+                    mediaSource.endOfStream();
+                }
             }
         });
     };
@@ -257,7 +276,6 @@ export default function MovieDetails() {
                                     className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-center transition-colors cursor-pointer border border-gray-600 hover:border-gray-500"
                                     onClick={() => {
                                         handleTorrentSelect(torrent);
-                                        console.log("Selected torrent:", torrent);
                                     }}
                                 >
                                     <div className="flex flex-col items-center">
@@ -299,7 +317,7 @@ export default function MovieDetails() {
                 </div>
             ) : (
                 <form onSubmit={submitComment} className="mb-8">
-                    {commentError && (
+                    {commentError && Array.isArray(commentError) && (
                         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                             {commentError.map((err, index) => (
                                 <div key={index}>{err}</div>
