@@ -17,55 +17,6 @@ services:
       - hypertube-network
     restart: unless-stopped
 
-  backend:
-    container_name: backend
-    build:
-      context: .
-      dockerfile: ./backend/Dockerfile
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    restart: unless-stopped
-    depends_on:
-      - kafka
-      - zookeeper
-  
-  torrent_service:
-    container_name: torrent_service
-    build:
-      context: .
-      dockerfile: ./microservices/torrent_service/Dockerfile
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    depends_on:
-      - kafka
-    restart: unless-stopped
-  
-  conversion_service:
-    container_name: conversion_service
-    build:
-      context: .
-      dockerfile: ./microservices/conversion_service/Dockerfile
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    depends_on:
-      - kafka
-    restart: unless-stopped
-  
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.0
     container_name: zookeeper
@@ -107,6 +58,62 @@ services:
     networks:
       - hypertube-network
     restart: unless-stopped
+
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    restart: unless-stopped
+    depends_on:
+      - kafka
+      - zookeeper
+  
+  torrent_service:
+    container_name: torrent_service
+    build:
+      context: .
+      dockerfile: ./microservices/torrent_service/Dockerfile
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    depends_on:
+      - kafka
+      - zookeeper
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'from kafka import KafkaProducer; KafkaProducer(bootstrap_servers=[\"kafka:9092\"])' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  
+  conversion_service:
+    container_name: conversion_service
+    build:
+      context: .
+      dockerfile: ./microservices/conversion_service/Dockerfile
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    depends_on:
+      - kafka
+    restart: unless-stopped
+  
 
 networks:
   hypertube-network:
