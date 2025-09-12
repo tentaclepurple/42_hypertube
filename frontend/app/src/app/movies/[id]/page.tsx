@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Star, MessageCircle, Send } from "lucide-react";
-import { Movie } from "../types/movies";
+import { Star, MessageCircle, Send, X } from "lucide-react";
+import { Movie, Torrent } from "../types/movies";
 import { Comment } from "../types/comment";
 import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
@@ -25,6 +25,9 @@ export default function MovieDetails() {
     const [submitting, setSubmitting] = useState(false);
     const [hascommented, setHasCommented] = useState(false);
     const [userComment, setUserComment] = useState<Comment | null>(null);
+    const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
+    const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
     const { t } = useTranslation();
 
     const fectchMovieData = async () => {
@@ -119,6 +122,64 @@ export default function MovieDetails() {
         }
     };
 
+    const  handleTorrentSelect = async (torrent: Torrent) => {
+        setSelectedTorrent(torrent);
+        setisStreamModalOpen(true);
+        if (!id || !videoRef.current) return;
+
+        const token = localStorage.getItem("token");
+        const mediaSource = new MediaSource();
+        videoRef.current.src = URL.createObjectURL(mediaSource);
+        mediaSource.addEventListener("sourceopen", async () => {
+            try {
+                const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+                const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`, {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (!response.ok) {
+                    if (response.status === 401) logout();
+                    const text = parsedError(await response.json());
+                    setCommentError(text);
+                    return;
+                }
+                const reader = response.body?.getReader();
+                if (!reader) {
+                    setCommentError(["No response body"]);
+                    return;
+                }
+                while(true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        await new Promise((resolve, reject) => {
+                            sourceBuffer.appendBuffer(value);
+                            sourceBuffer.addEventListener("updateend", resolve, { once: true });
+                            sourceBuffer.addEventListener("error", reject, { once: true });
+                        });
+                    }
+                }
+                mediaSource.endOfStream();
+            }catch (err) {
+                setCommentError(err as string[]);
+                mediaSource.endOfStream();
+            }
+        });
+    };
+
+    const closeStreamingModal = () => {
+        setisStreamModalOpen(false);
+        setSelectedTorrent(null);
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.src = "";
+            videoRef.current.load();
+        }
+    };
+
     useEffect(() => {
         if (authLoading) return;
         const loadData = async () => {
@@ -195,8 +256,8 @@ export default function MovieDetails() {
                                     key={index}
                                     className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-center transition-colors cursor-pointer border border-gray-600 hover:border-gray-500"
                                     onClick={() => {
-                                        // Aquí puedes agregar la lógica para manejar la selección del torrent
-                                        console.log('Torrent seleccionado:', torrent);
+                                        handleTorrentSelect(torrent);
+                                        console.log("Selected torrent:", torrent);
                                     }}
                                 >
                                     <div className="flex flex-col items-center">
@@ -339,6 +400,23 @@ export default function MovieDetails() {
                     ))
                 )}
             </div>
+            {isStreamingModalOpen && (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+                <div className="bg-gray-800 rounded-lg w-full h-full m-4 relative">
+                    <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                    <h2 className="text-lg font-semibold">
+                        {movie?.title} - {selectedTorrent?.quality}
+                    </h2>
+                    <button onClick={closeStreamingModal} className="p-1 rounded-full hover:bg-gray-700 transition-colors">
+                        <X className="w-6 h-6" />
+                    </button>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center p-4">
+                    <video ref={videoRef} controls autoPlay className="w-full h-full object-contain bg-black" />
+                    </div>
+                </div>
+                </div>
+            )}
         </div>
     );
 }
