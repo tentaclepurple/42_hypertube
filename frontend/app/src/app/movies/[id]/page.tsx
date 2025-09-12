@@ -140,8 +140,13 @@ export default function MovieDetails() {
             console.log("MediaSource abierto correctamente");
             try {
                 const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+                if (!MediaSource.isTypeSupported(mimeCodec)) {
+                    console.error("El codec no es compatible:", mimeCodec);
+                    return;
+                }
                 const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
                 console.log("SourceBuffer creado con codec:", mimeCodec);
+        
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`, {
                     method: "GET",
                     headers: {
@@ -149,38 +154,63 @@ export default function MovieDetails() {
                     },
                 });
                 console.log("Respuesta del servidor:", response);
+        
                 if (!response.ok) {
                     if (response.status === 401) logout();
                     const text = parsedError(await response.json());
                     setCommentError(text);
                     return;
                 }
+        
                 const reader = response.body?.getReader();
                 if (!reader) {
                     setCommentError(["No response body"]);
                     return;
                 }
                 console.log("Comenzando a leer el stream...");
-                while(true) {
+        
+                while (true) {
                     const { done, value } = await reader.read();
                     if (done) {
                         console.log("Lectura del stream completada");
+                        if (sourceBuffer.updating) {
+                            console.log("Esperando a que el SourceBuffer termine de actualizarse...");
+                            await new Promise((resolve) => {
+                                sourceBuffer.addEventListener("updateend", resolve, { once: true });
+                            });
+                        }
+                        if (mediaSource.readyState === "open") {
+                            mediaSource.endOfStream();
+                            console.log("MediaSource cerrado correctamente.");
+                        }
                         break;
                     }
                     if (value) {
-                        console.log("Datos leidos:", value);
+                        console.log("Datos leídos (tamaño):", value.byteLength);
                         await new Promise((resolve, reject) => {
-                            sourceBuffer.appendBuffer(value);
-                            sourceBuffer.addEventListener("updateend", resolve, { once: true });
-                            sourceBuffer.addEventListener("error", (err) => {
-                                console.log("Error al actualizar el SourceBuffer:", err);
+                            try {
+                                if (!sourceBuffer.updating) {
+                                    sourceBuffer.appendBuffer(value);
+                                } else {
+                                    console.warn("El SourceBuffer está actualizando, esperando...");
+                                    sourceBuffer.addEventListener("updateend", () => {
+                                        sourceBuffer.appendBuffer(value);
+                                        resolve("Datos agregados correctamente");
+                                    }, { once: true });
+                                }
+                                sourceBuffer.addEventListener("error", (err) => {
+                                    console.error("Error al actualizar el SourceBuffer:", err);
+                                    reject(err);
+                                }, { once: true });
+                            } catch (err) {
+                                console.error("Error al intentar agregar datos al SourceBuffer:", err);
                                 reject(err);
-                            }, { once: true });
+                            }
                         });
                     }
                 }
-                mediaSource.endOfStream();
-            }catch (err) {
+            } catch (err) {
+                console.error("Error en el manejo del torrent:", err);
                 setCommentError(err as string[]);
                 if (mediaSource.readyState === "open") {
                     mediaSource.endOfStream();
