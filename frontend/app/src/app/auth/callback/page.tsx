@@ -29,12 +29,13 @@ export default function AuthCallback() {
     if (token && userParam) {
       try {
         const userData = JSON.parse(decodeURIComponent(userParam));
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
         processAuth.current = true;
+        
+        // Use the login function which will set both localStorage and cookies
         login(token, userData);
         router.push('/');
       } catch (err) {
+        console.error('Error processing OAuth callback:', err);
         router.push('/login?error=Error+processing+authentication+data');
       }
     } else {

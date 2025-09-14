@@ -1,3 +1,5 @@
+// frontend/app/src/app/movies/[id]/page.tsx - Updated streaming section
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -122,101 +124,132 @@ export default function MovieDetails() {
         }
     };
 
-    const  handleTorrentSelect = async (torrent: Torrent) => {
+    const handleTorrentSelect = async (torrent: Torrent) => {
         if (!id) return;
         setSelectedTorrent(torrent);
         setisStreamModalOpen(true);
+        setCommentError(null);
+        
         setTimeout(() => {
             if (videoRef.current) {
+                const mediaSource = new MediaSource();
                 videoRef.current.src = URL.createObjectURL(mediaSource);
                 console.log("Iniciando streaming para torrent:", torrent);
-            } else {
-                console.error("videoRef no está asignado");
-            }
-        }, 0);
-        const mediaSource = new MediaSource();
-        const token = localStorage.getItem("token");
-        mediaSource.addEventListener("sourceopen", async () => {
-            console.log("MediaSource abierto correctamente");
-            try {
-                const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
-                if (!MediaSource.isTypeSupported(mimeCodec)) {
-                    console.error("El codec no es compatible:", mimeCodec);
-                    return;
-                }
-                const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-                console.log("SourceBuffer creado con codec:", mimeCodec);
-        
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`, {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                console.log("Respuesta del servidor:", response);
-        
-                if (!response.ok) {
-                    if (response.status === 401) logout();
-                    const text = parsedError(await response.json());
-                    setCommentError(text);
-                    return;
-                }
-        
-                const reader = response.body?.getReader();
-                if (!reader) {
-                    setCommentError(["No response body"]);
-                    return;
-                }
-                console.log("Comenzando a leer el stream...");
-        
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        console.log("Lectura del stream completada");
-                        if (sourceBuffer.updating) {
-                            console.log("Esperando a que el SourceBuffer termine de actualizarse...");
-                            await new Promise((resolve) => {
-                                sourceBuffer.addEventListener("updateend", resolve, { once: true });
-                            });
+                
+                mediaSource.addEventListener("sourceopen", async () => {
+                    console.log("MediaSource abierto correctamente");
+                    try {
+                        const mimeCodec = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+                        if (!MediaSource.isTypeSupported(mimeCodec)) {
+                            console.error("El codec no es compatible:", mimeCodec);
+                            setCommentError(["Codec not supported"]);
+                            return;
                         }
+                        const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+                        console.log("SourceBuffer creado con codec:", mimeCodec);
+                
+                        // Usar cookies en lugar de Authorization header
+                        const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`, {
+                            method: "GET",
+                            credentials: 'include',
+                        });
+                        console.log("Respuesta del servidor:", response.status, response.statusText);
+                
+                        if (!response.ok) {
+                            if (response.status === 202) {
+                                // Descarga en progreso, leer el mensaje y reintentar
+                                const data = await response.json();
+                                console.log("Descarga en progreso:", data);
+                                const message = data.detail?.message || 'Download in progress';
+                                const retryAfter = data.detail?.retry_after || 30;
+                                
+                                setCommentError([`${message} - Retrying in ${retryAfter}s...`]);
+                                
+                                // Cerrar el MediaSource actual
+                                if (mediaSource.readyState === "open") {
+                                    mediaSource.endOfStream();
+                                }
+                                
+                                // Reintentar automáticamente
+                                setTimeout(() => {
+                                    console.log("Reintentando streaming...");
+                                    handleTorrentSelect(torrent);
+                                }, retryAfter * 1000);
+                                return;
+                            }
+                            
+                            if (response.status === 401) logout();
+                            const text = await response.text();
+                            console.error("Error en streaming:", text);
+                            setCommentError([`Streaming error: ${response.status} - ${text}`]);
+                            return;
+                        }
+                
+                        const reader = response.body?.getReader();
+                        if (!reader) {
+                            setCommentError(["No response body"]);
+                            return;
+                        }
+                        console.log("Comenzando a leer el stream...");
+                
+                        let updateEndPromise = Promise.resolve();
+                
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) {
+                                console.log("Lectura del stream completada");
+                                await updateEndPromise;
+                                if (mediaSource.readyState === "open") {
+                                    mediaSource.endOfStream();
+                                    console.log("MediaSource cerrado correctamente.");
+                                }
+                                break;
+                            }
+                            if (value) {
+                                console.log("Datos leídos (tamaño):", value.byteLength);
+                                await updateEndPromise;
+                                
+                                updateEndPromise = new Promise((resolve, reject) => {
+                                    const onUpdateEnd = () => {
+                                        sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+                                        sourceBuffer.removeEventListener("error", onError);
+                                        resolve(undefined);
+                                    };
+                                    
+                                    const onError = (err: Event) => {
+                                        sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+                                        sourceBuffer.removeEventListener("error", onError);
+                                        console.error("Error al actualizar el SourceBuffer:", err);
+                                        reject(err);
+                                    };
+                                    
+                                    sourceBuffer.addEventListener("updateend", onUpdateEnd);
+                                    sourceBuffer.addEventListener("error", onError);
+                                    
+                                    try {
+                                        sourceBuffer.appendBuffer(value);
+                                    } catch (err) {
+                                        sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+                                        sourceBuffer.removeEventListener("error", onError);
+                                        console.error("Error al intentar agregar datos al SourceBuffer:", err);
+                                        reject(err);
+                                    }
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Error en el manejo del torrent:", err);
+                        setCommentError([`Streaming error: ${err}`]);
                         if (mediaSource.readyState === "open") {
                             mediaSource.endOfStream();
-                            console.log("MediaSource cerrado correctamente.");
                         }
-                        break;
                     }
-                    if (value) {
-                        console.log("Datos leídos (tamaño):", value.byteLength);
-                        await new Promise((resolve, reject) => {
-                            try {
-                                if (!sourceBuffer.updating) {
-                                    sourceBuffer.appendBuffer(value);
-                                } else {
-                                    console.warn("El SourceBuffer está actualizando, esperando...");
-                                    sourceBuffer.addEventListener("updateend", () => {
-                                        sourceBuffer.appendBuffer(value);
-                                        resolve("Datos agregados correctamente");
-                                    }, { once: true });
-                                }
-                                sourceBuffer.addEventListener("error", (err) => {
-                                    console.error("Error al actualizar el SourceBuffer:", err);
-                                    reject(err);
-                                }, { once: true });
-                            } catch (err) {
-                                console.error("Error al intentar agregar datos al SourceBuffer:", err);
-                                reject(err);
-                            }
-                        });
-                    }
-                }
-            } catch (err) {
-                console.error("Error en el manejo del torrent:", err);
-                setCommentError(err as string[]);
-                if (mediaSource.readyState === "open") {
-                    mediaSource.endOfStream();
-                }
+                });
+            } else {
+                console.error("videoRef no está asignado");
+                setCommentError(["Video element not available"]);
             }
-        });
+        }, 0);
     };
 
     const closeStreamingModal = () => {
@@ -253,6 +286,7 @@ export default function MovieDetails() {
             <p className="mt-2">{t("movies.loading")}</p>
         </div>
     );
+    
     const movie = movieData;
     return (
         <div className="p-4 bg-dark-900 text-white">
@@ -319,6 +353,7 @@ export default function MovieDetails() {
                 </div>
             </div>
 
+            {/* Comments section remains the same */}
             {hascommented && userComment ? (
                 <div className="mb-8">
                     <h2 className="text-xl font-semibold mb-4">{t("movies.comment")}</h2>
@@ -448,6 +483,7 @@ export default function MovieDetails() {
                     ))
                 )}
             </div>
+            
             {isStreamingModalOpen && (
                 <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
                 <div className="bg-gray-800 rounded-lg w-full h-full m-4 relative">

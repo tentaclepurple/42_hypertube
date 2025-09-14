@@ -1,3 +1,6 @@
+// frontend/app/src/app/login/page.tsx
+
+
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -41,6 +44,7 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setErrorS(null);
     setLoading(true);
 
     try {
@@ -63,13 +67,16 @@ export default function Login() {
         setErrorS(errorData);
         throw new Error(errorData.join(', '));
       }
+      
       const data = await response.json();
+      
+      // Use the login function which will set both localStorage and cookies
       login(data.access_token, data.user);
       router.push('/');
     } catch (error) {
       const err = error instanceof Error ? error.message : String(error);
       setError(err);
-    }finally {
+    } finally {
       setLoading(false);
     } 
   }
@@ -89,7 +96,14 @@ export default function Login() {
       )}
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded space-y-1">
-          {t(errorMap[error])}
+          {t(errorMap[error]) || error}
+        </div>
+      )}
+      {errorS && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded space-y-1">
+          {errorS.map((err, index) => (
+            <div key={index}>{err}</div>
+          ))}
         </div>
       )}
       <form onSubmit={handleSubmit} className="mt-6 mb-6">

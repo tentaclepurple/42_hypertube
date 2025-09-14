@@ -1,6 +1,5 @@
 // frontend/app/src/app/context/authcontext.tsx
 
-
 'use client';
  
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -29,6 +28,39 @@
  }
  
  const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+ // Helper function to set secure cookies
+ const setSecureCookie = (name: string, value: string, maxAge: number = 86400) => {
+   const cookieOptions = [
+     `${name}=${value}`,
+     `path=/`,
+     `max-age=${maxAge}`,
+     `samesite=strict`
+   ];
+
+   // Add secure flag only in production/HTTPS
+   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+     cookieOptions.push('secure');
+   }
+
+   document.cookie = cookieOptions.join('; ');
+ };
+
+ // Helper function to remove cookies
+ const removeCookie = (name: string) => {
+   const cookieOptions = [
+     `${name}=`,
+     `path=/`,
+     `expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+     `samesite=strict`
+   ];
+
+   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+     cookieOptions.push('secure');
+   }
+
+   document.cookie = cookieOptions.join('; ');
+ };
  
  export function AuthProvider({ children }: { children: ReactNode }) {
    const [user, setUser] = useState<User | null>(null);
@@ -45,12 +77,14 @@
          setToken(token);
          setUser(JSON.parse(storedUser));
 
-         document.cookie = `access_token=${token}; path=/; secure; samesite=strict`;
+         // Set the cookie with proper options
+         setSecureCookie('access_token', token);
          
        } catch (error) {
          console.error('Error parsing user data:', error);
          localStorage.removeItem('token');
          localStorage.removeItem('user');
+         removeCookie('access_token');
        }
      }
      
@@ -61,7 +95,8 @@
      localStorage.setItem('token', token);
      localStorage.setItem('user', JSON.stringify(userData));
 
-     document.cookie = `access_token=${token}; path=/; secure; samesite=strict`; //
+     // Set secure cookie for API requests
+     setSecureCookie('access_token', token);
      
      setUser(userData);
      setToken(token);
@@ -80,7 +115,8 @@
      localStorage.removeItem('token');
      localStorage.removeItem('user');
 
-     document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'; //
+     // Remove the cookie properly
+     removeCookie('access_token');
 
      setUser(null);
      setToken(null);
