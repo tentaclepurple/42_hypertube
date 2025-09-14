@@ -13,7 +13,7 @@ from pathlib import Path
 import aiofiles
 import logging
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_from_cookie
 from app.db.session import get_db_connection
 from app.models.movie import MovieDetail, MovieSearchResponse, DownloadRequest
 from app.models.view_progress import ViewProgressUpdate, ViewProgressResponse
@@ -153,7 +153,7 @@ async def get_movie_details(
 async def stream_movie(
     movie_id: str,
     request: Request,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_from_cookie),
     torrent_hash: str = Query(..., description="Specific torrent hash (quality)"),
     range: str = Header(None)
 ):

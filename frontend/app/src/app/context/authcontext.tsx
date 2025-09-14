@@ -1,3 +1,6 @@
+// frontend/app/src/app/context/authcontext.tsx
+
+
 'use client';
  
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -41,6 +44,9 @@
        try {
          setToken(token);
          setUser(JSON.parse(storedUser));
+
+         document.cookie = `access_token=${token}; path=/; secure; samesite=strict`;
+         
        } catch (error) {
          console.error('Error parsing user data:', error);
          localStorage.removeItem('token');
@@ -54,6 +60,9 @@
    const login = (token: string, userData: User) => {
      localStorage.setItem('token', token);
      localStorage.setItem('user', JSON.stringify(userData));
+
+     document.cookie = `access_token=${token}; path=/; secure; samesite=strict`; //
+     
      setUser(userData);
      setToken(token);
    };
@@ -70,6 +79,9 @@
      }
      localStorage.removeItem('token');
      localStorage.removeItem('user');
+
+     document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'; //
+
      setUser(null);
      setToken(null);
      router.push('/login');

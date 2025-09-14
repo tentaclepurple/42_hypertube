@@ -1,3 +1,5 @@
+// frontend/app/src/app/auth/callback/page.tsx
+
 'use client';
 
 import { useEffect, useRef } from 'react';
