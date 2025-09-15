@@ -178,7 +178,7 @@ export default function MovieDetails() {
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
-                            console.error("Video error:", video.error.code, video.error.message);
+                            console.log("Video error:", video.error.code, video.error.message);
                             setCommentError([`Video error: ${video.error.message || 'Playback failed'}`]);
                         }
                     };
@@ -227,7 +227,11 @@ export default function MovieDetails() {
         setSelectedTorrent(null);
         if (videoRef.current) {
             videoRef.current.pause();
-            videoRef.current.src = "";
+            videoRef.current.removeEventListener('error', () => {});
+            videoRef.current.removeEventListener('loadeddata', () => {});
+            videoRef.current.removeEventListener('progress', () => {});
+            videoRef.current.currentTime = 0;
+            videoRef.current.removeAttribute('src');
             videoRef.current.load();
         }
     };
