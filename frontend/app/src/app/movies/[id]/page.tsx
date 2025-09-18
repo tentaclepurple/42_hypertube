@@ -236,8 +236,6 @@ export default function MovieDetails() {
                             const currentPercentage = Math.floor(percentage);
                             const lastReported = lastUpdatePercentageRef.current;
 
-                            if (lastReported >= 90) return;
-
                             if (timeDiff >= 30000 && currentPercentage > lastReported) {
                                 console.log(`Current Time: ${currentTime.toFixed(1)}s (${percentage.toFixed(1)}%)`);
                                 updateViewProgress(percentage);
