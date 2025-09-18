@@ -29,6 +29,7 @@ export default function MovieDetails() {
     const [userComment, setUserComment] = useState<Comment | null>(null);
     const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
     const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
+    const [lastReportedPercentage, setLastReportedPercentage] = useState(0);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const { t } = useTranslation();
 
@@ -124,6 +125,29 @@ export default function MovieDetails() {
         }
     };
 
+    const updateViewProgress = async (percentage: number) => {
+        if (!id) return;
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/view`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ view_percentage: Math.floor(percentage) }),
+            });
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                const text = parsedError(await response.json());
+                setError(text);
+                return;
+            }
+        } catch (err) {
+            setError(err as string[]);
+        }
+    }
+
     const handleTorrentSelect = async (torrent: Torrent) => {
         console.log("CLICK DETECTADO", torrent);
         if (!id) return;
@@ -198,16 +222,40 @@ export default function MovieDetails() {
                             }
                         }
                     };
-                    
+
+                    const handleTimeUpdate = () => {
+                        if (videoRef.current && videoRef.current.duration > 0) {
+                            const currentTime = videoRef.current.currentTime;
+                            const duration = videoRef.current.duration;
+                            const percentage = (currentTime / duration) * 100;
+
+                            if (Math.abs(percentage - lastReportedPercentage) >= 5 ||
+                                Math.floor(currentTime) % 60 === 0) {
+                                console.log(`Current Time: ${currentTime.toFixed(1)}s (${percentage.toFixed(1)}%)`);
+                                updateViewProgress(percentage);
+                                setLastReportedPercentage(percentage);
+
+                                if (movieData) {
+                                    setMovieData({
+                                        ...movieData,
+                                        view_percentage: Math.floor(percentage)
+                                    });
+                                }
+                            }
+                        }
+                    }
+
                     // Limpiar eventos anteriores
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
                     videoRef.current.removeEventListener('progress', handleProgress);
+                    videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
                     
                     // Añadir eventos
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('progress', handleProgress);
+                    videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
                     
                     // Iniciar carga
                     videoRef.current.load();
@@ -230,6 +278,7 @@ export default function MovieDetails() {
             videoRef.current.removeEventListener('error', () => {});
             videoRef.current.removeEventListener('loadeddata', () => {});
             videoRef.current.removeEventListener('progress', () => {});
+            videoRef.current.removeEventListener('timeupdate', () => {});
             videoRef.current.currentTime = 0;
             videoRef.current.removeAttribute('src');
             videoRef.current.load();
@@ -287,7 +336,7 @@ export default function MovieDetails() {
                             <div className="w-full h-4 bg-gray-800 rounded-full overflow-hidden">
                             <div
                                 className={`h-full transition-all duration-500 ease-in-out ${
-                                movie.view_percentage === 100
+                                movie.view_percentage >= 90
                                     ? "bg-green-500"
                                     : movie.view_percentage >= 75
                                     ? "bg-blue-500"
@@ -299,7 +348,7 @@ export default function MovieDetails() {
                             />
                             </div>
                             <p className="text-xs text-gray-400 mt-1">
-                            {movie.view_percentage === 100
+                            {movie.view_percentage >= 90
                                 ? t("movies.completed")
                                 : `${movie.view_percentage}%`}
                             </p>
