@@ -1,5 +1,3 @@
-// frontend/app/src/app/movies/[id]/page.tsx
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -150,7 +148,6 @@ export default function MovieDetails() {
     }
 
     const handleTorrentSelect = async (torrent: Torrent) => {
-        console.log("CLICK DETECTADO", torrent);
         if (!id) return;
         
         setSelectedTorrent(torrent);
@@ -159,24 +156,17 @@ export default function MovieDetails() {
         lastUpdatePercentageRef.current = movieData?.view_percentage || 0;
         lastUpdateTimeRef.current = Date.now();
         
-        // Esperar a que React renderice el modal
         setTimeout(async () => {
-            console.log("Checking videoRef after timeout:", videoRef.current);
             if (videoRef.current) {
                 const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`;
-                console.log("Iniciando streaming directo:", streamUrl);
-                
-                // Verificar estado del stream primero
+
                 try {
                     const checkResponse = await fetch(streamUrl, {
                         method: "GET",
                         credentials: 'include',
                     });
-                    
-                    console.log("Estado del stream:", checkResponse.status);
-                    
+
                     if (checkResponse.status === 202) {
-                        // Descarga en progreso, obtener detalles
                         const statusResponse = await fetch(streamUrl, {
                             method: "GET",
                             credentials: 'include',
@@ -198,20 +188,16 @@ export default function MovieDetails() {
                         return;
                     }
                     
-                    // Stream disponible, configurar video directo
-                    console.log("Configurando streaming directo...");
                     videoRef.current.src = streamUrl;
                     
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
-                            console.log("Video error:", video.error.code, video.error.message);
                             setCommentError([`Video error: ${video.error.message || 'Playback failed'}`]);
                         }
                     };
                     
                     const handleLoadedData = () => {
-                        console.log("Video cargado correctamente");
                         setCommentError(null);
                     };
                     
@@ -221,7 +207,6 @@ export default function MovieDetails() {
                             const duration = videoRef.current.duration || 0;
                             if (duration > 0) {
                                 const percent = (buffered / duration) * 100;
-                                console.log(`Buffered: ${percent.toFixed(1)}%`);
                             }
                         }
                     };
@@ -237,7 +222,6 @@ export default function MovieDetails() {
                             const lastReported = lastUpdatePercentageRef.current;
 
                             if (timeDiff >= 30000 && currentPercentage > lastReported) {
-                                console.log(`Current Time: ${currentTime.toFixed(1)}s (${percentage.toFixed(1)}%)`);
                                 updateViewProgress(percentage);
                                 lastUpdateTimeRef.current = now;
                                 lastUpdatePercentageRef.current = currentPercentage;
@@ -267,11 +251,10 @@ export default function MovieDetails() {
                     videoRef.current.load();
                     
                 } catch (error) {
-                    console.error("Error verificando stream:", error);
                     setCommentError([`Network error: ${error}`]);
                 }
             } else {
-                console.log("VideoRef still null after timeout");
+                setError(["VideoRef still null after timeout"]);
             }
         }, 100);
     };
