@@ -30,6 +30,7 @@ export default function MovieDetails() {
     const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
     const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
     const lastUpdateTimeRef = useRef(Date.now());
+    const lastUpdatePercentageRef = useRef(0);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const { t } = useTranslation();
 
@@ -155,6 +156,8 @@ export default function MovieDetails() {
         setSelectedTorrent(torrent);
         setisStreamModalOpen(true);
         setCommentError(null);
+        lastUpdatePercentageRef.current = movieData?.view_percentage || 0;
+        lastUpdateTimeRef.current = Date.now();
         
         // Esperar a que React renderice el modal
         setTimeout(async () => {
@@ -230,15 +233,20 @@ export default function MovieDetails() {
                             const percentage = (currentTime / duration) * 100;
                             const now = Date.now();
                             const timeDiff = now - lastUpdateTimeRef.current;
+                            const currentPercentage = Math.floor(percentage);
+                            const lastReported = lastUpdatePercentageRef.current;
 
-                            if (timeDiff >= 5000) {
+                            if (lastReported >= 90) return;
+
+                            if (timeDiff >= 30000 && currentPercentage > lastReported) {
                                 console.log(`Current Time: ${currentTime.toFixed(1)}s (${percentage.toFixed(1)}%)`);
                                 updateViewProgress(percentage);
                                 lastUpdateTimeRef.current = now;
+                                lastUpdatePercentageRef.current = currentPercentage;
                                 if (movieData) {
                                     setMovieData({
                                         ...movieData,
-                                        view_percentage: Math.floor(percentage)
+                                        view_percentage: currentPercentage
                                     });
                                 }
                             }
