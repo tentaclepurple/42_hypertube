@@ -19,9 +19,7 @@ class TokenService:
             if not token_jti:
                 print("No jti claim found in token", flush=True)
                 return False
-            
-            print(f"Token JTI: {token_jti}", flush=True)
-            
+                        
             # Verificar si el token ya está revocado
             async with get_db_connection() as conn:
                 exists = await conn.fetchval(
