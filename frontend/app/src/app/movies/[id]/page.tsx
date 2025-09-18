@@ -29,7 +29,7 @@ export default function MovieDetails() {
     const [userComment, setUserComment] = useState<Comment | null>(null);
     const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
     const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
-    const [lastReportedPercentage, setLastReportedPercentage] = useState(0);
+    const lastUpdateTimeRef = useRef(Date.now());
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const { t } = useTranslation();
 
@@ -228,13 +228,13 @@ export default function MovieDetails() {
                             const currentTime = videoRef.current.currentTime;
                             const duration = videoRef.current.duration;
                             const percentage = (currentTime / duration) * 100;
+                            const now = Date.now();
+                            const timeDiff = now - lastUpdateTimeRef.current;
 
-                            if (Math.abs(percentage - lastReportedPercentage) >= 5 ||
-                                Math.floor(currentTime) % 60 === 0) {
+                            if (timeDiff >= 5000) {
                                 console.log(`Current Time: ${currentTime.toFixed(1)}s (${percentage.toFixed(1)}%)`);
                                 updateViewProgress(percentage);
-                                setLastReportedPercentage(percentage);
-
+                                lastUpdateTimeRef.current = now;
                                 if (movieData) {
                                     setMovieData({
                                         ...movieData,
@@ -273,6 +273,7 @@ export default function MovieDetails() {
     const closeStreamingModal = () => {
         setisStreamModalOpen(false);
         setSelectedTorrent(null);
+        lastUpdateTimeRef.current = Date.now();
         if (videoRef.current) {
             videoRef.current.pause();
             videoRef.current.removeEventListener('error', () => {});
