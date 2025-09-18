@@ -27,6 +27,9 @@ export default function MovieDetails() {
     const [userComment, setUserComment] = useState<Comment | null>(null);
     const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
     const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
+    const [availableSubtitles, setAvailableSubtitles] = useState<any[]>([]);
+    const [loadingSubtitles, setLoadingSubtitles] = useState(false);
+    const [subtitleError, setSubtitleError] = useState<string | null>(null);
     const lastUpdateTimeRef = useRef(Date.now());
     const lastUpdatePercentageRef = useRef(0);
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -86,6 +89,43 @@ export default function MovieDetails() {
             setError(err as string[]);
         } finally {
             setCommentsLoading(false);
+        }
+    };
+
+    const loadSubtitles = async (torrent: Torrent) => {
+        if (!id) return [];
+        
+        setLoadingSubtitles(true);
+        setSubtitleError(null);
+        const token = localStorage.getItem("token");
+        
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/subtitles?torrent_hash=${torrent.hash}`,
+                {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                console.warn('No subtitles available or error loading them');
+                return [];
+            }
+            
+            const data = await response.json();
+            const subtitles = data.subtitles || [];
+            setAvailableSubtitles(subtitles);
+            console.log("Subtitles loaded:", subtitles);
+            return subtitles;
+            
+        } catch (error) {
+            console.error('Error loading subtitles:', error);
+            setSubtitleError('Failed to load subtitles');
+            return [];
+        } finally {
+            setLoadingSubtitles(false);
         }
     };
 
@@ -190,6 +230,26 @@ export default function MovieDetails() {
                     
                     videoRef.current.src = streamUrl;
                     
+                    // Cargar subtítulos disponibles
+                    const subtitles = await loadSubtitles(torrent);
+
+                    // Limpiar tracks de subtítulos existentes
+                    const existingTracks = videoRef.current.querySelectorAll('track');
+                    existingTracks.forEach(track => track.remove());
+
+                    // Añadir nuevos subtítulos como elementos track usando proxy del frontend
+                    subtitles.forEach((subtitle: any, index: number) => {
+                        const track = document.createElement('track');
+                        track.kind = 'subtitles';
+                        // Usar proxy del frontend para evitar problemas de CORS
+                        track.src = `/api/subtitles/${id}/${subtitle.relative_path}?torrent_hash=${torrent.hash}`;
+                        track.srclang = subtitle.language.toLowerCase().substring(0, 2);
+                        track.label = `${subtitle.language} - ${subtitle.filename}`;
+                        // Priorizar subtítulos en español como predeterminados
+                        track.default = index === 0 && subtitle.language.toLowerCase().includes('spanish');
+                        videoRef.current?.appendChild(track);
+                    });
+                    
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
@@ -262,13 +322,21 @@ export default function MovieDetails() {
     const closeStreamingModal = () => {
         setisStreamModalOpen(false);
         setSelectedTorrent(null);
+        setAvailableSubtitles([]);
+        setSubtitleError(null);
         lastUpdateTimeRef.current = Date.now();
+        
         if (videoRef.current) {
             videoRef.current.pause();
             videoRef.current.removeEventListener('error', () => {});
             videoRef.current.removeEventListener('loadeddata', () => {});
             videoRef.current.removeEventListener('progress', () => {});
             videoRef.current.removeEventListener('timeupdate', () => {});
+            
+            // Limpiar tracks de subtítulos
+            const tracks = videoRef.current.querySelectorAll('track');
+            tracks.forEach(track => track.remove());
+            
             videoRef.current.currentTime = 0;
             videoRef.current.removeAttribute('src');
             videoRef.current.load();
@@ -355,10 +423,34 @@ export default function MovieDetails() {
                                 >
                                     <div className="flex flex-col items-center">
                                         <span className="font-medium">{torrent.quality}</span>
+                                        {loadingSubtitles && selectedTorrent?.hash === torrent.hash && (
+                                            <span className="text-xs text-blue-400">Loading subtitles...</span>
+                                        )}
                                     </div>
                                 </button>
                             ))}
                         </div>
+                        {subtitleError && (
+                            <div className="mt-2 text-sm text-yellow-400">
+                                {subtitleError}
+                            </div>
+                        )}
+                        {availableSubtitles.length > 0 && (
+                            <div className="mt-4 p-3 bg-gray-800 rounded-lg">
+                                <p className="text-sm text-gray-300 mb-2">Available subtitles ({availableSubtitles.length}):</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableSubtitles.map((subtitle) => (
+                                        <span
+                                            key={subtitle.id}
+                                            className="text-xs bg-blue-600 px-2 py-1 rounded"
+                                            title={subtitle.filename}
+                                        >
+                                            {subtitle.language}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     )}
                 </div>

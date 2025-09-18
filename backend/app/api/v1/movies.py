@@ -894,7 +894,6 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
     try:
         for subtitle_file in movie_dir.rglob("*"):
             if subtitle_file.is_file() and subtitle_file.suffix.lower() in subtitle_extensions:
-                # Verificar que el archivo existe y tiene contenido
                 if subtitle_file.stat().st_size > 0:
                     try:
                         relative_path = subtitle_file.relative_to(movie_dir)
@@ -906,7 +905,7 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
                             "format": subtitle_file.suffix[1:].upper(),
                             "size": subtitle_file.stat().st_size,
                             "relative_path": str(relative_path),
-                            "url": f"/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
+                            "url": f"{os.environ.get('NEXT_PUBLIC_URL', 'http://imontero.ddns.net:8000')}/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
                         })
                     except ValueError:
                         continue
@@ -924,7 +923,7 @@ def _detect_subtitle_language(filename: str) -> str:
     filename_lower = filename.lower()
     
     language_patterns = {
-        'Spanish': ['spanish', 'español', 'esp', 'es', 'spa', 'castellano', 'cast'],
+        'Spanish': ['spanish', 'español', 'esp', 'spa', 'castellano', 'cast'],
         'English': ['english', 'eng', 'en', 'ingles'],
         'French': ['french', 'français', 'fr', 'fra', 'francais'],
         'German': ['german', 'deutsch', 'de', 'ger', 'aleman'],
@@ -999,7 +998,8 @@ async def serve_subtitle_file(
             headers = {
                 "Content-Length": str(file_size),
                 "Content-Disposition": f"inline; filename={subtitle_full_path.name}",
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+                "Access-Control-Allow-Credentials": "true",
                 "Cache-Control": "public, max-age=3600"
             }
             
