@@ -239,20 +239,17 @@ class TorrentDownloader:
         try:
             # Detectar tipo de input
             input_type, processed_input = self._detect_input_type(torrent_input)
-            logger.info(f"Tipo detectado: {input_type}")
             
             # Obtener hash del torrent
             if input_type == 'hash':
                 torrent_hash = processed_input
                 magnet_link = self._hash_to_magnet(processed_input, movie_title)
-                logger.info(f"Hash convertido a magnet: {magnet_link[:100]}...")
             else:
                 magnet_link = processed_input
                 torrent_hash = self._extract_hash_from_magnet(magnet_link)
                 if not torrent_hash:
                     raise ValueError("No se pudo extraer hash del magnet link")
             
-            logger.info(f"Hash del torrent: {torrent_hash}")
             
             # Marcar como iniciando descarga en BD
             await self._update_download_record(movie_id, torrent_hash, 'downloading', 0)
@@ -538,7 +535,7 @@ async def start_kafka_consumer(downloader):
                 process_kafka_message(downloader, message)
                 
         except Exception as e:
-            logger.error(f"Error en consumer de Kafka: {e}", exc_info=True)
+            logger.error(f"Error en consumer de Kafka: {e}")
     
     # Iniciar en hilo separado
     kafka_thread = threading.Thread(target=kafka_consumer_thread, daemon=True)

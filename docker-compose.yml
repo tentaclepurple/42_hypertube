@@ -47,7 +47,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      # 🔧 Configuración de persistencia
+      # Configuración de persistencia
       KAFKA_LOG_DIRS: /var/lib/kafka/data
       KAFKA_LOG_RETENTION_HOURS: 168  # 7 días
       KAFKA_LOG_RETENTION_BYTES: 1073741824  # 1GB
@@ -92,6 +92,8 @@ services:
     depends_on:
       - kafka
       - zookeeper
+      - backend
+      - frontend
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c 'from kafka import KafkaProducer; KafkaProducer(bootstrap_servers=[\"kafka:9092\"])' || exit 1"]
@@ -99,20 +101,20 @@ services:
       timeout: 10s
       retries: 5
   
-  conversion_service:
-    container_name: conversion_service
-    build:
-      context: .
-      dockerfile: ./microservices/conversion_service/Dockerfile
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    networks:
-      - hypertube-network
-    depends_on:
-      - kafka
-    restart: unless-stopped
+  # conversion_service:
+  #   container_name: conversion_service
+  #   build:
+  #     context: .
+  #     dockerfile: ./microservices/conversion_service/Dockerfile
+  #   volumes:
+  #     - ./data:/data
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - hypertube-network
+  #   depends_on:
+  #     - kafka
+  #   restart: unless-stopped
   
 
 networks:
