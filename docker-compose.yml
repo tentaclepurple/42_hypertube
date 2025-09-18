@@ -25,6 +25,11 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_logs:/var/lib/zookeeper/log
@@ -36,7 +41,8 @@ services:
     image: confluentinc/cp-kafka:7.0.0
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
@@ -47,12 +53,11 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      # Configuración de persistencia
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
-      KAFKA_LOG_RETENTION_HOURS: 168  # 7 días
-      KAFKA_LOG_RETENTION_BYTES: 1073741824  # 1GB
-      KAFKA_LOG_SEGMENT_BYTES: 1073741824
-      KAFKA_LOG_CLEANUP_POLICY: delete
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     volumes:
       - kafka_data:/var/lib/kafka/data  
     networks:
@@ -75,8 +80,10 @@ services:
       - hypertube-network
     restart: unless-stopped
     depends_on:
-      - kafka
-      - zookeeper
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
   
   torrent_service:
     container_name: torrent_service
@@ -90,32 +97,20 @@ services:
     networks:
       - hypertube-network
     depends_on:
-      - kafka
-      - zookeeper
-      - backend
-      - frontend
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c 'from kafka import KafkaProducer; KafkaProducer(bootstrap_servers=[\"kafka:9092\"])' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-  
-  # conversion_service:
-  #   container_name: conversion_service
-  #   build:
-  #     context: .
-  #     dockerfile: ./microservices/conversion_service/Dockerfile
-  #   volumes:
-  #     - ./data:/data
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - hypertube-network
-  #   depends_on:
-  #     - kafka
-  #   restart: unless-stopped
-  
 
 networks:
   hypertube-network:
@@ -127,18 +122,3 @@ volumes:
   kafka_data:
   zookeeper_data: 
   zookeeper_logs:
-
-  # recommendation_service:
-  #   container_name: recommendation_service
-  #   build:
-  #     context: .
-  #     dockerfile: ./microservices/recommendation_service/Dockerfile
-  #   volumes:
-  #     - ./data:/data
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - hypertube-network
-  #   depends_on:
-  #     - kafka
-  #   restart: unless-stopped
