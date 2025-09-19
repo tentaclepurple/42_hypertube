@@ -68,7 +68,7 @@ class TorrentDownloader:
             self.producer = None
     
     async def _update_download_record(self, movie_id: str, torrent_hash: str, status: str, progress: int = 0, file_path: str = None):
-        """Actualizar registro de descarga en movie_downloads"""
+        """Actualizar registro de descarga en movie_downloads_42"""
         if not self.db_url:
             return
             
@@ -81,11 +81,11 @@ class TorrentDownloader:
             # Insertar o actualizar registro de descarga
             await conn.execute(
                 """
-                INSERT INTO movie_downloads (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
+                INSERT INTO movie_downloads_42 (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
                 VALUES ($1::uuid, $2, $3, $4, NOW())
                 ON CONFLICT (hash_id) DO UPDATE SET
                     downloaded_lg = $3,
-                    filepath_ds = COALESCE($4, movie_downloads.filepath_ds),
+                    filepath_ds = COALESCE($4, movie_downloads_42.filepath_ds),
                     update_dt = NOW()
                 """,
                 movie_id, torrent_hash, is_downloaded, file_path
@@ -547,7 +547,7 @@ async def start_kafka_consumer(downloader):
     logger.info("Consumer de Kafka iniciado en hilo separado")
 
 async def main():
-    logger.info("Torrent Service iniciado (con movie_downloads)")
+    logger.info("Torrent Service iniciado (con movie_downloads_42)")
     logger.info(f"Directorio de descarga: /data/movies")
     
     try:

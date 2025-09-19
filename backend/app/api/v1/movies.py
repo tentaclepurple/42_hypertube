@@ -203,7 +203,7 @@ async def stream_movie(
             download_info = await conn.fetchrow(
                 """
                 SELECT downloaded_lg, filepath_ds, hash_id, update_dt
-                FROM movie_downloads 
+                FROM movie_downloads_42 
                 WHERE movie_id = $1 AND hash_id = $2
                 ORDER BY update_dt DESC
                 LIMIT 1
@@ -224,7 +224,7 @@ async def stream_movie(
                 # File was deleted, mark as not downloaded
                 async with get_db_connection() as conn:
                     await conn.execute(
-                        "UPDATE movie_downloads SET downloaded_lg = false WHERE hash_id = $1",
+                        "UPDATE movie_downloads_42 SET downloaded_lg = false WHERE hash_id = $1",
                         torrent_hash.lower()
                     )
                 logger.warning(f"BACKEND: Downloaded file missing, marked as not downloaded: {file_path}")
@@ -507,7 +507,7 @@ async def get_streaming_status(
                 """
                 SELECT md.downloaded_lg, md.filepath_ds, md.hash_id, md.update_dt,
                        m.title
-                FROM movie_downloads md
+                FROM movie_downloads_42 md
                 JOIN movies m ON m.id = md.movie_id  
                 WHERE md.movie_id = $1 AND md.hash_id = $2
                 ORDER BY md.update_dt DESC
