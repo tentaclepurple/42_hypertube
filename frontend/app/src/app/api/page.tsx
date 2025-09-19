@@ -1,9 +1,11 @@
+// frontend/app/src/api/page.tsx
+
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../app/context/authcontext';
+import { useAuth } from '../context/authcontext';
 import { useTranslation } from 'react-i18next';
-import { parsedError} from '../app/ui/error/parsedError';
+import { parsedError} from '../ui/error/parsedError';
 import { Key, Copy, AlertTriangle, Dice1 } from 'lucide-react';
 
 interface ApiKeyProps {

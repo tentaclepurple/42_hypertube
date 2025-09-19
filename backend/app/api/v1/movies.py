@@ -1,7 +1,7 @@
 # backend/app/api/v1/movies.py
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Header
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from typing import List, Optional, Dict
 from datetime import datetime
 import json
@@ -1016,6 +1016,24 @@ async def serve_subtitle_file(
     except Exception as e:
         logger.error(f"Error serving subtitle: {str(e)}")
         raise HTTPException(500, f"Error serving subtitle file")
+
+@router.options("/{movie_id}/subtitles/{subtitle_path:path}")
+async def subtitle_options(
+    movie_id: str,
+    subtitle_path: str,
+    torrent_hash: str = Query(..., description="Torrent hash for verification")
+):
+    """Handle preflight OPTIONS request for subtitles"""
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Max-Age": "86400"
+        }
+    )
 
 
 def _get_subtitle_content_type(file_extension: str) -> str:

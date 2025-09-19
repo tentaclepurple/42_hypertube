@@ -1,3 +1,6 @@
+// frontend/app/src/app/movies/%5Bid%5D/page.tsx
+
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
