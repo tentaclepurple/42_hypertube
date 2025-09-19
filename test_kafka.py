@@ -25,23 +25,13 @@ def test_single_hash():
             'timestamp': time.time()
         }
         
-        print(f"📤 Enviando hash de prueba:")
-        print(f"   Movie ID: {movie_id}")
-        print(f"   Hash: {test_hash}")
-        print(f"   Título: Big Buck Bunny")
-        print(f"   Mensaje completo: {json.dumps(message, indent=2)}")
+
         
         producer.send('movie-download-requests', message)
         producer.flush()
         producer.close()
         
-        print(f"\n✅ Mensaje enviado!")
-        print(f"\n📋 Ahora verifica los logs:")
-        print(f"   docker logs -f torrent_service")
-        print(f"\nBusca estas líneas:")
-        print(f"   📨 Petición recibida: {movie_id}")
-        print(f"   🔍 Tipo detectado: hash")
-        print(f"   🧲 Hash convertido a magnet: ...")
+
         
     except Exception as e:
         print(f"❌ Error: {e}")

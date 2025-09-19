@@ -6,90 +6,67 @@ from typing import Dict, List, Any, Optional
 
 
 class IMDBGraphQLService:
-    """Servicio para obtener información adicional de películas vía GraphQL"""
+    """Servicio para obtener información adicional de películas vía REST API"""
     
-    GRAPHQL_URL = "https://graph.imdbapi.dev/v1"
+    BASE_URL = "https://api.imdbapi.dev"
     
     @staticmethod
     async def get_movie_details(imdb_id: str) -> Dict[str, Any]:
         """
-        Obtiene detalles adicionales de una película mediante GraphQL
+        Obtiene detalles adicionales de una película mediante REST API
         """
         if not imdb_id:
             print("No IMDB ID provided")
             return {}
             
-        # Construir la consulta GraphQL
-        query = """
-        {
-          title(id: "%s") {
-            id
-            primary_title
-         
-            # Get the first 5 directors
-            directors: credits(first: 5, categories:[ "director" ]) {
-              name {
-                display_name
-              }
-            }
-          
-            # Get the first 5 casts
-            casts: credits(first: 5, categories:[ "actor", "actress" ]) {
-              name {
-                display_name
-              }
-            }
-          }
+        # Construir la URL para obtener créditos (directores y actores)
+        url = f"{IMDBGraphQLService.BASE_URL}/titles/{imdb_id}/credits"
+        params = {
+            "categories": ["director", "actor"]
         }
-        """ % imdb_id
         
         # Realizar la petición
         try:
             async with aiohttp.ClientSession() as session:
-                print(f"Requesting GraphQL data for IMDB ID: {imdb_id}")
-                async with session.post(
-                    IMDBGraphQLService.GRAPHQL_URL,
-                    json={"query": query}
-                ) as response:
+                print(f"Requesting REST API data for IMDB ID: {imdb_id}")
+                async with session.get(url, params=params) as response:
                     if response.status == 200:
                         result = await response.json()
-                        processed_data = await IMDBGraphQLService._process_graphql_data(result)
-                        print(f"GraphQL data processed: {len(processed_data)} fields")
+                        processed_data = await IMDBGraphQLService._process_api_data(result)
+                        print(f"API data processed: {len(processed_data)} fields")
                         return processed_data
                     else:
                         error_text = await response.text()
-                        print(f"Error from GraphQL API: {response.status} - {error_text}")
+                        print(f"Error from REST API: {response.status} - {error_text}")
                         return {}
         except Exception as e:
-            print(f"Error during GraphQL API call: {str(e)}")
+            print(f"Error during REST API call: {str(e)}")
             return {}
     
     @staticmethod
-    async def _process_graphql_data(result: Dict[str, Any]) -> Dict[str, Any]:
+    async def _process_api_data(result: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Procesa la respuesta de GraphQL para extraer los datos relevantes
+        Procesa la respuesta de la REST API para extraer los datos relevantes
         """
-        if not result.get("data") or not result["data"].get("title"):
-            print("No valid data in GraphQL response")
+        if not result.get("credits"):
+            print("No valid credits data in API response")
             return {}
             
-        title_data = result["data"]["title"]
+        credits = result["credits"]
         
         # Extraer directores
         directors = []
-        for director in title_data.get("directors", []):
-            if director.get("name") and director["name"].get("display_name"):
-                directors.append(director["name"]["display_name"])
+        for credit in credits:
+            if credit.get("category") == "director" and credit.get("name", {}).get("displayName"):
+                directors.append(credit["name"]["displayName"])
         
-        # Extraer cast
+        # Extraer cast (actores)
         cast = []
-        for actor in title_data.get("casts", []):
-            if actor.get("name") and actor["name"].get("display_name"):
-                cast.append(actor["name"]["display_name"])
+        for credit in credits:
+            if credit.get("category") == "actor" and credit.get("name", {}).get("displayName"):
+                cast.append(credit["name"]["displayName"])
         
         return {
-            "imdb_id": title_data.get("id"),
-            "title": title_data.get("primary_title"),
             "director": directors,
             "cast": cast
         }

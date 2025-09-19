@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Header
 from fastapi.responses import StreamingResponse
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 import json
 import time
@@ -842,3 +842,195 @@ async def download_by_hash(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error: {str(e)}"
         )
+
+
+@router.get("/{movie_id}/subtitles")
+async def get_movie_subtitles(
+    movie_id: str,
+    torrent_hash: str = Query(..., description="Specific torrent hash"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Obtener todos los subtítulos disponibles para una película
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        
+        async with get_db_connection() as conn:
+            download_info = await conn.fetchrow(
+                """
+                SELECT filepath_ds FROM movie_downloads 
+                WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
+                """,
+                movie_uuid, torrent_hash.lower()
+            )
+            
+            if not download_info or not download_info["filepath_ds"]:
+                return {"subtitles": []}
+            
+            video_path = Path(download_info["filepath_ds"])
+            if not video_path.exists():
+                return {"subtitles": []}
+                
+            movie_dir = video_path.parent
+            subtitles = await _find_available_subtitles(movie_dir, movie_id, torrent_hash)
+            
+            return {"subtitles": subtitles}
+            
+    except ValueError:
+        raise HTTPException(400, "Invalid movie ID format")
+    except Exception as e:
+        logger.error(f"Error getting subtitles: {str(e)}")
+        return {"subtitles": []}
+
+
+async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash: str) -> List[Dict]:
+    """
+    Buscar archivos de subtítulos disponibles en el directorio de la película
+    """
+    subtitles = []
+    subtitle_extensions = {'.srt', '.sub', '.vtt', '.ass', '.ssa', '.sbv'}
+    
+    try:
+        for subtitle_file in movie_dir.rglob("*"):
+            if subtitle_file.is_file() and subtitle_file.suffix.lower() in subtitle_extensions:
+                if subtitle_file.stat().st_size > 0:
+                    try:
+                        relative_path = subtitle_file.relative_to(movie_dir)
+                        
+                        subtitles.append({
+                            "id": str(uuid.uuid4()),
+                            "filename": subtitle_file.name,
+                            "language": _detect_subtitle_language(subtitle_file.name),
+                            "format": subtitle_file.suffix[1:].upper(),
+                            "size": subtitle_file.stat().st_size,
+                            "relative_path": str(relative_path),
+                            "url": f"{os.environ.get('NEXT_PUBLIC_URL', 'http://imontero.ddns.net:8000')}/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
+                        })
+                    except ValueError:
+                        continue
+                        
+    except Exception as e:
+        logger.error(f"Error scanning subtitles: {e}")
+    
+    return subtitles
+
+
+def _detect_subtitle_language(filename: str) -> str:
+    """
+    Detectar idioma de subtítulo basado en el nombre del archivo
+    """
+    filename_lower = filename.lower()
+    
+    language_patterns = {
+        'Spanish': ['spanish', 'español', 'esp', 'spa', 'castellano', 'cast'],
+        'English': ['english', 'eng', 'en', 'ingles'],
+        'French': ['french', 'français', 'fr', 'fra', 'francais'],
+        'German': ['german', 'deutsch', 'de', 'ger', 'aleman'],
+        'Italian': ['italian', 'italiano', 'it', 'ita'],
+        'Portuguese': ['portuguese', 'português', 'pt', 'por', 'portugues']
+    }
+    
+    for language, patterns in language_patterns.items():
+        if any(pattern in filename_lower for pattern in patterns):
+            return language
+    
+    return "Unknown"
+
+
+@router.get("/{movie_id}/subtitles/{subtitle_path:path}")
+async def serve_subtitle_file(
+    movie_id: str,
+    subtitle_path: str,
+    torrent_hash: str = Query(..., description="Torrent hash for verification"),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """
+    Servir archivo de subtítulo específico
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        
+        async with get_db_connection() as conn:
+            download_info = await conn.fetchrow(
+                """
+                SELECT filepath_ds FROM movie_downloads 
+                WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
+                """,
+                movie_uuid, torrent_hash.lower()
+            )
+            
+            if not download_info or not download_info["filepath_ds"]:
+                raise HTTPException(404, "Movie not found or not downloaded")
+            
+            video_path = Path(download_info["filepath_ds"])
+            movie_dir = video_path.parent
+            subtitle_full_path = movie_dir / subtitle_path
+            
+            # Verificaciones de seguridad
+            if not subtitle_full_path.exists():
+                raise HTTPException(404, "Subtitle file not found")
+            
+            if not subtitle_full_path.is_file():
+                raise HTTPException(400, "Invalid file path")
+            
+            # Verificar que el archivo está dentro del directorio permitido
+            try:
+                subtitle_full_path.resolve().relative_to(movie_dir.resolve())
+            except ValueError:
+                raise HTTPException(403, "Access to subtitle file denied")
+            
+            # Verificar extensión válida
+            valid_extensions = {'.srt', '.sub', '.vtt', '.ass', '.ssa', '.sbv'}
+            if subtitle_full_path.suffix.lower() not in valid_extensions:
+                raise HTTPException(400, "Invalid subtitle file format")
+            
+            # Determinar tipo de contenido
+            content_type = _get_subtitle_content_type(subtitle_full_path.suffix)
+            
+            # Servir el archivo
+            async def subtitle_generator():
+                async with aiofiles.open(subtitle_full_path, 'rb') as file:
+                    while chunk := await file.read(8192):
+                        yield chunk
+            
+            file_size = subtitle_full_path.stat().st_size
+            headers = {
+                "Content-Length": str(file_size),
+                "Content-Disposition": f"inline; filename={subtitle_full_path.name}",
+                "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+                "Access-Control-Allow-Credentials": "true",
+                "Cache-Control": "public, max-age=3600"
+            }
+            
+            return StreamingResponse(
+                subtitle_generator(),
+                media_type=content_type,
+                headers=headers
+            )
+            
+    except ValueError:
+        raise HTTPException(400, "Invalid movie ID format")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving subtitle: {str(e)}")
+        raise HTTPException(500, f"Error serving subtitle file")
+
+
+def _get_subtitle_content_type(file_extension: str) -> str:
+    """
+    Determinar tipo MIME para archivos de subtítulos
+    """
+    extension = file_extension.lower()
+    
+    mime_types = {
+        '.srt': 'text/srt',
+        '.vtt': 'text/vtt',
+        '.sub': 'text/plain',
+        '.ass': 'text/x-ssa',
+        '.ssa': 'text/x-ssa',
+        '.sbv': 'text/plain'
+    }
+    
+    return mime_types.get(extension, 'text/plain')
