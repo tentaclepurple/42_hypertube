@@ -9,19 +9,19 @@ from app.db.session import get_db_connection
 from app.services.jwt_service import JWTService
 
 class ApiKeyService:
-    """Servicio para gestionar API Keys"""
+    """API Key Service for managing API keys and secrets."""    
     
     @staticmethod
     def get_current_time():
         """
-        Devuelve el tiempo actual con timezone UTC
+        Returns the current time with UTC timezone
         """
         return datetime.now(timezone.utc)
     
     @staticmethod
     def generate_api_credentials() -> tuple[str, str]:
         """
-        Genera un par api_key + api_secret
+        Generates a pair of api_key + api_secret
         """
         api_key = "ak_" + secrets.token_hex(12)      # ak_ + 24 chars
         api_secret = "as_" + secrets.token_hex(12)   # as_ + 24 chars
@@ -30,14 +30,14 @@ class ApiKeyService:
     @staticmethod
     def hash_secret(secret: str) -> str:
         """
-        Hashea el API secret para almacenamiento seguro
+        Hashes the API secret for secure storage
         """
         return bcrypt.hashpw(secret.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     @staticmethod
     def verify_secret(secret: str, hashed_secret: str) -> bool:
         """
-        Verifica un API secret contra su hash
+        Verifies an API secret against its hash
         """
         try:
             return bcrypt.checkpw(secret.encode('utf-8'), hashed_secret.encode('utf-8'))
@@ -47,7 +47,7 @@ class ApiKeyService:
     @staticmethod
     async def create_api_key(user_id: str, name: str, expires_in_days: int = 30) -> Dict[str, Any]:
         """
-        Crea una nueva API key para un usuario
+        Creates a new API key for a user
         """
         api_key, api_secret = ApiKeyService.generate_api_credentials()
         secret_hash = ApiKeyService.hash_secret(api_secret)
@@ -71,7 +71,7 @@ class ApiKeyService:
                 "id": str(result["id"]),
                 "name": result["key_name"],
                 "api_key": result["api_key"],
-                "api_secret": api_secret,  # Solo se devuelve aquí
+                "api_secret": api_secret,
                 "is_active": result["is_active"],
                 "expires_at": result["expires_at"],
                 "created_at": result["created_at"],
@@ -82,7 +82,7 @@ class ApiKeyService:
     @staticmethod
     async def get_user_api_keys(user_id: str) -> List[Dict[str, Any]]:
         """
-        Obtiene todas las API keys de un usuario
+        Gets all API keys for a user
         """
         async with get_db_connection() as conn:
             results = await conn.fetch(
@@ -112,7 +112,7 @@ class ApiKeyService:
     @staticmethod
     async def validate_api_credentials(api_key: str, api_secret: str) -> Optional[Dict[str, Any]]:
         """
-        Valida credenciales de API y devuelve información del usuario
+        Validates API credentials and returns user information
         """
         async with get_db_connection() as conn:
             result = await conn.fetchrow(
@@ -128,14 +128,14 @@ class ApiKeyService:
             
             if not result:
                 return None
-            
-            # Verificar que la key está activa
+
+            # Check if the key is active
             if not result["is_active"]:
                 return None
-            
-            # Verificar que no ha expirado
+
+            # Check if it has expired
             if result["expires_at"]:
-                # Asegurar que ambos datetime tienen timezone info
+                # Ensure both datetime have timezone info
                 expires_at = result["expires_at"]
                 if expires_at.tzinfo is None:
                     expires_at = expires_at.replace(tzinfo=timezone.utc)
@@ -145,11 +145,11 @@ class ApiKeyService:
                 if expires_at < current_time:
                     return None
             
-            # Verificar el secret
+            # check the secret
             if not ApiKeyService.verify_secret(api_secret, result["api_secret_hash"]):
                 return None
             
-            # Actualizar estadísticas de uso
+            # update last used and usage count
             await conn.execute(
                 """
                 UPDATE api_keys 
@@ -171,7 +171,7 @@ class ApiKeyService:
     @staticmethod
     async def revoke_api_key(user_id: str, api_key_id: str) -> bool:
         """
-        Revoca (desactiva) una API key
+        Revokes (deactivates) an API key
         """
         async with get_db_connection() as conn:
             result = await conn.fetchrow(
@@ -189,7 +189,7 @@ class ApiKeyService:
     @staticmethod
     async def delete_api_key(user_id: str, api_key_id: str) -> bool:
         """
-        Elimina completamente una API key
+        Deletes an API key permanently
         """
         async with get_db_connection() as conn:
             result = await conn.fetchrow(
