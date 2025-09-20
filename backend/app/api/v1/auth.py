@@ -99,7 +99,6 @@ async def oauth_login(provider: str, request: Request):
         # Generate state for CSRF protection
         state = secrets.token_urlsafe(32)
         
-        # In a real app, you would store this state in a session or cookie
         # request.session["oauth_state"] = state
         
         # Generate redirect URI
@@ -219,7 +218,7 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
             
         access_token = JWTService.create_access_token(user["id"])
         
-        # Crear un objeto de usuario para enviarlo al frontend
+        # Create user data dictionary
         user_data = {
             "id": str(user["id"]),
             "email": user["email"],
@@ -229,27 +228,27 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
             "profile_picture": user["profile_picture"] if user.get("profile_picture") else ""
         }
         
-        # Convertir a JSON y codificar para URL
+        # Convert to JSON and URL-encode
         user_json = json.dumps(user_data)
         encoded_user = urllib.parse.quote(user_json)
         
-        # Redirigir al frontend con el token y datos de usuario
+        # Redirect to frontend with token and user data
         frontend_url = f"http://{HOST}:3000/auth/callback"
         redirect_url = f"{frontend_url}?access_token={access_token}&user={encoded_user}"
         
         return RedirectResponse(redirect_url, status_code=303)
             
     except ValueError as e:
-        # En caso de error, redirigir al frontend con mensaje de error
+        # Redirect to frontend with error message
         frontend_url = f"http://{HOST}:3000/login"
         error_message = urllib.parse.quote(str(e))
         return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
     except HTTPException as e:
         raise e
     except Exception as e:
-        # En caso de error, redirigir al frontend con mensaje de error
+        # Redirect to frontend with error message
         frontend_url = f"http://{HOST}:3000/login"
-        error_message = urllib.parse.quote(f"Error de autenticación: {str(e)}")
+        error_message = urllib.parse.quote(f"Authentication error: {str(e)}")
         return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
 
 @router.post("/logout")
@@ -264,7 +263,7 @@ async def logout(
     try:
         success = await TokenService.revoke_token(
             token=token,
-            user_id=current_user["id"],  # Aquí está la corrección
+            user_id=current_user["id"],
             reason="user_logout"
         )
         
@@ -285,10 +284,10 @@ async def logout(
 @router.post("/forgot-password")
 async def forgot_password(request_data: PasswordResetRequest):
     """
-    Envía un email de reseteo de contraseña
+    Send a password reset email
     """
     try:
-        # Verificar si el email existe en la base de datos
+        # Check if the email exists in the database
         async with get_db_connection() as conn:
             user = await conn.fetchrow(
                 "SELECT id, email FROM users WHERE email = $1",
@@ -337,10 +336,10 @@ async def reset_password(reset_data: PasswordReset):
                 detail="Password must be at least 8 characters long"
             )
         
-        # Hash de la nueva contraseña
+        # New hashed password   
         hashed_password = pwd_context.hash(reset_data.new_password)
         
-        # Actualizar contraseña
+        # Update the user's password in the database
         async with get_db_connection() as conn:
             await conn.execute(
                 "UPDATE users SET password = $1 WHERE id = $2",

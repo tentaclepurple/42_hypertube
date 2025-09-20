@@ -51,10 +51,13 @@ async def get_movie_details(
                 SELECT 
                     m.*,
                     COALESCE(umv.view_percentage, 0.0) as view_percentage,
-                    COALESCE(umv.completed, false) as completed
+                    COALESCE(umv.completed, false) as completed,
+                    ROUND(AVG(mc.rating), 1) as hypertube_rating
                 FROM movies m
                 LEFT JOIN user_movie_views umv ON m.id = umv.movie_id AND umv.user_id = $2
+                LEFT JOIN movie_comments mc ON m.id = mc.movie_id
                 WHERE m.id = $1
+                GROUP BY m.id, umv.view_percentage, umv.completed
                 """, 
                 uuid.UUID(movie_id),
                 user_id
@@ -135,7 +138,8 @@ async def get_movie_details(
                 "download_status": movie_dict.get("download_status"),
                 "download_progress": movie_dict.get("download_progress", 0),
                 "view_percentage": movie_dict.get("view_percentage", 0.0),
-                "completed": movie_dict.get("completed", False)
+                "completed": movie_dict.get("completed", False),
+                "hypertube_rating": movie_dict.get("hypertube_rating"),
             }
             
             return result

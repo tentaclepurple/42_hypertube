@@ -127,7 +127,7 @@ async def get_user_favorites(
     limit: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """
-    Obtener lista de películas favoritas del usuario
+    Obtener lista de películas favoritas del usuario con información de visualización
     """
     try:
         user_id = current_user["id"]
@@ -143,9 +143,12 @@ async def get_user_favorites(
                     m.year,
                     m.imdb_rating as rating,
                     m.genres,
-                    f.created_at
+                    f.created_at,
+                    COALESCE(umv.view_percentage, 0.0) as view_percentage,
+                    COALESCE(umv.completed, false) as completed
                 FROM user_movie_favorites f
                 JOIN movies m ON f.movie_id = m.id
+                LEFT JOIN user_movie_views umv ON m.id = umv.movie_id AND umv.user_id = f.user_id
                 WHERE f.user_id = $1
                 ORDER BY f.created_at DESC
                 LIMIT $2 OFFSET $3
@@ -170,7 +173,9 @@ async def get_user_favorites(
                     year=fav["year"],
                     rating=fav["rating"],
                     genres=genres,
-                    created_at=fav["created_at"]
+                    created_at=fav["created_at"],
+                    view_percentage=fav["view_percentage"],
+                    completed=fav["completed"]
                 ))
             
             return result

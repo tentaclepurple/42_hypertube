@@ -199,12 +199,12 @@ export default function MovieDetails() {
         const lowerFilename = filename.toLowerCase();
         
         const patterns = [
-            { pattern: /spanish|español|esp|spa|es\b|castellano|cast/i, language: 'Spanish' },
-            { pattern: /english|eng|en\b|ingles/i, language: 'English' },
-            { pattern: /french|français|fr\b|fra|francais/i, language: 'French' },
-            { pattern: /german|deutsch|de\b|ger|aleman/i, language: 'German' },
-            { pattern: /italian|italiano|it\b|ita/i, language: 'Italian' },
-            { pattern: /portuguese|português|pt\b|por|portugues/i, language: 'Portuguese' },
+            { pattern: /spanish|español|castellano|cast/i, language: 'Spanish' },
+            { pattern: /english|eng|ingles/i, language: 'English' },
+            { pattern: /french|français|francais/i, language: 'French' },
+            { pattern: /german|deutsch|ger|aleman/i, language: 'German' },
+            { pattern: /italian|italiano/i, language: 'Italian' },
+            { pattern: /portuguese|português|portugues/i, language: 'Portuguese' },
         ];
         
         for (const { pattern, language } of patterns) {

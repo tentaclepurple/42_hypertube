@@ -13,11 +13,19 @@ from app.db.session import get_db_connection
 logger = logging.getLogger(__name__)
 
 class CleanupService:
-    """Service to clean up old or excess movie files"""
+    """Service to clean up old movie files based on last viewing date and optionally by count"""
     
     def __init__(self):
-        self.max_movies = int(os.environ.get("CLEANUP_MAX_MOVIES", "51"))
-        self.days_threshold = int(os.environ.get("CLEANUP_DAYS_THRESHOLD", "31"))
+        # Configuration for cleanup by days since last viewed
+        self.days_threshold = int(os.environ.get("CLEANUP_DAYS_THRESHOLD", "30"))
+        
+        # Configuration for cleanup by maximum number of movies
+        self.max_movies = int(os.environ.get("CLEANUP_MAX_MOVIES", "50"))
+        
+        # Toggle cleanup by count. True to enable count-based cleanup <-------------
+
+        self.enable_count_cleanup = False
+        
         self.download_path = Path("/data/movies")
         
     async def check_and_cleanup_if_needed(self) -> Dict[str, Any]:
@@ -26,28 +34,29 @@ class CleanupService:
         Returns statistics about the cleanup operation.
         """
         try:
-            
-            print(f"Checking cleanup conditions... {self.download_path}, max: {self.max_movies}, days: {self.days_threshold}")
+            print(f"Checking cleanup conditions... {self.download_path}, days: {self.days_threshold}")
             current_count = await self._count_items_in_download_dir()
             
-            needs_cleanup_by_count = current_count > self.max_movies
-            
+            # Check for movies that need cleanup by days
             old_movies = await self._get_movies_for_cleanup_by_days()
             needs_cleanup_by_days = len(old_movies) > 0
+            
+            # Check for cleanup by count
+            needs_cleanup_by_count = self.enable_count_cleanup and current_count > self.max_movies
             
             stats = {
                 "cleanup_executed": False,
                 "current_count": current_count,
-                "max_allowed": self.max_movies,
-                "removed_by_count": 0,
+                "max_allowed": self.max_movies if self.enable_count_cleanup else None,
                 "removed_by_days": 0,
+                "removed_by_count": 0,
                 "space_freed_mb": 0,
                 "errors": []
             }
             
-            if needs_cleanup_by_count or needs_cleanup_by_days:
-                logger.info(f"Init cleaning - Items: {current_count}/{self.max_movies}, "
-                           f"Old films: {len(old_movies)}")
+            if needs_cleanup_by_days or needs_cleanup_by_count:
+                count_info = f"/{self.max_movies}" if self.enable_count_cleanup else ""
+                logger.info(f"Init cleaning - Items: {current_count}{count_info}, Old films: {len(old_movies)}")
                 
                 cleanup_result = await self._execute_cleanup(current_count, old_movies)
                 stats.update(cleanup_result)
@@ -63,7 +72,7 @@ class CleanupService:
                 "cleanup_executed": False,
                 "error": str(e),
                 "current_count": 0,
-                "max_allowed": self.max_movies
+                "max_allowed": self.max_movies if self.enable_count_cleanup else None
             }
     
     async def _count_items_in_download_dir(self) -> int:
@@ -88,7 +97,6 @@ class CleanupService:
             threshold_date = datetime.now() - timedelta(days=self.days_threshold)
             
             async with get_db_connection() as conn:
-
                 query = """
                 SELECT 
                     md.movie_id,
@@ -126,20 +134,24 @@ class CleanupService:
             return []
     
     async def _execute_cleanup(self, current_count: int, old_movies: List[Dict]) -> Dict[str, Any]:
-        """Execute cleanup based on count and days"""
+        """Execute cleanup based on days since last viewing and optionally by count"""
         stats = {
-            "removed_by_count": 0,
             "removed_by_days": 0,
+            "removed_by_count": 0,
             "space_freed_mb": 0,
             "errors": []
         }
         
-        # 1. Cleanup by days
+        # 1. Cleanup by days since last viewing
         for movie in old_movies:
             try:
+                print(f"Attempting to remove: {movie['title']}")
                 removed_size = await self._remove_movie_files(movie)
+                print(f"Size removed: {removed_size} MB")
+                
                 if removed_size > 0:
-                    await self._mark_as_not_downloaded(movie["movie_id"], movie["hash_id"])
+                    print(f"Calling _delete_download_record for {movie['hash_id'][:8]}...")
+                    await self._delete_download_record(movie["movie_id"], movie["hash_id"])
                     stats["removed_by_days"] += 1
                     stats["space_freed_mb"] += removed_size
                     
@@ -151,13 +163,20 @@ class CleanupService:
                 logger.error(error_msg)
                 stats["errors"].append(error_msg)
         
-        # 2. Cleanup by count if still needed
-        updated_count = await self._count_items_in_download_dir()
-        if updated_count > self.max_movies:
-            items_to_remove = updated_count - self.max_movies
-            removed_by_count = await self._cleanup_oldest_items(items_to_remove)
-            stats["removed_by_count"] = len(removed_by_count)
-            stats["space_freed_mb"] += sum(item.get("size_mb", 0) for item in removed_by_count)
+        # 2. Cleanup by count (only if enabled)
+        if self.enable_count_cleanup:
+            while True:
+                current_count = await self._count_items_in_download_dir()
+                if current_count <= self.max_movies:
+                    break
+                
+                # Remove 1 oldest item
+                removed_by_count = await self._cleanup_oldest_items(1)
+                if not removed_by_count:  # If nothing could be removed, exit loop
+                    break
+                    
+                stats["removed_by_count"] += len(removed_by_count)
+                stats["space_freed_mb"] += sum(item.get("size_mb", 0) for item in removed_by_count)
         
         return stats
     
@@ -194,7 +213,7 @@ class CleanupService:
             return 0
     
     async def _cleanup_oldest_items(self, items_to_remove: int) -> List[Dict[str, Any]]:
-        """Delete the oldest items by modification date"""
+        """Delete the oldest items by modification date and update database"""
         try:
             # Get all items with their dates
             items = []
@@ -207,7 +226,7 @@ class CleanupService:
                         "size_mb": 0
                     })
             
-            # Order by modification date
+            # Order by modification date (oldest first)
             items.sort(key=lambda x: x["modified_time"])
 
             # Delete the oldest items
@@ -216,10 +235,14 @@ class CleanupService:
                 try:
                     size_mb = await self._calculate_item_size(item["path"])
                     
+                    # Remove files/directories from disk
                     if item["path"].is_file():
                         item["path"].unlink()
                     elif item["path"].is_dir():
                         shutil.rmtree(item["path"])
+                    
+                    # Clean up database records for this path
+                    await self._cleanup_database_records_by_path(str(item["path"]))
                     
                     item["size_mb"] = size_mb
                     removed_items.append(item)
@@ -234,6 +257,27 @@ class CleanupService:
             logger.error(f"Error deleting oldest items: {e}")
             return []
     
+    async def _cleanup_database_records_by_path(self, deleted_path: str):
+        """Remove database records that reference the deleted file/directory"""
+        try:
+            async with get_db_connection() as conn:
+                # Find and delete records where filepath_ds matches or is within the deleted path
+                result = await conn.execute(
+                    """
+                    DELETE FROM movie_downloads 
+                    WHERE filepath_ds = $1 
+                       OR filepath_ds LIKE $2
+                    """,
+                    deleted_path, f"{deleted_path}/%"
+                )
+                
+                if result:
+                    deleted_count = result.split()[-1] if isinstance(result, str) else "unknown"
+                    logger.info(f"Cleaned up {deleted_count} database records for path: {deleted_path}")
+                
+        except Exception as e:
+            logger.error(f"Error cleaning database records for path {deleted_path}: {e}")
+    
     async def _calculate_item_size(self, path: Path) -> float:
         """Calculate file or directory size in MB"""
         try:
@@ -246,21 +290,22 @@ class CleanupService:
         except Exception:
             return 0
     
-    async def _mark_as_not_downloaded(self, movie_id: str, hash_id: str):
-        """Mark movie as not downloaded in the DB"""
+    async def _delete_download_record(self, movie_id: str, hash_id: str):
+        """Delete download record from database"""
         try:
             async with get_db_connection() as conn:
-                await conn.execute(
+                result = await conn.execute(
                     """
-                    UPDATE movie_downloads 
-                    SET downloaded_lg = false, filepath_ds = NULL, update_dt = NOW()
+                    DELETE FROM movie_downloads 
                     WHERE movie_id = $1::uuid AND hash_id = $2
                     """,
                     movie_id, hash_id
                 )
-                logger.debug(f"Marked as not downloaded: {hash_id[:8]}...")
+                print(f"Database record deleted: {hash_id[:8]}... - Rows affected: {result}")
+                logger.debug(f"Database record deleted for: {hash_id[:8]}...")
         except Exception as e:
-            logger.error(f"Error marking as not downloaded {hash_id}: {e}")
+            print(f"ERROR deleting database record: {e}")
+            logger.error(f"Error deleting database record {hash_id}: {e}")
 
 # Singleton instance of the service
 cleanup_service = CleanupService()
