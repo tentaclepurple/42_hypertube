@@ -1,3 +1,5 @@
+// frontend/app/src/app/api/subtitles/[...params]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -19,27 +21,37 @@ export async function GET(
     
     const backendUrl = `http://backend:8000/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
     
+    console.log('Proxy request to:', backendUrl);
+    
     const response = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Cookie': request.headers.get('cookie') || '',
+        'User-Agent': request.headers.get('user-agent') || 'NextJS-Proxy',
       },
     });
     
     if (!response.ok) {
+      console.error(`Backend error: ${response.status} - ${response.statusText}`);
       return new NextResponse(`Backend error: ${response.status}`, { 
         status: response.status 
       });
     }
     
-    const subtitleContent = await response.arrayBuffer();
+    const subtitleContent = await response.text(); // Usar text() en lugar de arrayBuffer()
+    
+    // Determinar el tipo de contenido basado en la extensión
+    const contentType = getSubtitleContentType(subtitlePath);
     
     return new NextResponse(subtitleContent, {
       status: 200,
       headers: {
-        'Content-Type': 'text/srt',
+        'Content-Type': contentType,
         'Content-Disposition': 'inline',
         'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
       },
     });
     
@@ -47,4 +59,31 @@ export async function GET(
     console.error('Error in subtitle proxy:', error);
     return new NextResponse('Internal server error', { status: 500 });
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
+function getSubtitleContentType(filename: string): string {
+  const ext = filename.toLowerCase().split('.').pop();
+  
+  const mimeTypes: { [key: string]: string } = {
+    'srt': 'text/srt; charset=utf-8',
+    'vtt': 'text/vtt; charset=utf-8',
+    'sub': 'text/plain; charset=utf-8',
+    'ass': 'text/x-ssa; charset=utf-8',
+    'ssa': 'text/x-ssa; charset=utf-8',
+    'sbv': 'text/plain; charset=utf-8'
+  };
+  
+  return mimeTypes[ext || 'srt'] || 'text/srt; charset=utf-8';
 }

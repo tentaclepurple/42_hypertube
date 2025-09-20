@@ -1,6 +1,3 @@
-// frontend/app/src/app/movies/%5Bid%5D/page.tsx
-
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -190,6 +187,185 @@ export default function MovieDetails() {
         }
     }
 
+    // Función para convertir SRT a WebVTT
+    const srtToVtt = (srtContent: string): string => {
+        let vttContent = 'WEBVTT\n\n';
+        vttContent += srtContent.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+        return vttContent;
+    };
+
+    // Función mejorada para detectar idioma del nombre del archivo
+    const detectLanguageFromFilename = (filename: string): string => {
+        const lowerFilename = filename.toLowerCase();
+        
+        const patterns = [
+            { pattern: /spanish|español|esp|spa|es\b|castellano|cast/i, language: 'Spanish' },
+            { pattern: /english|eng|en\b|ingles/i, language: 'English' },
+            { pattern: /french|français|fr\b|fra|francais/i, language: 'French' },
+            { pattern: /german|deutsch|de\b|ger|aleman/i, language: 'German' },
+            { pattern: /italian|italiano|it\b|ita/i, language: 'Italian' },
+            { pattern: /portuguese|português|pt\b|por|portugues/i, language: 'Portuguese' },
+        ];
+        
+        for (const { pattern, language } of patterns) {
+            if (pattern.test(lowerFilename)) {
+                return language;
+            }
+        }
+        
+        return filename || 'Unknown';
+    };
+
+    // Función auxiliar para mapear códigos de idioma
+    const mapLanguageCode = (language: string): string => {
+        const langMap: { [key: string]: string } = {
+            'spanish': 'es',
+            'español': 'es',
+            'english': 'en',
+            'inglés': 'en',
+            'french': 'fr',
+            'français': 'fr',
+            'francés': 'fr',
+            'german': 'de',
+            'deutsch': 'de',
+            'alemán': 'de',
+            'italian': 'it',
+            'italiano': 'it',
+            'portuguese': 'pt',
+            'português': 'pt',
+            'portugués': 'pt'
+        };
+        
+        const lowerLang = language.toLowerCase();
+        for (const [key, value] of Object.entries(langMap)) {
+            if (lowerLang.includes(key)) {
+                return value;
+            }
+        }
+        
+        const match = language.match(/^([a-z]{2})\b/i);
+        return match ? match[1].toLowerCase() : 'en';
+    };
+
+    // Función corregida para manejar subtítulos con conversión a WebVTT
+    const handleLoadedMetadata = async (subtitles: any[], currentTorrent: Torrent) => {
+        console.log('Video metadata loaded, processing subtitles...');
+        console.log('Available subtitles:', subtitles);
+        
+        // Procesar cada subtítulo de forma asíncrona
+        for (let index = 0; index < subtitles.length; index++) {
+            const subtitle = subtitles[index];
+            console.log(`Processing subtitle ${index}:`, subtitle);
+            
+            try {
+                // Cargar el contenido SRT
+                const subtitleUrl = `/api/subtitles/${id}/${subtitle.relative_path}?torrent_hash=${currentTorrent.hash}`;
+                console.log(`Loading subtitle from: ${subtitleUrl}`);
+                
+                const response = await fetch(subtitleUrl);
+                if (!response.ok) {
+                    console.error(`Failed to load subtitle ${index}: ${response.status}`);
+                    continue;
+                }
+                
+                const srtContent = await response.text();
+                console.log(`Subtitle ${index} content length:`, srtContent.length);
+                
+                // Convertir SRT a WebVTT
+                const vttContent = srtToVtt(srtContent);
+                
+                // Crear blob WebVTT
+                const blob = new Blob([vttContent], { type: 'text/vtt; charset=utf-8' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // Crear elemento track
+                const track = document.createElement('track');
+                track.kind = 'subtitles';
+                track.src = blobUrl;
+                
+                // Configurar idioma y etiquetas
+                const detectedLanguage = detectLanguageFromFilename(subtitle.filename || subtitle.language || 'Unknown');
+                const langCode = mapLanguageCode(detectedLanguage);
+                
+                track.srclang = langCode;
+                track.label = detectedLanguage;
+                
+                // Configurar subtítulo por defecto (español si está disponible, sino el primero)
+                const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
+                                detectedLanguage.toLowerCase().includes('español') ||
+                                langCode === 'es';
+                
+                track.default = false;
+                
+                console.log('Adding WebVTT subtitle track:', {
+                    index,
+                    srclang: track.srclang,
+                    label: track.label,
+                    default: track.default,
+                    blobUrl: blobUrl.substring(0, 50) + '...'
+                });
+                
+                // Añadir track al video
+                videoRef.current?.appendChild(track);
+                
+                // Verificar y activar el track después de un momento
+                setTimeout(() => {
+                    const textTrack = videoRef.current?.textTracks[videoRef.current.textTracks.length - 1];
+                    if (textTrack) {
+                        console.log(`Track ${index} added successfully:`, {
+                            kind: textTrack.kind,
+                            label: textTrack.label,
+                            language: textTrack.language,
+                            mode: textTrack.mode,
+                            cues: textTrack.cues ? textTrack.cues.length : 'not loaded'
+                        });
+                        
+                        // Activar si es el predeterminado
+                        if (track.default) {
+                            textTrack.mode = 'showing';
+                            console.log(`Activated default track ${index}`);
+                        }
+                    }
+                }, 100 * (index + 1)); // Escalonar la verificación
+                
+            } catch (error) {
+                console.error(`Error processing subtitle ${index}:`, error);
+            }
+        }
+        
+        // Verificación final después de procesar todos los subtítulos
+        setTimeout(() => {
+            if (videoRef.current && videoRef.current.textTracks) {
+                console.log('Final subtitle tracks check:', videoRef.current.textTracks.length);
+                
+                for (let i = 0; i < videoRef.current.textTracks.length; i++) {
+                    const track = videoRef.current.textTracks[i];
+                    console.log(`Final Track ${i}:`, {
+                        kind: track.kind,
+                        label: track.label,
+                        language: track.language,
+                        mode: track.mode,
+                        cues: track.cues ? track.cues.length : 'not loaded'
+                    });
+                }
+                
+                // Si no hay ningún track activo, activar el primero
+                let hasActiveTrack = false;
+                for (let i = 0; i < videoRef.current.textTracks.length; i++) {
+                    if (videoRef.current.textTracks[i].mode === 'showing') {
+                        hasActiveTrack = true;
+                        break;
+                    }
+                }
+                
+                if (!hasActiveTrack && videoRef.current.textTracks.length > 0) {
+                    videoRef.current.textTracks[0].mode = 'showing';
+                    console.log('Activated first track as fallback');
+                }
+            }
+        }, 2000);
+    };
+
     const handleTorrentSelect = async (torrent: Torrent) => {
         if (!id) return;
         
@@ -235,33 +411,26 @@ export default function MovieDetails() {
                     
                     // Cargar subtítulos disponibles
                     const subtitles = await loadSubtitles(torrent);
+                    console.log('Subtitles loaded for processing:', subtitles);
 
-                    // Limpiar tracks de subtítulos existentes
+                    // Limpiar tracks de subtítulos existentes ANTES de cargar
                     const existingTracks = videoRef.current.querySelectorAll('track');
-                    existingTracks.forEach(track => track.remove());
-
-                    // Añadir nuevos subtítulos como elementos track usando proxy del frontend
-                    subtitles.forEach((subtitle: any, index: number) => {
-                        const track = document.createElement('track');
-                        track.kind = 'subtitles';
-                        // Usar proxy del frontend para evitar problemas de CORS
-                        track.src = `/api/subtitles/${id}/${subtitle.relative_path}?torrent_hash=${torrent.hash}`;
-                        track.srclang = subtitle.language.toLowerCase().substring(0, 2);
-                        track.label = `${subtitle.language} - ${subtitle.filename}`;
-                        // Priorizar subtítulos en español como predeterminados
-                        track.default = index === 0 && subtitle.language.toLowerCase().includes('spanish');
-                        videoRef.current?.appendChild(track);
+                    existingTracks.forEach(track => {
+                        console.log('Removing existing track:', track.src);
+                        track.remove();
                     });
-                    
+
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
+                            console.error('Video error:', video.error);
                             setCommentError([`Video error: ${video.error.message || 'Playback failed'}`]);
                         }
                     };
                     
                     const handleLoadedData = () => {
                         setCommentError(null);
+                        console.log('Video data loaded');
                     };
                     
                     const handleProgress = () => {
@@ -270,6 +439,7 @@ export default function MovieDetails() {
                             const duration = videoRef.current.duration || 0;
                             if (duration > 0) {
                                 const percent = (buffered / duration) * 100;
+                                console.log(`Buffered: ${percent.toFixed(2)}%`);
                             }
                         }
                     };
@@ -296,24 +466,44 @@ export default function MovieDetails() {
                                 }
                             }
                         }
-                    }
+                    };
 
                     // Limpiar eventos anteriores
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
+                    videoRef.current.removeEventListener('loadedmetadata', () => {});
                     videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
                     
-                    // Añadir eventos
+                    // Añadir eventos - NOTA: Pasamos los parámetros correctos a handleLoadedMetadata
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
+                    videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
                     videoRef.current.addEventListener('progress', handleProgress);
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
                     
                     // Iniciar carga
                     videoRef.current.load();
                     
+                    // Debugging adicional
+                    setTimeout(() => {
+                        if (videoRef.current) {
+                            console.log('Video tracks after load:', videoRef.current.textTracks.length);
+                            for (let i = 0; i < videoRef.current.textTracks.length; i++) {
+                                const track = videoRef.current.textTracks[i];
+                                console.log(`Track ${i}:`, {
+                                    kind: track.kind,
+                                    label: track.label,
+                                    language: track.language,
+                                    mode: track.mode,
+                                    cues: track.cues ? track.cues.length : 'not loaded'
+                                });
+                            }
+                        }
+                    }, 5000);
+                    
                 } catch (error) {
+                    console.error('Network error:', error);
                     setCommentError([`Network error: ${error}`]);
                 }
             } else {
@@ -333,12 +523,18 @@ export default function MovieDetails() {
             videoRef.current.pause();
             videoRef.current.removeEventListener('error', () => {});
             videoRef.current.removeEventListener('loadeddata', () => {});
+            videoRef.current.removeEventListener('loadedmetadata', () => {});
             videoRef.current.removeEventListener('progress', () => {});
             videoRef.current.removeEventListener('timeupdate', () => {});
             
-            // Limpiar tracks de subtítulos
+            // Limpiar tracks de subtítulos y revocar blob URLs
             const tracks = videoRef.current.querySelectorAll('track');
-            tracks.forEach(track => track.remove());
+            tracks.forEach(track => {
+                if (track.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(track.src);
+                }
+                track.remove();
+            });
             
             videoRef.current.currentTime = 0;
             videoRef.current.removeAttribute('src');
@@ -459,6 +655,7 @@ export default function MovieDetails() {
                 </div>
             </div>
 
+
             {hascommented && userComment ? (
                 <div className="mb-8">
                     <h2 className="text-xl font-semibold mb-4">{t("movies.comment")}</h2>
@@ -546,6 +743,7 @@ export default function MovieDetails() {
                     </button>
                 </form>
             )}
+            
             <div className="space-y-4">
                 {commentsLoading ? (
                     <div className="text-center py-8">
@@ -591,19 +789,19 @@ export default function MovieDetails() {
             
             {isStreamingModalOpen && (
                 <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-                <div className="bg-gray-800 rounded-lg w-full h-full m-4 relative">
-                    <div className="flex items-center justify-between p-4 border-b border-gray-700">
-                    <h2 className="text-lg font-semibold">
-                        {movie?.title} - {selectedTorrent?.quality}
-                    </h2>
-                    <button onClick={closeStreamingModal} className="p-1 rounded-full hover:bg-gray-700 transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
+                    <div className="bg-gray-800 rounded-lg w-full h-full m-4 relative">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                            <h2 className="text-lg font-semibold">
+                                {movie?.title} - {selectedTorrent?.quality}
+                            </h2>
+                            <button onClick={closeStreamingModal} className="p-1 rounded-full hover:bg-gray-700 transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="flex-1 flex items-center justify-center p-4">
+                            <video ref={videoRef} controls autoPlay className="w-full h-full object-contain bg-black" />
+                        </div>
                     </div>
-                    <div className="flex-1 flex items-center justify-center p-4">
-                    <video ref={videoRef} controls autoPlay className="w-full h-full object-contain bg-black" />
-                    </div>
-                </div>
                 </div>
             )}
         </div>
