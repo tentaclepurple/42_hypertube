@@ -18,7 +18,7 @@ class ApiKeyResponse(BaseModel):
     id: str
     name: str
     api_key: str
-    api_secret: str  # Solo se devuelve al crear
+    api_secret: str
     is_active: bool
     expires_at: datetime
     created_at: datetime
@@ -32,7 +32,6 @@ class ApiKeyListResponse(BaseModel):
     id: str
     name: str
     api_key: str
-    # NO incluye api_secret por seguridad
     is_active: bool
     expires_at: datetime
     created_at: datetime
@@ -56,5 +55,5 @@ class OAuthTokenRequest(BaseModel):
 class OAuthTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    expires_in: int  # segundos
+    expires_in: int
     scope: str = "api"

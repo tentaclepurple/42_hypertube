@@ -18,7 +18,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     Get the current authenticated user
     """
     try:
-        # Verificar si el token está revocado
+        # Verify if the token is revoked
         is_revoked = await TokenService.is_token_revoked(token)
         if is_revoked:
             raise HTTPException(
@@ -62,8 +62,8 @@ async def get_current_user_from_cookie(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication cookie required"
         )
-    
-    # Usar la misma lógica que get_current_user pero con token de cookie
+
+    # Use the same logic as in get_current_user
     try:
         is_revoked = await TokenService.is_token_revoked(token)
         if is_revoked:

@@ -56,7 +56,6 @@ class OAuthService:
             "scope": config["scope"]
         }
         
-        # Agregar state si se proporciona (para seguridad CSRF) ######
         if state:
             params["state"] = state
             
@@ -65,7 +64,7 @@ class OAuthService:
     
     @staticmethod
     async def process_callback(provider, code, redirect_uri):
-        """Procesar callback de OAuth y obtener información del usuario"""
+        """Process OAuth callback"""
         if provider not in OAuthService.PROVIDERS_CONFIG:
             raise ValueError(f"Provider {provider} not supported")
         
@@ -99,15 +98,15 @@ class OAuthService:
         
         if not access_token:
             raise ValueError("No access token received")
-        
-        # Obtener información del usuario
+
+        # Get user information
         user_info = await OAuthService._get_user_info(provider, access_token)
-        
-        # Transformar información del usuario según el proveedor
+
+        # Transform user information according to the provider
         standardized_user = OAuthService._standardize_user_info(provider, user_info)
-        
-        # Aquí podrías crear o actualizar el usuario en tu base de datos
-        # Usando AuthService o directamente
+
+        # Here you could create or update the user in your database
+        # Using AuthService or directly
         return standardized_user
     
     @staticmethod

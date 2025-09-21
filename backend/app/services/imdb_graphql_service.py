@@ -6,26 +6,26 @@ from typing import Dict, List, Any, Optional
 
 
 class IMDBGraphQLService:
-    """Servicio para obtener información adicional de películas vía REST API"""
+    """Service to interact with IMDB GraphQL and REST APIs"""
     
     BASE_URL = "https://api.imdbapi.dev"
     
     @staticmethod
     async def get_movie_details(imdb_id: str) -> Dict[str, Any]:
         """
-        Obtiene detalles adicionales de una película mediante REST API
+        Get movie details including directors and cast from IMDB using REST API
         """
         if not imdb_id:
             print("No IMDB ID provided")
             return {}
-            
-        # Construir la URL para obtener créditos (directores y actores)
+
+        # Build the URL to get credits (directors and actors)
         url = f"{IMDBGraphQLService.BASE_URL}/titles/{imdb_id}/credits"
         params = {
             "categories": ["director", "actor"]
         }
-        
-        # Realizar la petición
+
+        # Make the request
         try:
             async with aiohttp.ClientSession() as session:
                 print(f"Requesting REST API data for IMDB ID: {imdb_id}")
@@ -46,21 +46,21 @@ class IMDBGraphQLService:
     @staticmethod
     async def _process_api_data(result: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Procesa la respuesta de la REST API para extraer los datos relevantes
+        Process the REST API response to extract relevant data
         """
         if not result.get("credits"):
             print("No valid credits data in API response")
             return {}
             
         credits = result["credits"]
-        
-        # Extraer directores
+
+        # Extract directors
         directors = []
         for credit in credits:
             if credit.get("category") == "director" and credit.get("name", {}).get("displayName"):
                 directors.append(credit["name"]["displayName"])
-        
-        # Extraer cast (actores)
+
+        # Extract cast (actors)
         cast = []
         for credit in credits:
             if credit.get("category") == "actor" and credit.get("name", {}).get("displayName"):

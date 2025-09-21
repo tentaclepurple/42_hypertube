@@ -9,18 +9,18 @@ class TokenService:
     @staticmethod
     async def revoke_token(token: str, user_id, reason: str = "user_logout") -> bool:
         """
-        Revoca un token añadiéndolo a la lista negra
+        Revoke a JWT token by adding it to the revoked tokens table
         """
         try:
-            # Extraer el jti (JWT ID) del token
+            # Extract the jti (JWT ID) from the token
             payload = jwt.decode(token, options={"verify_signature": False})
             token_jti = payload.get('jti')
             
             if not token_jti:
                 print("No jti claim found in token", flush=True)
                 return False
-                        
-            # Verificar si el token ya está revocado
+
+            # Check if the token is already revoked
             async with get_db_connection() as conn:
                 exists = await conn.fetchval(
                     "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE jti = $1)",
@@ -28,20 +28,20 @@ class TokenService:
                 )
                 
                 if exists:
-                    # El token ya está revocado, no hacemos nada
+                    # The token is already revoked, do nothing
                     return True
-                
-                # Calcular la fecha de expiración si está disponible en el token
+
+                # Calculate the expiration date if available in the token
                 expiry = None
                 if 'exp' in payload:
-                    # El campo 'exp' en JWT es un timestamp UNIX en segundos
+                    # The 'exp' field in JWT is a UNIX timestamp in seconds
                     exp_timestamp = payload['exp']
                     expiry = datetime.fromtimestamp(exp_timestamp)
                 else:
-                    # Si no hay fecha de expiración en el token, establecemos una por defecto (7 días)
+                    # If there is no expiration date in the token, set a default (7 days)
                     expiry = datetime.now() + timedelta(days=7)
-                
-                # Insertar en la tabla de tokens revocados usando la columna jti
+
+                # Insert into the revoked tokens table using the jti column
                 await conn.execute(
                     """
                     INSERT INTO revoked_tokens (jti, user_id, revoked_at, expiry)
@@ -49,30 +49,29 @@ class TokenService:
                     """,
                     token_jti, user_id, datetime.now(), expiry
                 )
-                
-                print(f"Token revocado exitosamente", flush=True)
+
+                print(f"Token revoked successfully", flush=True)
                 return True
                 
         except Exception as e:
             print(f"Error revoking token: {str(e)}", flush=True)
-            # A pesar del error, permitimos que el logout continúe
             return False
     
     @staticmethod
     async def is_token_revoked(token: str) -> bool:
         """
-        Verifica si un token está revocado
+        Check if a token is revoked
         """
         try:
-            # Extraer el jti (JWT ID) del token
+            # Extract the jti (JWT ID) from the token
             payload = jwt.decode(token, options={"verify_signature": False})
             token_jti = payload.get('jti')
             
             if not token_jti:
-                # Si no hay jti, no podemos verificar si está revocado
+                # If there is no jti, we cannot check if it is revoked
                 return False
-                
-            # Verificar en la base de datos si el token está revocado usando la columna jti
+
+            # Check in the database if the token is revoked using the jti column
             async with get_db_connection() as conn:
                 result = await conn.fetchval(
                     "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE jti = $1)",
@@ -82,13 +81,13 @@ class TokenService:
                 return result
         except Exception as e:
             print(f"Error checking token revocation: {str(e)}", flush=True)
-            # En caso de error, permitimos que el token siga siendo válido
+            # In case of error, we allow the token to remain valid
             return False
     
     @staticmethod
     async def clean_expired_tokens():
         """
-        Eliminar tokens expirados de la blacklist para mantener la tabla optimizada
+        Remove expired tokens from the blacklist to keep the table optimized
         """
         try:
             async with get_db_connection() as conn:

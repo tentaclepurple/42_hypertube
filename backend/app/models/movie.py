@@ -60,8 +60,7 @@ class MovieBasicResponse(BaseModel):
     poster: Optional[str] = None
     year: Optional[int] = None
     rating: Optional[float] = None
-    genres: List[str] = []  # ← Agregar esta línea
-    # Campos para visualización
+    genres: List[str] = []
     view_percentage: float = 0.0
     completed: bool = False
 

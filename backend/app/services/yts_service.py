@@ -6,14 +6,14 @@ from typing import Dict, List, Optional, Any
 
 
 class YTSService:
-    """Servicio para interactuar con la API de YTS.mx"""
+    """Service to interact with the YTS API"""
     
     BASE_URL = "https://yts.mx/api/v2"
     
     @staticmethod
     async def search_movies(query: str, limit: int = 20, page: int = 1) -> Dict[str, Any]:
         """
-        Busca películas en YTS por título
+        Search for movies in YTS by title
         """
         url = f"{YTSService.BASE_URL}/list_movies.json"
         params = {
@@ -43,7 +43,7 @@ class YTSService:
     @staticmethod
     async def get_movie_details(movie_id: str) -> Dict[str, Any]:
         """
-        Obtiene detalles de una película específica por ID
+        Get details of a specific movie by ID
         """
         url = f"{YTSService.BASE_URL}/movie_details.json"
         params = {"movie_id": movie_id}
@@ -65,7 +65,7 @@ class YTSService:
     @staticmethod
     async def get_popular_movies(limit: int = 20, page: int = 1) -> Dict[str, Any]:
         """
-        Obtiene las películas más populares de YTS con paginación
+        Get popular movies from YTS with pagination
         """
         url = f"{YTSService.BASE_URL}/list_movies.json"
         params = {
