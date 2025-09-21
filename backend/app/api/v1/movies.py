@@ -331,7 +331,7 @@ async def _serve_complete_file(file_path: str, movie_title: str, range_header: s
     # Serve complete file
     async def file_generator():
         async with aiofiles.open(file_path, 'rb') as file:
-            while chunk := await file.read(8192):  # 8KB chunks
+            while chunk := await file.read(8192):
                 yield chunk
     
     headers = {
@@ -433,37 +433,43 @@ async def _serve_range_request(file_path: str, file_size: int, range_header: str
 
 
 async def _check_streaming_threshold(file_path: Path) -> bool:
-    """Check if we have enough data downloaded to start streaming"""
+    """Check if we have enough REAL data downloaded to start streaming"""
     
-    file_size = file_path.stat().st_size
-    
-    # Minimum thresholds
-    MIN_SIZE_MB = 10  # At least 10MB
-    MIN_PERCENTAGE = 0.05  # At least 5% of estimated final size
-    
-    # Basic size check
-    if file_size < MIN_SIZE_MB * 1024 * 1024:
+    try:
+        import os
+        import time
+        
+        stat_info = file_path.stat()
+        file_size = stat_info.st_size
+        
+        blocks_allocated = stat_info.st_blocks * 512
+        
+        real_downloaded = blocks_allocated
+        
+        MIN_SIZE_MB = 50
+        MIN_PERCENTAGE = 0.25  # At least 25% of actual file size
+                
+        # Percentage check
+        min_percentage_bytes = MIN_PERCENTAGE * file_size
+        if real_downloaded >= min_percentage_bytes:
+            print(f"DEBUG: Start streaming! - need {min_percentage_bytes/1024/1024:.1f}MB, have {real_downloaded/1024/1024:.1f}MB")
+            return True
+        
+        # # Additional check: if file is actively being written to (modification time is very recent)
+
+        # mtime = stat_info.st_mtime
+        # if time.time() - mtime < 60:  # Modified in last minute
+        #     if real_downloaded > min_bytes:
+        #         print(f"DEBUG: Passed active download check - file recently modified and has {real_downloaded/1024/1024:.1f}MB")
+        #         return True
+
+        print(f"DEBUG: Waiting - need {min_percentage_bytes/1024/1024:.1f}MB for 25%, have {real_downloaded/1024/1024:.1f}MB")
         return False
-    
-    # For more sophisticated checking, we could:
-    # 1. Estimate final file size from torrent metadata
-    # 2. Check if video headers are complete
-    # 3. Use ffprobe to verify the file is playable
-    
-    # For now, use simple heuristics
-    ESTIMATED_MOVIE_SIZE = 1.5 * 1024 * 1024 * 1024  # 1.5GB average
-    
-    if file_size >= MIN_PERCENTAGE * ESTIMATED_MOVIE_SIZE:
-        return True
-    
-    # Additional check: if file is actively being written to
-    # (modification time is very recent)
-    import time
-    mtime = file_path.stat().st_mtime
-    if time.time() - mtime < 60:  # Modified in last minute
-        return file_size > MIN_SIZE_MB * 1024 * 1024
-    
-    return False
+        
+    except Exception as e:
+        print(f"DEBUG: Error checking real file size: {e}")
+        file_size = file_path.stat().st_size
+        return file_size > 50 * 1024 * 1024  # Al menos 50MB como fallback
 
 
 def _get_video_content_type(file_path: str) -> str:
@@ -643,14 +649,14 @@ async def update_view_progress(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Actualizar el progreso de visualización de una película
+    Update or insert view progress for a movie
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
         user_id = current_user["id"]
         
         async with get_db_connection() as conn:
-            # Verificar que la película existe
+            # Verify that movie exists
             movie_exists = await conn.fetchval(
                 "SELECT EXISTS(SELECT 1 FROM movies WHERE id = $1)",
                 movie_uuid
@@ -661,12 +667,12 @@ async def update_view_progress(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Movie not found"
                 )
-            
-            # Determinar si está completada (≥90%)
+
+            # Determine if completed (≥90%)
             completed = progress_data.view_percentage >= 90.0
             now = datetime.now()
-            
-            # Usar UPSERT para actualizar o insertar
+
+            # Use UPSERT to update or insert
             result = await conn.fetchrow(
                 """
                 INSERT INTO user_movie_views (id, user_id, movie_id, view_percentage, completed, first_viewed_at, last_viewed_at, created_at, updated_at)
@@ -710,7 +716,7 @@ async def mark_movie_complete(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Marcar película como completamente vista (100%)
+    Mark movie as completely watched (100%)
     """
     return await update_view_progress(
         movie_id=movie_id,
@@ -725,7 +731,7 @@ async def remove_view_progress(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Quitar película de la lista de vistas
+    Remove movie from view list
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
@@ -765,7 +771,7 @@ async def get_view_progress(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Obtener el progreso actual de visualización
+    Get current view progress
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
@@ -810,13 +816,13 @@ async def download_by_hash(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Descargar película directamente por hash
+    Download movie directly by hash
     """
     try:
         user_id = current_user["id"]
         movie_id = f"direct-{int(time.time())}"
         
-        # Preparar mensaje para Kafka
+        # Prepare message for Kafka
         download_message = {
             'movie_id': movie_id,
             'torrent_hash': request.hash,
@@ -824,8 +830,8 @@ async def download_by_hash(
             'user_id': str(user_id),
             'timestamp': time.time()
         }
-        
-        # Enviar a Kafka
+
+        # Send to Kafka
         success = kafka_service.send_download_request_enhanced(download_message)
         
         if not success:
@@ -856,7 +862,7 @@ async def get_movie_subtitles(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Obtener todos los subtítulos disponibles para una película
+    Get all available subtitles for a movie
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
@@ -891,7 +897,7 @@ async def get_movie_subtitles(
 
 async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash: str) -> List[Dict]:
     """
-    Buscar archivos de subtítulos disponibles en el directorio de la película
+    Search for available subtitle files in the movie directory
     """
     subtitles = []
     subtitle_extensions = {'.srt', '.sub', '.vtt', '.ass', '.ssa', '.sbv'}
@@ -923,7 +929,7 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
 
 def _detect_subtitle_language(filename: str) -> str:
     """
-    Detectar idioma de subtítulo basado en el nombre del archivo
+    Detect subtitle language based on the filename
     """
     filename_lower = filename.lower()
     
@@ -951,7 +957,7 @@ async def serve_subtitle_file(
     current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
-    Servir archivo de subtítulo específico
+    Serve specific subtitle file
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
@@ -971,29 +977,29 @@ async def serve_subtitle_file(
             video_path = Path(download_info["filepath_ds"])
             movie_dir = video_path.parent
             subtitle_full_path = movie_dir / subtitle_path
-            
-            # Verificaciones de seguridad
+
+            # safeguards
             if not subtitle_full_path.exists():
                 raise HTTPException(404, "Subtitle file not found")
             
             if not subtitle_full_path.is_file():
                 raise HTTPException(400, "Invalid file path")
-            
-            # Verificar que el archivo está dentro del directorio permitido
+
+            # Verify that the file is within the allowed directory
             try:
                 subtitle_full_path.resolve().relative_to(movie_dir.resolve())
             except ValueError:
                 raise HTTPException(403, "Access to subtitle file denied")
-            
-            # Verificar extensión válida
+
+            # Verify valid extension
             valid_extensions = {'.srt', '.sub', '.vtt', '.ass', '.ssa', '.sbv'}
             if subtitle_full_path.suffix.lower() not in valid_extensions:
                 raise HTTPException(400, "Invalid subtitle file format")
-            
-            # Determinar tipo de contenido
+
+            # Determine content type
             content_type = _get_subtitle_content_type(subtitle_full_path.suffix)
-            
-            # Servir el archivo
+
+            # Serve the file
             async def subtitle_generator():
                 async with aiofiles.open(subtitle_full_path, 'rb') as file:
                     while chunk := await file.read(8192):
@@ -1043,7 +1049,7 @@ async def subtitle_options(
 
 def _get_subtitle_content_type(file_extension: str) -> str:
     """
-    Determinar tipo MIME para archivos de subtítulos
+    Determine MIME type for subtitle files
     """
     extension = file_extension.lower()
     

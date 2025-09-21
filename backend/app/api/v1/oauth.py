@@ -12,12 +12,11 @@ router = APIRouter()
 @router.post("/token", response_model=OAuthTokenResponse)
 async def oauth_token(token_request: OAuthTokenRequest):
     """
-    Intercambiar API key + secret por Bearer token JWT
+    Exchange API credentials for a JWT token
     
-    Compatible con OAuth 2.0 grant_type=api_key
     """
     try:
-        # Validar credenciales de API
+        # Validate API credentials
         user_info = await ApiKeyService.validate_api_credentials(
             api_key=token_request.api_key,
             api_secret=token_request.api_secret
@@ -29,17 +28,17 @@ async def oauth_token(token_request: OAuthTokenRequest):
                 detail="Invalid API credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
-        # Generar JWT token (reutiliza tu servicio existente)
+
+        # Generate JWT token (reuse your existing service)
         access_token = JWTService.create_access_token(
             user_id=user_info["user_id"],
-            expires_delta=timedelta(hours=1)  # Token válido por 1 hora
+            expires_delta=timedelta(hours=1)  # Token valid for 1 hour
         )
         
         return OAuthTokenResponse(
             access_token=access_token,
             token_type="bearer",
-            expires_in=3600,  # 1 hora en segundos
+            expires_in=3600,  # 1 hour in seconds
             scope="api"
         )
         

@@ -24,14 +24,14 @@ async def add_to_favorites(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Añadir película a favoritos del usuario
+    Add a movie to user's favorites
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
         user_id = current_user["id"]
         
         async with get_db_connection() as conn:
-            # Verificar que la película existe
+            # Verify that the movie exists
             movie_exists = await conn.fetchval(
                 "SELECT EXISTS(SELECT 1 FROM movies WHERE id = $1)",
                 movie_uuid
@@ -42,8 +42,8 @@ async def add_to_favorites(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Movie not found"
                 )
-            
-            # Añadir a favoritos (ignora si ya existe por la constraint UNIQUE)
+
+            # Add to favorites (ignore if already exists due to UNIQUE constraint)
             result = await conn.fetchrow(
                 """
                 INSERT INTO user_movie_favorites (user_id, movie_id, created_at)
@@ -55,7 +55,7 @@ async def add_to_favorites(
             )
             
             if not result:
-                # Ya estaba en favoritos
+                # Already in favorites
                 existing = await conn.fetchrow(
                     "SELECT user_id, movie_id, created_at FROM user_movie_favorites WHERE user_id = $1 AND movie_id = $2",
                     user_id, movie_uuid
@@ -86,7 +86,7 @@ async def remove_from_favorites(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Quitar película de favoritos del usuario
+    Remove a movie from user's favorites
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
@@ -127,7 +127,7 @@ async def get_user_favorites(
     limit: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """
-    Obtener lista de películas favoritas del usuario con información de visualización
+    Get a list of user's favorite movies with viewing information
     """
     try:
         user_id = current_user["id"]
@@ -158,7 +158,7 @@ async def get_user_favorites(
             
             result = []
             for fav in favorites:
-                # Decodificar géneros si están en formato JSON
+                # Decode genres if stored as JSON
                 genres = fav["genres"] if fav["genres"] else []
                 if isinstance(genres, str):
                     try:
@@ -194,7 +194,7 @@ async def get_continue_watching(
     limit: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """
-    Obtener lista de películas para continuar viendo (20% <= progreso < 90%)
+    Get a list of movies to continue watching (20% <= progress < 90%)
     """
     try:
         user_id = current_user["id"]
@@ -259,7 +259,7 @@ async def check_if_favorite(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Verificar si una película está en favoritos del usuario
+    Check if a movie is in user's favorites
     """
     try:
         movie_uuid = uuid.UUID(movie_id)
@@ -290,19 +290,19 @@ async def get_user_activity_summary(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Obtener resumen de actividad del usuario
+    Get a summary of user activity
     """
     try:
         user_id = current_user["id"]
         
         async with get_db_connection() as conn:
-            # Contar favoritos
+            # Count favorites
             favorites_count = await conn.fetchval(
                 "SELECT COUNT(*) FROM user_movie_favorites WHERE user_id = $1",
                 user_id
             )
             
-            # Contar películas para continuar viendo
+            # Count continue watching (20% <= progress < 90%)
             continue_watching_count = await conn.fetchval(
                 """
                 SELECT COUNT(*) FROM user_movie_views 
@@ -311,7 +311,7 @@ async def get_user_activity_summary(
                 user_id
             )
             
-            # Contar películas completadas
+            # Count completed movies
             completed_movies = await conn.fetchval(
                 "SELECT COUNT(*) FROM user_movie_views WHERE user_id = $1 AND completed = true",
                 user_id
@@ -337,7 +337,7 @@ async def get_recently_watched(
     limit: int = Query(10, ge=1, le=50, description="Items per page")
 ):
     """
-    Obtener películas vistas recientemente (cualquier progreso > 0%)
+    Get a list of recently watched movies (any progress > 0%)
     """
     try:
         user_id = current_user["id"]
@@ -366,7 +366,7 @@ async def get_recently_watched(
             
             result = []
             for movie in recently_watched:
-                # Decodificar géneros si están en formato JSON
+                # Decode genres if stored as JSON
                 genres = movie["genres"] if movie["genres"] else []
                 if isinstance(genres, str):
                     try:
@@ -391,4 +391,79 @@ async def get_recently_watched(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting recently watched: {str(e)}"
+        )
+
+
+@router.post("/favorites/{movie_id}/toggle")
+async def toggle_favorite(
+    movie_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Toggle a movie in user's favorites (add if not favorite, remove if favorite)
+    """
+    try:
+        movie_uuid = uuid.UUID(movie_id)
+        user_id = current_user["id"]
+        
+        async with get_db_connection() as conn:
+            # Verify that the movie exists
+            movie_exists = await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM movies WHERE id = $1)",
+                movie_uuid
+            )
+            
+            if not movie_exists:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Movie not found"
+                )
+
+            # Check if already in favorites
+            existing_favorite = await conn.fetchrow(
+                "SELECT id, created_at FROM user_movie_favorites WHERE user_id = $1 AND movie_id = $2",
+                user_id, movie_uuid
+            )
+            
+            if existing_favorite:
+                # Remove from favorites
+                await conn.execute(
+                    "DELETE FROM user_movie_favorites WHERE user_id = $1 AND movie_id = $2",
+                    user_id, movie_uuid
+                )
+                
+                return {
+                    "action": "removed",
+                    "is_favorite": False,
+                    "message": "Movie removed from favorites",
+                    "movie_id": movie_id
+                }
+            else:
+                # Add to favorites
+                result = await conn.fetchrow(
+                    """
+                    INSERT INTO user_movie_favorites (user_id, movie_id, created_at)
+                    VALUES ($1, $2, $3)
+                    RETURNING created_at
+                    """,
+                    user_id, movie_uuid, datetime.now()
+                )
+                
+                return {
+                    "action": "added",
+                    "is_favorite": True,
+                    "message": "Movie added to favorites",
+                    "movie_id": movie_id,
+                    "created_at": result["created_at"]
+                }
+            
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error toggling favorite: {str(e)}"
         )

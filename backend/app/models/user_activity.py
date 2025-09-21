@@ -17,10 +17,10 @@ class FavoriteMovieResponse(BaseModel):
     year: Optional[int] = None
     rating: Optional[float] = None
     genres: List[str] = []
-    created_at: datetime  # Cuando se añadió a favoritos
-    view_percentage: float = 0.0  # NEW FIELD
-    completed: bool = False       # NEW FIELD
-
+    created_at: datetime
+    view_percentage: float = 0.0
+    completed: bool = False 
+    
 class ContinueWatchingResponse(BaseModel):
     id: str
     title: str
