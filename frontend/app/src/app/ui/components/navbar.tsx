@@ -189,6 +189,12 @@ export default function Navbar() {
                             <button onClick={() => {router.push('/movies'); closeMenu();}} className="text-white-400 hover:text-white-500 py-2">
                                 {t("navbar.movies")}
                             </button>
+                            <button onClick={() => {router.push('/favorites'); closeMenu();}} className="text-white-400 hover:text-white-500 py-2">
+                                {t("navbar.favorites")}
+                            </button>
+                            <button onClick={() => {router.push('/view_progress'); closeMenu();}} className="text-white-400 hover:text-white-500 py-2">
+                                {t("navbar.viewProgress")}
+                            </button>
                             <button 
                                 onClick={() => { logout(); closeMenu(); }} 
                                 className="text-red-400 hover:text-red-500 flex items-center justify-center py-2"
