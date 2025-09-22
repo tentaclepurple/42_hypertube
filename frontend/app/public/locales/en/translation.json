@@ -49,7 +49,9 @@
         "submitComment": "Send a comment",
         "loadingComments": "Loading comments...",
         "firstComment": "There are no comments yet, be the first to comment!",
-        "watched": "✅ Watched"
+        "watched": "✅ Watched",
+        "addedFavorites": "Added to favorites",
+        "removedFavorites": "Removed from favorites"
     },
     "profile": {
         "loading": "Loading profile...",
