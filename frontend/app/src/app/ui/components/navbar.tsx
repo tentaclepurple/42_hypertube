@@ -77,9 +77,37 @@ export default function Navbar() {
                             >
                                 {user?.username}
                             </Link>
-                            <button onClick={() => {logout(); closeMenu();}} className="text-red-400 hover:text-red-500" title='Logout'>
-                                <LogOutIcon size={20} />
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={toggleMenu}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+                                >
+                                    <Menu size={24} />
+                                </button>
+                                {isOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+                                        <button
+                                            onClick={() => { router.push('/favorites'); closeMenu(); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-700 transition-colors duration-200 first:rounded-t-lg"
+                                        >
+                                            {t("navbar.favorites")}
+                                        </button>
+                                        <button
+                                            onClick={() => { router.push('/view_progress'); closeMenu(); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-700 transition-colors duration-200"
+                                        >
+                                            {t("navbar.viewProgress")}
+                                        </button>
+                                        <button 
+                                            onClick={() => {logout(); closeMenu();}}
+                                            className="flex justify-center items-center w-full text-red-400 hover:text-red-500 py-3"
+                                            title='Logout'
+                                        >
+                                            <LogOutIcon size={20} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                     <div className="relative">

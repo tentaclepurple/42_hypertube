@@ -11,7 +11,9 @@
         "movies": "Movies",
         "search": "Search",
         "login": "Login",
-        "register": "Register"
+        "register": "Register",
+        "favorites": "Favorites",
+        "viewProgress": "View Progress"
     },
     "login": {
         "username": "Username",
