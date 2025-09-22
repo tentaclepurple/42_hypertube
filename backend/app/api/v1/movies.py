@@ -870,7 +870,7 @@ async def get_movie_subtitles(
         async with get_db_connection() as conn:
             download_info = await conn.fetchrow(
                 """
-                SELECT filepath_ds FROM movie_downloads 
+                SELECT filepath_ds FROM movie_downloads_42 
                 WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
                 """,
                 movie_uuid, torrent_hash.lower()
@@ -916,7 +916,7 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
                             "format": subtitle_file.suffix[1:].upper(),
                             "size": subtitle_file.stat().st_size,
                             "relative_path": str(relative_path),
-                            "url": f"{os.environ.get('NEXT_PUBLIC_URL', 'http://imontero.ddns.net:8000')}/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
+                            "url": f"{os.environ.get('NEXT_PUBLIC_URL', 'http://localhost:8000')}/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
                         })
                     except ValueError:
                         continue
@@ -965,7 +965,7 @@ async def serve_subtitle_file(
         async with get_db_connection() as conn:
             download_info = await conn.fetchrow(
                 """
-                SELECT filepath_ds FROM movie_downloads 
+                SELECT filepath_ds FROM movie_downloads_42 
                 WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
                 """,
                 movie_uuid, torrent_hash.lower()
@@ -1009,7 +1009,7 @@ async def serve_subtitle_file(
             headers = {
                 "Content-Length": str(file_size),
                 "Content-Disposition": f"inline; filename={subtitle_full_path.name}",
-                "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+                "Access-Control-Allow-Origin": "http://localhost:3000",
                 "Access-Control-Allow-Credentials": "true",
                 "Cache-Control": "public, max-age=3600"
             }
@@ -1038,7 +1038,7 @@ async def subtitle_options(
     return Response(
         status_code=200,
         headers={
-            "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+            "Access-Control-Allow-Origin": "http://localhost:3000",
             "Access-Control-Allow-Methods": "GET, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
             "Access-Control-Allow-Credentials": "true",

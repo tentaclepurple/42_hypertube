@@ -48,7 +48,9 @@
         "submitComment": "Enviar un comentario",
         "loadingComments": "Cargando comentarios...",
         "firstComment": "¡Aún no hay comentarios, sé el primero en comentar!",
-        "watched": "✅ Visto"
+        "watched": "✅ Visto",
+        "addedFavorites": "Añadido a favoritos",
+        "removedFavorites": "Eliminado de favoritos"
     },
     "profile": {
         "loading": "Cargando prefil...",

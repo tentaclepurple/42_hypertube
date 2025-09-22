@@ -82,7 +82,7 @@ class TorrentDownloader:
             
             result = await conn.fetchrow(
                 """
-                SELECT downloaded_lg FROM movie_downloads 
+                SELECT downloaded_lg FROM movie_downloads_42 
                 WHERE hash_id = $1 AND downloaded_lg = true
                 ORDER BY update_dt DESC
                 LIMIT 1
@@ -108,7 +108,7 @@ class TorrentDownloader:
         print(f"Download marked as started: {torrent_hash[:8]}...")
     
     async def _update_download_record(self, movie_id: str, torrent_hash: str, status: str, progress: int = 0, file_path: str = None):
-        """Update download record in movie_downloads"""
+        """Update download record in movie_downloads_42"""
         if not self.db_url:
             return
             
@@ -560,7 +560,7 @@ async def start_kafka_consumer(downloader):
     logger.info("Kafka consumer started in separate thread")
 
 async def main():
-    logger.info("Torrent Service started (with movie_downloads)")
+    logger.info("Torrent Service started (with movie_downloads_42)")
     logger.info(f"Download directory: /data/movies")
 
     try:

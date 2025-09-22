@@ -5,13 +5,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Star, MessageCircle, Send, X } from "lucide-react";
+import { Star, MessageCircle, Send, X, Heart } from "lucide-react";
 import { Movie, Torrent } from "../types/movies";
 import { Comment } from "../types/comment";
 import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
 import { formatDate, renderStars } from "../../ui/comments";
 import { useTranslation } from "react-i18next";
+
 
 export default function MovieDetails() {
     const { user, logout, isLoading: authLoading } = useAuth();
@@ -29,9 +30,10 @@ export default function MovieDetails() {
     const [userComment, setUserComment] = useState<Comment | null>(null);
     const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
     const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
-    const [availableSubtitles, setAvailableSubtitles] = useState<any[]>([]);
-    const [loadingSubtitles, setLoadingSubtitles] = useState(false);
     const [subtitleError, setSubtitleError] = useState<string | null>(null);
+    const [favoriteMessage, setFavoriteMessage] = useState<string | null>(null);
+    const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(false);
     const lastUpdateTimeRef = useRef(Date.now());
     const lastUpdatePercentageRef = useRef(0);
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -94,10 +96,65 @@ export default function MovieDetails() {
         }
     };
 
+    const fecthFavoriteStatus = async () => {
+        if (!id) return;
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/user-activity/check-favorite/${id}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+            });
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                const text = parsedError(await response.json());
+                setError(text);
+                return;
+            }
+            const data = await response.json();
+            setIsFavorite(data.is_favorite);
+        } catch (err) {
+            setError(err as string[]);
+        }
+    };
+
+    const toggleFavorite = async () => {
+        if (!id || isButtonDisabled) return;
+
+        setIsButtonDisabled(true);
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/user-activity/favorites/${id}/toggle`, {
+                method: "POST",
+                headers: { 
+                    Authorization: `Bearer ${token}`
+                },
+            });
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                const text = parsedError(await response.json());
+                setError(text);
+                return;
+            }
+            const data = await response.json();
+            setIsFavorite(data.is_favorite);
+            setFavoriteMessage(data.is_favorite ? t("movies.addedFavorites") : t("movies.removedFavorites"));
+
+            setTimeout(() => {
+                setFavoriteMessage(null);
+            }, 3000);
+        } catch (err) {
+            setError(err as string[]);
+        } finally {
+            setTimeout(() => {
+                setIsButtonDisabled(false);
+            }, 5000);
+        }
+    };
     const loadSubtitles = async (torrent: Torrent) => {
         if (!id) return [];
         
-        setLoadingSubtitles(true);
         setSubtitleError(null);
         const token = localStorage.getItem("token");
         
@@ -118,7 +175,6 @@ export default function MovieDetails() {
             
             const data = await response.json();
             const subtitles = data.subtitles || [];
-            setAvailableSubtitles(subtitles);
             console.log("Subtitles loaded:", subtitles);
             return subtitles;
             
@@ -126,8 +182,6 @@ export default function MovieDetails() {
             console.error('Error loading subtitles:', error);
             setSubtitleError('Failed to load subtitles');
             return [];
-        } finally {
-            setLoadingSubtitles(false);
         }
     };
 
@@ -189,14 +243,13 @@ export default function MovieDetails() {
         }
     }
 
-    // Función para convertir SRT a WebVTT
+
     const srtToVtt = (srtContent: string): string => {
         let vttContent = 'WEBVTT\n\n';
         vttContent += srtContent.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
         return vttContent;
     };
 
-    // Función mejorada para detectar idioma del nombre del archivo
     const detectLanguageFromFilename = (filename: string): string => {
         const lowerFilename = filename.toLowerCase();
         
@@ -218,7 +271,6 @@ export default function MovieDetails() {
         return filename || 'Unknown';
     };
 
-    // Función auxiliar para mapear códigos de idioma
     const mapLanguageCode = (language: string): string => {
         const langMap: { [key: string]: string } = {
             'spanish': 'es',
@@ -249,18 +301,17 @@ export default function MovieDetails() {
         return match ? match[1].toLowerCase() : 'en';
     };
 
-    // Función corregida para manejar subtítulos con conversión a WebVTT
+
     const handleLoadedMetadata = async (subtitles: any[], currentTorrent: Torrent) => {
         console.log('Video metadata loaded, processing subtitles...');
         console.log('Available subtitles:', subtitles);
-        
-        // Procesar cada subtítulo de forma asíncrona
+
         for (let index = 0; index < subtitles.length; index++) {
             const subtitle = subtitles[index];
             console.log(`Processing subtitle ${index}:`, subtitle);
             
             try {
-                // Cargar el contenido SRT
+
                 const subtitleUrl = `/api/subtitles/${id}/${subtitle.relative_path}?torrent_hash=${currentTorrent.hash}`;
                 console.log(`Loading subtitle from: ${subtitleUrl}`);
                 
@@ -272,27 +323,22 @@ export default function MovieDetails() {
                 
                 const srtContent = await response.text();
                 console.log(`Subtitle ${index} content length:`, srtContent.length);
-                
-                // Convertir SRT a WebVTT
+
                 const vttContent = srtToVtt(srtContent);
-                
-                // Crear blob WebVTT
+
                 const blob = new Blob([vttContent], { type: 'text/vtt; charset=utf-8' });
                 const blobUrl = URL.createObjectURL(blob);
-                
-                // Crear elemento track
+
                 const track = document.createElement('track');
                 track.kind = 'subtitles';
                 track.src = blobUrl;
-                
-                // Configurar idioma y etiquetas
+
                 const detectedLanguage = detectLanguageFromFilename(subtitle.filename || subtitle.language || 'Unknown');
                 const langCode = mapLanguageCode(detectedLanguage);
                 
                 track.srclang = langCode;
                 track.label = detectedLanguage;
-                
-                // Configurar subtítulo por defecto (español si está disponible, sino el primero)
+
                 const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
                                 detectedLanguage.toLowerCase().includes('español') ||
                                 langCode === 'es';
@@ -306,11 +352,9 @@ export default function MovieDetails() {
                     default: track.default,
                     blobUrl: blobUrl.substring(0, 50) + '...'
                 });
-                
-                // Añadir track al video
+
                 videoRef.current?.appendChild(track);
-                
-                // Verificar y activar el track después de un momento
+
                 setTimeout(() => {
                     const textTrack = videoRef.current?.textTracks[videoRef.current.textTracks.length - 1];
                     if (textTrack) {
@@ -321,21 +365,19 @@ export default function MovieDetails() {
                             mode: textTrack.mode,
                             cues: textTrack.cues ? textTrack.cues.length : 'not loaded'
                         });
-                        
-                        // Activar si es el predeterminado
+
                         if (track.default) {
                             textTrack.mode = 'showing';
                             console.log(`Activated default track ${index}`);
                         }
                     }
-                }, 100 * (index + 1)); // Escalonar la verificación
+                }, 100 * (index + 1));
                 
             } catch (error) {
                 console.error(`Error processing subtitle ${index}:`, error);
             }
         }
-        
-        // Verificación final después de procesar todos los subtítulos
+
         setTimeout(() => {
             if (videoRef.current && videoRef.current.textTracks) {
                 console.log('Final subtitle tracks check:', videoRef.current.textTracks.length);
@@ -350,8 +392,7 @@ export default function MovieDetails() {
                         cues: track.cues ? track.cues.length : 'not loaded'
                     });
                 }
-                
-                // Si no hay ningún track activo, activar el primero
+
                 let hasActiveTrack = false;
                 for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                     if (videoRef.current.textTracks[i].mode === 'showing') {
@@ -411,11 +452,9 @@ export default function MovieDetails() {
                     
                     videoRef.current.src = streamUrl;
                     
-                    // Cargar subtítulos disponibles
                     const subtitles = await loadSubtitles(torrent);
                     console.log('Subtitles loaded for processing:', subtitles);
 
-                    // Limpiar tracks de subtítulos existentes ANTES de cargar
                     const existingTracks = videoRef.current.querySelectorAll('track');
                     existingTracks.forEach(track => {
                         console.log('Removing existing track:', track.src);
@@ -470,24 +509,20 @@ export default function MovieDetails() {
                         }
                     };
 
-                    // Limpiar eventos anteriores
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
                     videoRef.current.removeEventListener('loadedmetadata', () => {});
                     videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-                    
-                    // Añadir eventos - NOTA: Pasamos los parámetros correctos a handleLoadedMetadata
+
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
                     videoRef.current.addEventListener('progress', handleProgress);
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
                     
-                    // Iniciar carga
                     videoRef.current.load();
-                    
-                    // Debugging adicional
+
                     setTimeout(() => {
                         if (videoRef.current) {
                             console.log('Video tracks after load:', videoRef.current.textTracks.length);
@@ -517,7 +552,6 @@ export default function MovieDetails() {
     const closeStreamingModal = () => {
         setisStreamModalOpen(false);
         setSelectedTorrent(null);
-        setAvailableSubtitles([]);
         setSubtitleError(null);
         lastUpdateTimeRef.current = Date.now();
         
@@ -528,8 +562,7 @@ export default function MovieDetails() {
             videoRef.current.removeEventListener('loadedmetadata', () => {});
             videoRef.current.removeEventListener('progress', () => {});
             videoRef.current.removeEventListener('timeupdate', () => {});
-            
-            // Limpiar tracks de subtítulos y revocar blob URLs
+
             const tracks = videoRef.current.querySelectorAll('track');
             tracks.forEach(track => {
                 if (track.src.startsWith('blob:')) {
@@ -548,7 +581,7 @@ export default function MovieDetails() {
         if (authLoading) return;
         const loadData = async () => {
             setLoading(true);
-            await Promise.all([fectchMovieData(), fetchComments()]);
+            await Promise.all([fectchMovieData(), fetchComments(), fecthFavoriteStatus()]);
             setLoading(false);
         };
         loadData();
@@ -576,7 +609,7 @@ export default function MovieDetails() {
                 <img src={movie?.poster} alt={movie?.title} className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
                 <div>
                     <h1 className="text-4xl font-bold">{movie?.title}</h1>
-                    <p className="text-gray-400">{movie?.runtime ?? "N/A"} • {movie?.year ?? "N/A"} • {movie?.rating ?? "N/A"}/10⭐ </p>
+                    <p className="text-gray-400">{movie?.year ?? "N/A"} • {movie?.rating ?? "N/A"}/10⭐ </p>
                     <p className="text-lg mt-4 max-h-40 overflow-auto no-scrollbar">{movie?.summary}</p>
                     <h3 className="mt-6 text-xl font-semibold">Director</h3>
                     <p>{movie?.director?.length? movie.director.join(", ") : t("movies.noDirector")}</p>
@@ -624,9 +657,6 @@ export default function MovieDetails() {
                                 >
                                     <div className="flex flex-col items-center">
                                         <span className="font-medium">{torrent.quality}</span>
-                                        {loadingSubtitles && selectedTorrent?.hash === torrent.hash && (
-                                            <span className="text-xs text-blue-400">Loading subtitles...</span>
-                                        )}
                                     </div>
                                 </button>
                             ))}
@@ -636,27 +666,31 @@ export default function MovieDetails() {
                                 {subtitleError}
                             </div>
                         )}
-                        {availableSubtitles.length > 0 && (
-                            <div className="mt-4 p-3 bg-gray-800 rounded-lg">
-                                <p className="text-sm text-gray-300 mb-2">Available subtitles ({availableSubtitles.length}):</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableSubtitles.map((subtitle) => (
-                                        <span
-                                            key={subtitle.id}
-                                            className="text-xs bg-blue-600 px-2 py-1 rounded"
-                                            title={subtitle.filename}
-                                        >
-                                            {subtitle.language}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
+                    )}
+                    <div className="mt-4 flex items-center gap-4">
+                    <button
+                        onClick={toggleFavorite}
+                        disabled={isButtonDisabled}
+                        className={`p-2 rounded-full transition-all duration-200 hover:scale-110 ${
+                            isButtonDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-700"
+                        }`}
+                        title="Toggle favorite"
+                    >
+                        <Heart
+                            className={`w-6 h-6 transition-colors ${
+                                isFavorite ? "fill-red-500 text-red-500" : "fill-transparent text-gray-400"
+                            }`}
+                        />
+                    </button>
+                    </div>
+                    {favoriteMessage && (
+                        <div className="mt-3 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
+                            {favoriteMessage}
+                        </div>
                     )}
                 </div>
             </div>
-
 
             {hascommented && userComment ? (
                 <div className="mb-8">
