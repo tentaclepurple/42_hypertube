@@ -15,7 +15,7 @@ async def create_api_key(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Crear una nueva API key para el usuario autenticado
+    Create a new API key for the authenticated user
     """
     try:
         user_id = current_user["id"]
@@ -40,7 +40,7 @@ async def get_user_api_keys(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Obtener todas las API keys del usuario autenticado
+    Get all API keys for the authenticated user
     """
     try:
         user_id = str(current_user["id"])
@@ -62,7 +62,7 @@ async def revoke_api_key(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Revocar (desactivar) una API key
+    Revoke (disable) an API key
     """
     try:
         user_id = str(current_user["id"])
@@ -92,7 +92,7 @@ async def delete_api_key(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Eliminar completamente una API key
+    Delete an API key
     """
     try:
         user_id = str(current_user["id"])

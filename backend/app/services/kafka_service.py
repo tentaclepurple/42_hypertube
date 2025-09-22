@@ -14,11 +14,10 @@ logger = logging.getLogger(__name__)
 class KafkaService:
     def __init__(self):
         self.producer = None
-        # No intentar conectar inmediatamente
-        logger.info("🔄 Kafka Service inicializado (conexión lazy)")
+        logger.info("KafkaService initialized")
     
     def _get_producer(self):
-        """Conectar a Kafka solo cuando se necesite"""
+        """Conect to Kafka producer if not already connected"""
         if self.producer is None:
             try:
                 self.producer = KafkaProducer(
@@ -27,17 +26,17 @@ class KafkaService:
                     request_timeout_ms=5000,
                     retries=3
                 )
-                logger.info("✅ Kafka Producer conectado")
+                logger.info("Kafka Producer connected")
             except Exception as e:
-                logger.error(f"❌ Error conectando Kafka: {e}")
+                logger.error(f"Error connecting to Kafka: {e}")
                 return None
         return self.producer
     
     def send_download_request(self, movie_id: str, magnet_link: str, user_id: str = None):
-        """Enviar petición de descarga al torrent service"""
+        """Send download request to torrent service"""
         producer = self._get_producer()
         if not producer:
-            logger.error("❌ Kafka Producer no disponible")
+            logger.error("Kafka Producer not available")
             return False
         
         try:
@@ -49,36 +48,36 @@ class KafkaService:
             }
             
             producer.send('movie-download-requests', message)
-            producer.flush()  # Asegurar envío
-            
-            logger.info(f"📤 Petición enviada: {movie_id}")
+            producer.flush()  # Ensure sending
+
+            logger.info(f"📤 Request sent: {movie_id}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error enviando petición: {e}")
-            # Reset producer para reintento
+            logger.error(f"❌ Error sending request: {e}")
+            # Reset producer for retry
             self.producer = None
             return False
     
     def send_download_request_enhanced(self, download_data: dict):
-        """Enviar petición de descarga con datos completos"""
+        """Send download request with complete data"""
         producer = self._get_producer()
         if not producer:
-            logger.error("❌ Kafka Producer no disponible")
+            logger.error("Kafka Producer not available")
             return False
         
         try:
-            logger.info(f"📤 Enviando descarga: {download_data.get('movie_title')} ({download_data.get('torrent_hash', 'no-hash')[:8]}...)")
-            
+            logger.info(f"Sending download request: {download_data.get('movie_title')} ({download_data.get('torrent_hash', 'no-hash')[:8]}...)")
+
             producer.send('movie-download-requests', download_data)
-            producer.flush()  # Asegurar envío
-            
-            logger.info(f"✅ Petición enviada exitosamente")
+            producer.flush()  # Ensure sending
+
+            logger.info(f"Request sent successfully")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error enviando petición: {e}")
-            # Reset producer para reintento
+            logger.error(f"Error sending request: {e}")
+            # Reset producer for retry
             self.producer = None
             return False
 

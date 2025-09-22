@@ -1,7 +1,7 @@
 # backend/app/api/api.py
 
 from fastapi import APIRouter
-from app.api.v1 import auth, users, search, movies, api_keys, oauth
+from app.api.v1 import auth, users, search, movies, api_keys, oauth, user_activity
 
 api_router = APIRouter()
 
@@ -11,6 +11,8 @@ api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(movies.router, prefix="/movies", tags=["movies"])
 api_router.include_router(api_keys.router, prefix="/auth/api-keys", tags=["api-keys"])
 api_router.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
+api_router.include_router(user_activity.router, prefix="/user-activity", tags=["user-activity"])
+
 
 # Import comments separately to handle potential import issues
 try:

@@ -24,21 +24,21 @@ async def update_profile(
     Update user profile
     """
     try:
-        # Usar el ID directamente sin intentar convertirlo a UUID de Python
+        # Use user_id from the authenticated user
         user_id = current_user["id"]
-        
-        # Verificar si los IDs de películas existen en la base de datos
+
+        # Verify that favorite_movie_id and worst_movie_id exist in the movies table
         movie_ids = [
             profile_data.favorite_movie_id,
             profile_data.worst_movie_id
         ]
         
-        # Filtrar IDs no nulos
+        # Filter out None values
         valid_movie_ids = [id for id in movie_ids if id is not None]
         
         if valid_movie_ids:
             async with get_db_connection() as conn:
-                # Verificar que todas las películas referenciadas existen
+                # Verify that all referenced movies exist
                 for movie_id in valid_movie_ids:
                     movie_exists = await conn.fetchval(
                         "SELECT EXISTS(SELECT 1 FROM movies WHERE id = $1)",
@@ -49,15 +49,15 @@ async def update_profile(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Movie with ID {movie_id} does not exist"
                         )
-        
-        # Usar la imagen de perfil existente
+
+        # Use existing profile picture
         profile_picture_url = current_user.get("profile_picture", "")
-        
-        # Si no hay imagen de perfil, asignar una por defecto
+
+        # If no profile picture, assign a default one
         if not profile_picture_url:
             profile_picture_url = "https://ujbctboiqjsoskaflslz.supabase.co/storage/v1/object/public/profile_images//burp.png"
         
-        # Verificar si el email ya está en uso (si se proporciona)
+        # Verify if email is already in use (if provided)
         if profile_data.email and profile_data.email != current_user["email"]:
             async with get_db_connection() as conn:
                 email_exists = await conn.fetchval(
@@ -71,15 +71,15 @@ async def update_profile(
                         detail="Email is already in use by another account"
                     )
         
-        # Actualizar el perfil en la base de datos
+        # Update the user profile in the database
         async with get_db_connection() as conn:
-            # Verificar si es la primera vez que se completa el perfil
+            # Verify if this is the first time the profile is being completed
             is_profile_completed = await conn.fetchval(
                 "SELECT profile_completed FROM users WHERE id = $1",
                 user_id
             )
             
-            # Preparar los datos para la actualización
+            # Preparare data for update
             update_data = {
                 "birth_year": profile_data.birth_year,
                 "gender": profile_data.gender,
@@ -89,7 +89,7 @@ async def update_profile(
                 "updated_at": datetime.now()
             }
             
-            # Agregar los nuevos campos para actualizar
+            # Add optional fields if provided
             if profile_data.email:
                 update_data["email"] = profile_data.email
             
@@ -99,7 +99,7 @@ async def update_profile(
             if profile_data.last_name:
                 update_data["last_name"] = profile_data.last_name
             
-            # Verificar si todos los campos requeridos están completos
+            # Verify if profile is now complete
             profile_is_complete = all([
                 profile_data.birth_year,
                 profile_data.gender,
@@ -110,15 +110,15 @@ async def update_profile(
             if profile_is_complete:
                 update_data["profile_completed"] = True
             
-            # Construir la consulta de actualización dinámicamente
+            # Build the SET clause dynamically
             set_clauses = ", ".join([f"{key} = ${i+1}" for i, key in enumerate(update_data.keys())])
             values = list(update_data.values())
-            
-            # Añadir el ID del usuario como último parámetro
+
+            # Add user_id as last parameter
             query = f"UPDATE users SET {set_clauses} WHERE id = ${len(values)+1} RETURNING *"
             values.append(user_id)
-            
-            # Ejecutar la actualización
+
+            # Execute the update
             updated_user = await conn.fetchrow(query, *values)
             
             if not updated_user:
@@ -126,15 +126,15 @@ async def update_profile(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found"
                 )
-            
-            # Verificar si se completaron todos los campos requeridos
+
+            # Verify if all required fields are completed
             if not profile_is_complete:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Profile update successful but some required fields are missing"
                 )
-            
-            # Devolver los datos del usuario actualizados
+
+            # Convert the updated user record to a dictionary and return
             return {
                 "id": str(updated_user["id"]),
                 "username": updated_user["username"],
@@ -243,7 +243,6 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
         user_id = current_user["id"]
         
         async with get_db_connection() as conn:
-            # 1. Obtener perfil básico del usuario (asumiendo que get_user_profile ya está definido)
             user = await conn.fetchrow(get_user_profile, user_id)
             
             if not user:
@@ -252,10 +251,8 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
                     detail="User not found"
                 )
             
-            # 2. Obtener comentarios de películas (asumiendo que get_movie_comments ya está definido)
             comments = await conn.fetch(get_movie_comments, user_id)
             
-            # 3. Obtener detalles de películas favoritas y peores en una sola consulta eficiente
             favorite_movies = {}
             movie_ids = []
             
@@ -280,22 +277,17 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
                         'imdb_rating': movie['imdb_rating']
                     }
             
-            # 4. Preparar la respuesta
             user_dict = dict(user)
             comments_list = [dict(comment) for comment in comments]
             
-            # Convertir el ID de usuario a string
             user_dict["id"] = str(user_dict["id"])
             
-            # Convertir comentarios
             for comment in comments_list:
                 comment["id"] = str(comment["id"])
                 comment["movie_id"] = str(comment["movie_id"])
             
-            # Añadir los comentarios al perfil
             user_dict["comments"] = comments_list
             
-            # 5. En lugar de solo incluir los IDs, incluir los objetos completos de películas favoritas
             if user_dict.get('favorite_movie_id') and str(user_dict['favorite_movie_id']) in favorite_movies:
                 user_dict['favorite_movie'] = favorite_movies[str(user_dict['favorite_movie_id'])]
             else:
@@ -306,7 +298,6 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
             else:
                 user_dict['worst_movie'] = None
             
-            # Eliminar los IDs originales ya que ahora tenemos los objetos completos
             user_dict.pop('favorite_movie_id', None)
             user_dict.pop('worst_movie_id', None)
             
@@ -339,7 +330,6 @@ async def get_user_profile_by_username(username: str):
             
             comments = await conn.fetch(comments_query, user['id'])
             
-            # 3. Obtener detalles de películas favoritas y peores
             favorite_movies = {}
             movie_ids = []
             
@@ -361,22 +351,17 @@ async def get_user_profile_by_username(username: str):
                         'imdb_rating': movie['imdb_rating']
                     }
             
-            # 4. Preparar la respuesta
             user_dict = dict(user)
             comments_list = [dict(comment) for comment in comments]
             
-            # Convertir el ID de usuario a string
             user_dict["id"] = str(user_dict["id"])
             
-            # Convertir comentarios
             for comment in comments_list:
                 comment["id"] = str(comment["id"])
                 comment["movie_id"] = str(comment["movie_id"])
             
-            # Añadir los comentarios al perfil
             user_dict["comments"] = comments_list
             
-            # 5. Incluir objetos completos de películas favoritas
             if user_dict.get('favorite_movie_id') and str(user_dict['favorite_movie_id']) in favorite_movies:
                 user_dict['favorite_movie'] = favorite_movies[str(user_dict['favorite_movie_id'])]
             else:
@@ -387,7 +372,6 @@ async def get_user_profile_by_username(username: str):
             else:
                 user_dict['worst_movie'] = None
             
-            # Eliminar los IDs originales
             user_dict.pop('favorite_movie_id', None)
             user_dict.pop('worst_movie_id', None)
             

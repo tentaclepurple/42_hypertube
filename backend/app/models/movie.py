@@ -50,7 +50,7 @@ class MovieDetail(BaseModel):
     torrent_hash: Optional[str] = None
     download_status: Optional[str] = None
     download_progress: Optional[int] = 0
-    # Nuevos campos para visualización
+    hypertube_rating: Optional[float] = None
     view_percentage: float = 0.0
     completed: bool = False
 
@@ -60,7 +60,15 @@ class MovieBasicResponse(BaseModel):
     poster: Optional[str] = None
     year: Optional[int] = None
     rating: Optional[float] = None
-    genres: List[str] = []  # ← Agregar esta línea
-    # Campos para visualización
+    genres: List[str] = []
     view_percentage: float = 0.0
     completed: bool = False
+
+class PublicMovieResponse(BaseModel):
+    id: str
+    title: str
+    year: Optional[int] = None
+    imdb_rating: Optional[float] = None
+    hypertube_rating: Optional[float] = None
+    poster: Optional[str] = None
+    genres: List[str] = []

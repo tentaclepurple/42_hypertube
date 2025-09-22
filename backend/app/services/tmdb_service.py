@@ -15,7 +15,7 @@ class TMDBService:
     @staticmethod
     async def search_movies(query: str, page: int = 1) -> Dict[str, Any]:
         """
-        Busca películas en TMDB por título
+        Search for movies by title in TMDB
         """
         if not TMDBService.API_KEY:
             raise ValueError("TMDB_API_KEY is not set in environment variables")
@@ -37,7 +37,7 @@ class TMDBService:
     @staticmethod
     async def get_movie_details(tmdb_id: int) -> Dict[str, Any]:
         """
-        Obtiene detalles de una película por su ID de TMDB
+        Get movie details by TMDB ID
         """
         if not TMDBService.API_KEY:
             raise ValueError("TMDB_API_KEY is not set in environment variables")

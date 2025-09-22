@@ -9,41 +9,41 @@ from app.db.session import get_db_connection
 from .queries import get_popular, insert_movie
 
 class SearchService:
-    """Servicio para buscar películas combinando múltiples fuentes"""
+    """Service for searching and retrieving movies"""
     
     @staticmethod
     async def search_movies_with_views(query: str, page: int = 1, limit: int = 20, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Busca películas con información de visualización del usuario
+        Search for movies with user view information
         """
         print(f"Query: {query}")
-        
-        # Calcular el offset para la paginación
+
+        # Calculate the offset for pagination
         offset = (page - 1) * limit
-        
-        # Buscar en la base de datos con información de visualización
+
+        # Search in the database with view information
         db_results = await SearchService._search_in_database_with_views(query, limit, offset, user_id)
         print(f"DB results found: {len(db_results)}")
         
         if db_results and len(db_results) >= limit:
             return db_results
-        
-        # Si no hay suficientes resultados, buscar en YTS y completar
+
+        # If not enough results, search in YTS and complete
         if page == 1 or len(db_results) < limit:
             yts_results = await YTSService.search_movies(query, limit - len(db_results), page)
             yts_movies = yts_results.get("movies", [])
             print(f"YTS movies found: {len(yts_movies)}")
             
             if yts_movies:
-                # Transformar y guardar resultados
+                # Transform and save results
                 transformed_results = await SearchService._transform_yts_results(yts_movies)
                 await SearchService._save_to_database(transformed_results)
-                
-                # Añadir información de visualización y asegurar géneros
+
+                # Add view information and ensure genres
                 for movie in transformed_results:
                     movie["view_percentage"] = 0.0
                     movie["completed"] = False
-                    # Asegurar que genres esté presente
+                    # Ensure genres is present
                     if "genres" not in movie:
                         movie["genres"] = []
                 
@@ -63,31 +63,31 @@ class SearchService:
     @staticmethod
     async def get_popular_movies_with_views(page: int = 1, limit: int = 20, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Obtiene las películas más populares con información de visualización
+        Get popular movies with view information
         """
         offset = (page - 1) * limit
-        
-        # Intentar obtener de la base de datos con información de visualización
+
+        # Try to get from the database with view information
         db_results = await SearchService._get_popular_from_database_with_views(limit, offset, user_id)
         print(f"DB popular results found: {len(db_results)}")
         
         if db_results and len(db_results) >= limit:
             return db_results[:limit]
-        
-        # Si no hay suficientes, obtener de YTS
+
+        # If not enough, get from YTS
         yts_results = await YTSService.get_popular_movies(limit, page)
         yts_movies = yts_results.get("movies", [])
         print(f"YTS popular movies found: {len(yts_movies)}")
-        
-        # Transformar y guardar resultados
+
+        # Transform and save results
         transformed_results = await SearchService._transform_yts_results(yts_movies)
         await SearchService._save_to_database(transformed_results)
-        
-        # Añadir información de visualización y asegurar géneros
+
+        # Add view information and ensure genres
         for movie in transformed_results:
             movie["view_percentage"] = 0.0
             movie["completed"] = False
-            # Asegurar que genres esté presente
+            # Ensure genres is present
             if "genres" not in movie:
                 movie["genres"] = []
         
@@ -96,7 +96,7 @@ class SearchService:
     @staticmethod
     async def search_movies(query: str, page: int = 1, limit: int = 20) -> List[Dict[str, Any]]:
         """
-        Busca películas sin información de visualización (para endpoints _full)
+        Search for movies without view information (for _full endpoints)
         """
         offset = (page - 1) * limit
         db_results = await SearchService._search_in_database(query, limit, offset)
@@ -128,7 +128,7 @@ class SearchService:
     @staticmethod
     async def get_popular_movies(page: int = 1, limit: int = 20) -> List[Dict[str, Any]]:
         """
-        Obtiene películas populares sin información de visualización (para endpoints _full)
+        Get popular movies without view information (for _full endpoints)
         """
         offset = (page - 1) * limit
         db_results = await SearchService._get_popular_from_database(limit, offset)
@@ -147,15 +147,15 @@ class SearchService:
     @staticmethod
     async def _search_in_database_with_views(query: str, limit: int, offset: int = 0, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Busca películas en la base de datos con información de visualización
+        Search for movies in the database with view information
         """
         words = query.split()
         if not words:
             return []
         
         conditions = []
-        params = [user_id, limit, offset]  # user_id, límite y offset como primeros parámetros
-        
+        params = [user_id, limit, offset]  # user_id, limit, and offset as first parameters
+
         for word in words:
             pattern = f"%{word}%"
             conditions.append("(m.title ILIKE $" + str(len(params) + 1) + 
@@ -186,13 +186,13 @@ class SearchService:
                     movie_dict["id"] = str(movie_dict["id"])
                     movie_dict["poster"] = movie_dict.pop("cover_image")
                     movie_dict["rating"] = movie_dict.pop("imdb_rating")
-                    
-                    # Asegurar que genres es una lista
+
+                    # Ensure genres is a list
                     genres = movie_dict.get("genres", [])
                     if genres is None:
                         movie_dict["genres"] = []
                     elif isinstance(genres, str):
-                        # Si por alguna razón está como string, intentar parsear
+                        # If for some reason it's a string, try to parse it
                         try:
                             movie_dict["genres"] = json.loads(genres)
                         except:
@@ -210,7 +210,7 @@ class SearchService:
     @staticmethod
     async def _get_popular_from_database_with_views(limit: int, offset: int = 0, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Obtiene películas populares con información de visualización
+        Get popular movies with view information
         """
         sql = """
             SELECT 
@@ -236,7 +236,6 @@ class SearchService:
                     movie_dict["poster"] = movie_dict.pop("cover_image")
                     movie_dict["rating"] = movie_dict.pop("imdb_rating")
                     
-                    # Asegurar que genres es una lista
                     genres = movie_dict.get("genres", [])
                     if genres is None:
                         movie_dict["genres"] = []
@@ -259,7 +258,7 @@ class SearchService:
     @staticmethod
     async def _transform_yts_results(yts_movies: List[Dict]) -> List[Dict]:
         """
-        Transforma los resultados de YTS al formato interno
+        Transform YTS results to internal format
         """
         results = []
         
@@ -290,7 +289,7 @@ class SearchService:
     @staticmethod
     async def _search_in_database(query: str, limit: int, offset: int = 0) -> List[Dict[str, Any]]:
         """
-        Busca películas en la base de datos sin información de visualización
+        Search for movies in the database without view information
         """
         words = query.split()
         if not words:
@@ -349,7 +348,7 @@ class SearchService:
     @staticmethod
     async def _get_popular_from_database(limit: int, offset: int = 0) -> List[Dict[str, Any]]:
         """
-        Obtiene películas populares sin información de visualización
+        Get popular movies without view information
         """
         try:
             async with get_db_connection() as conn:
@@ -389,7 +388,7 @@ class SearchService:
     @staticmethod
     async def _save_to_database(movies: List[Dict]) -> None:
         """
-        Guarda las películas que tienen torrents disponibles
+        Save movies that have available torrents
         """
         async with get_db_connection() as conn:
             for movie in movies:

@@ -19,7 +19,7 @@ app.add_middleware(
     #allow_origins=["*"], # In production, specify allowed origins
     #allow_origins=["http://imontero.ddns.net:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
