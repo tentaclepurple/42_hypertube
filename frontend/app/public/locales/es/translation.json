@@ -13,7 +13,8 @@
         "login": "Iniciar sesión",
         "register": "Registrarse",
         "favorites": "Favoritos",
-        "viewProgress": "Ver Progreso"
+        "viewProgress": "Ver Progreso",
+        "language": "Idioma"
     },
     "login": {
         "username": "Usuario",
