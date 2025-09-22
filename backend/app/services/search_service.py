@@ -206,22 +206,28 @@ class SearchService:
         except Exception as e:
             print(f"Error searching in database with views: {str(e)}")
             return []
-    
+
     @staticmethod
     async def _get_popular_from_database_with_views(limit: int, offset: int = 0, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Get popular movies with view information
+        Get popular movies with view information and hypertube rating
         """
         sql = """
             SELECT 
                 m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres,
                 m.cover_image,
                 COALESCE(umv.view_percentage, 0.0) as view_percentage,
-                COALESCE(umv.completed, false) as completed
+                COALESCE(umv.completed, false) as completed,
+                ROUND(AVG(mc.rating), 1) as hypertube_rating
             FROM movies m
             LEFT JOIN user_movie_views umv ON m.id = umv.movie_id AND umv.user_id = $1
+            LEFT JOIN movie_comments mc ON m.id = mc.movie_id
             WHERE m.imdb_rating IS NOT NULL
-            ORDER BY m.imdb_rating DESC
+            GROUP BY m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres, 
+                     m.cover_image, umv.view_percentage, umv.completed
+            ORDER BY 
+                hypertube_rating DESC NULLS LAST,
+                m.imdb_rating DESC NULLS LAST
             LIMIT $2 OFFSET $3
         """
         
@@ -253,7 +259,6 @@ class SearchService:
         except Exception as e:
             print(f"Error getting popular movies from database with views: {str(e)}")
             return []
-
 
     @staticmethod
     async def _transform_yts_results(yts_movies: List[Dict]) -> List[Dict]:
@@ -423,3 +428,4 @@ class SearchService:
                         print(f"Saved movie: {movie.get('title')}")
                     except Exception as e:
                         print(f"Error saving movie {movie.get('title')}: {str(e)}")
+                        
