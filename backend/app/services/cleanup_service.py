@@ -108,7 +108,8 @@ class CleanupService:
                 LEFT JOIN movies m ON md.movie_id = m.id
                 LEFT JOIN user_movie_views umv ON md.movie_id = umv.movie_id
                 WHERE md.downloaded_lg = true 
-                  AND md.filepath_ds IS NOT NULL
+                AND md.filepath_ds IS NOT NULL
+                AND md.update_dt < NOW() - INTERVAL '2 days'  -- Al menos 2 días desde descarga
                 GROUP BY md.movie_id, md.hash_id, md.filepath_ds, m.title
                 HAVING MAX(umv.last_viewed_at) IS NULL 
                     OR MAX(umv.last_viewed_at) < $1

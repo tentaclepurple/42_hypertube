@@ -28,4 +28,5 @@ export interface Movie {
     download_progress?: number;
     view_percentage?: number;
     completed?: boolean;
+    hypertube_rating?: number;
   }

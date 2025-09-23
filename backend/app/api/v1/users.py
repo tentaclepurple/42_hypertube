@@ -19,122 +19,57 @@ router = APIRouter()
 async def update_profile(
     profile_data: ProfileUpdate,
     current_user: dict = Depends(get_current_user)
-    ):
-    """
-    Update user profile
-    """
+):
     try:
-        # Use user_id from the authenticated user
         user_id = current_user["id"]
 
-        # Verify that favorite_movie_id and worst_movie_id exist in the movies table
-        movie_ids = [
-            profile_data.favorite_movie_id,
-            profile_data.worst_movie_id
-        ]
+        if not profile_data.first_name.strip():
+            raise HTTPException(400, "First name is required")
         
-        # Filter out None values
-        valid_movie_ids = [id for id in movie_ids if id is not None]
+        if not profile_data.last_name.strip():
+            raise HTTPException(400, "Last name is required")
         
-        if valid_movie_ids:
-            async with get_db_connection() as conn:
-                # Verify that all referenced movies exist
-                for movie_id in valid_movie_ids:
-                    movie_exists = await conn.fetchval(
-                        "SELECT EXISTS(SELECT 1 FROM movies WHERE id = $1)",
-                        movie_id
-                    )
-                    if not movie_exists:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Movie with ID {movie_id} does not exist"
-                        )
+        if not profile_data.email.strip():
+            raise HTTPException(400, "Email is required")
+            
+        if profile_data.email != profile_data.email_confirm:
+            raise HTTPException(400, "Email addresses do not match")
 
-        # Use existing profile picture
-        profile_picture_url = current_user.get("profile_picture", "")
-
-        # If no profile picture, assign a default one
-        if not profile_picture_url:
-            profile_picture_url = "https://ujbctboiqjsoskaflslz.supabase.co/storage/v1/object/public/profile_images//burp.png"
-        
-        # Verify if email is already in use (if provided)
-        if profile_data.email and profile_data.email != current_user["email"]:
+        if profile_data.email != current_user["email"]:
             async with get_db_connection() as conn:
                 email_exists = await conn.fetchval(
                     "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND id != $2)",
                     profile_data.email, user_id
                 )
-                
                 if email_exists:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Email is already in use by another account"
-                    )
-        
-        # Update the user profile in the database
+                    raise HTTPException(400, "Email is already in use by another account")
+
+        profile_picture_url = current_user.get("profile_picture", "")
+        if not profile_picture_url:
+            profile_picture_url = "https://ujbctboiqjsoskaflslz.supabase.co/storage/v1/object/public/profile_images//burp.png"
+
         async with get_db_connection() as conn:
-            # Verify if this is the first time the profile is being completed
-            is_profile_completed = await conn.fetchval(
-                "SELECT profile_completed FROM users WHERE id = $1",
-                user_id
-            )
-            
-            # Preparare data for update
             update_data = {
+                "first_name": profile_data.first_name.strip(),
+                "last_name": profile_data.last_name.strip(), 
+                "email": profile_data.email.strip(),
                 "birth_year": profile_data.birth_year,
                 "gender": profile_data.gender,
-                "favorite_movie_id": profile_data.favorite_movie_id,
-                "worst_movie_id": profile_data.worst_movie_id,
                 "profile_picture": profile_picture_url,
+                "profile_completed": True,
                 "updated_at": datetime.now()
             }
-            
-            # Add optional fields if provided
-            if profile_data.email:
-                update_data["email"] = profile_data.email
-            
-            if profile_data.first_name:
-                update_data["first_name"] = profile_data.first_name
-                
-            if profile_data.last_name:
-                update_data["last_name"] = profile_data.last_name
-            
-            # Verify if profile is now complete
-            profile_is_complete = all([
-                profile_data.birth_year,
-                profile_data.gender,
-                profile_data.favorite_movie_id,
-                profile_data.worst_movie_id
-            ])
-            
-            if profile_is_complete:
-                update_data["profile_completed"] = True
-            
-            # Build the SET clause dynamically
+
             set_clauses = ", ".join([f"{key} = ${i+1}" for i, key in enumerate(update_data.keys())])
             values = list(update_data.values())
-
-            # Add user_id as last parameter
-            query = f"UPDATE users SET {set_clauses} WHERE id = ${len(values)+1} RETURNING *"
             values.append(user_id)
 
-            # Execute the update
+            query = f"UPDATE users SET {set_clauses} WHERE id = ${len(values)} RETURNING *"
             updated_user = await conn.fetchrow(query, *values)
             
             if not updated_user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
-                )
+                raise HTTPException(404, "User not found")
 
-            # Verify if all required fields are completed
-            if not profile_is_complete:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Profile update successful but some required fields are missing"
-                )
-
-            # Convert the updated user record to a dictionary and return
             return {
                 "id": str(updated_user["id"]),
                 "username": updated_user["username"],
@@ -144,19 +79,15 @@ async def update_profile(
                 "profile_picture": updated_user["profile_picture"],
                 "birth_year": updated_user["birth_year"],
                 "gender": updated_user["gender"],
-                "favorite_movie_id": str(updated_user["favorite_movie_id"]) if updated_user["favorite_movie_id"] else None,
-                "worst_movie_id": str(updated_user["worst_movie_id"]) if updated_user["worst_movie_id"] else None,
                 "profile_completed": updated_user["profile_completed"],
+                "comments": [],
                 "message": "Profile updated successfully"
             }
             
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating profile: {str(e)}"
-        )
+        raise HTTPException(500, f"Error updating profile: {str(e)}")
 
 
 @router.put("/profile/image")

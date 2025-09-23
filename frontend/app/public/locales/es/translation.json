@@ -11,7 +11,9 @@
         "movies": "Peliculas",
         "search": "Buscar",
         "login": "Iniciar sesión",
-        "register": "Registrarse"
+        "register": "Registrarse",
+        "favorites": "Favoritos",
+        "viewProgress": "Ver Progreso"
     },
     "login": {
         "username": "Usuario",
