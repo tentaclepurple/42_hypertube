@@ -907,7 +907,25 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
             if subtitle_file.is_file() and subtitle_file.suffix.lower() in subtitle_extensions:
                 if subtitle_file.stat().st_size > 0:
                     try:
+                        if subtitle_file.stat().st_size == 0:
+                            continue
+
                         relative_path = subtitle_file.relative_to(movie_dir)
+                        path_str = str(relative_path)
+                        filename_str = str(subtitle_file.name)
+
+                        import re
+                        safe_pattern = re.compile(r'^[a-zA-Z0-9._\-/\s()]+$')
+
+                        if not safe_pattern.match(path_str):
+                            logger.info(f"Skipping subtitle with special characters in path: {path_str}")
+                            continue
+                            
+                        if not safe_pattern.match(filename_str):
+                            logger.info(f"Skipping subtitle with special characters in filename: {filename_str}")
+                            continue
+
+                        detected_lang = _detect_subtitle_language(filename_str)
                         
                         subtitles.append({
                             "id": str(uuid.uuid4()),
@@ -918,7 +936,9 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
                             "relative_path": str(relative_path),
                             "url": f"{os.environ.get('NEXT_PUBLIC_URL', 'http://localhost:8000')}/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
                         })
-                    except ValueError:
+                    
+                    except Exception as e:
+                        logger.warning(f"Skipping problematic subtitle file {subtitle_file}: {e}")
                         continue
                         
     except Exception as e:
@@ -931,22 +951,32 @@ def _detect_subtitle_language(filename: str) -> str:
     """
     Detect subtitle language based on the filename
     """
-    filename_lower = filename.lower()
     
-    language_patterns = {
-        'Spanish': ['spanish', 'español', 'castellano', 'cast'],
-        'English': ['english', 'eng', 'en', 'ingles'],
-        'French': ['french', 'français','francais'],
-        'German': ['german', 'deutsch'],
-        'Italian': ['italian', 'italiano'],
-        'Portuguese': ['portuguese', 'português', 'portugues']
-    }
-    
-    for language, patterns in language_patterns.items():
-        if any(pattern in filename_lower for pattern in patterns):
-            return language
-    
-    return "Unknown"
+    try:
+        filename_lower = filename.lower()
+        
+        language_patterns = {
+            'Spanish': ['spanish', 'español', 'castellano', 'cast', 'spa', 'es'],
+            'English': ['english', 'eng', 'en', 'ingles'],
+            'French': ['french', 'français', 'francais', 'fra', 'fr'],
+            'German': ['german', 'deutsch', 'ger', 'de'],
+            'Italian': ['italian', 'italiano', 'ita', 'it'],
+            'Portuguese': ['portuguese', 'português', 'portugues', 'por', 'pt'],
+            'Japanese': ['japanese', 'jpn', 'ja'],
+            'Chinese': ['chinese', 'chi', 'zh'],
+            'Korean': ['korean', 'kor', 'ko'],
+            'Russian': ['russian', 'rus', 'ru'],
+        }
+        
+        for language, patterns in language_patterns.items():
+            for pattern in patterns:
+                if pattern in filename_lower:
+                    return language
+        
+        return "Unknown"
+        
+    except Exception:
+        return "Unknown"
 
 
 @router.get("/{movie_id}/subtitles/{subtitle_path:path}")
