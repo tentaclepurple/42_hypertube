@@ -915,15 +915,19 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
                         filename_str = str(subtitle_file.name)
 
                         import re
-                        safe_pattern = re.compile(r'^[a-zA-Z0-9._\-/\s()]+$')
+                        safe_pattern = re.compile(r'^[a-zA-Z0-9._\-/\s()\[\].]+$')
 
                         if not safe_pattern.match(path_str):
-                            logger.info(f"Skipping subtitle with special characters in path: {path_str}")
+                            rejected_chars = [c for c in path_str if not re.match(pattern, c)]
+                            print(f"REJECTED path: '{path_str}' - contains: {rejected_chars}", flush=True)
                             continue
                             
                         if not safe_pattern.match(filename_str):
-                            logger.info(f"Skipping subtitle with special characters in filename: {filename_str}")
+                            rejected_chars = [c for c in filename_str if not re.match(pattern, c)]
+                            print(f"REJECTED filename: '{filename_str}' - contains: {rejected_chars}", flush=True)
                             continue
+
+                        print(f"DEBUG: Found subtitle file: {subtitle_file}, size: {subtitle_file.stat().st_size}", flush=True)
 
                         detected_lang = _detect_subtitle_language(filename_str)
                         
