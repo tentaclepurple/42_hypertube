@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Star, MessageCircle, Send, X, Heart } from "lucide-react";
+import { Star, MessageCircle, Send, X, Heart, Pencil, Trash2, Check } from "lucide-react";
 import { Movie, Torrent } from "../types/movies";
 import { Comment } from "../types/comment";
 import { useAuth } from "../../context/authcontext";
@@ -34,6 +34,15 @@ export default function MovieDetails() {
     const [favoriteMessage, setFavoriteMessage] = useState<string | null>(null);
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
+    
+    // Estados para editar/borrar el comentario del usuario
+    const [editingUserComment, setEditingUserComment] = useState(false);
+    const [editUserCommentText, setEditUserCommentText] = useState({
+        comment: "",
+        rating: 1,
+    });
+    const [editUserCommentError, setEditUserCommentError] = useState<string[] | null>(null);
+    
     const lastUpdateTimeRef = useRef(Date.now());
     const lastUpdatePercentageRef = useRef(0);
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -152,6 +161,120 @@ export default function MovieDetails() {
             }, 5000);
         }
     };
+
+    // Función para iniciar la edición del comentario del usuario
+    const handleEditUserComment = () => {
+        if (userComment) {
+            setEditingUserComment(true);
+            setEditUserCommentText({
+                comment: userComment.comment,
+                rating: userComment.rating,
+            });
+            setEditUserCommentError(null);
+        }
+    };
+
+    // Función para cancelar la edición
+    const handleCancelEditUserComment = () => {
+        setEditingUserComment(false);
+        setEditUserCommentText({ comment: "", rating: 1 });
+        setEditUserCommentError(null);
+    };
+
+    // Función para guardar la edición
+    const handleSaveEditUserComment = async () => {
+        if (!editUserCommentText.comment.trim()) {
+            setEditUserCommentError(['Comment cannot be empty']);
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                logout();
+                return;
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/${userComment?.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(editUserCommentText),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+                const errorData = await response.json();
+                const errorText = parsedError(errorData);
+                throw errorText;
+            }
+
+            const updatedComment = await response.json();
+            setUserComment(updatedComment);
+            setEditUserCommentError(null);
+            setEditingUserComment(false);
+            setEditUserCommentText({ comment: "", rating: 1 });
+        } catch (err) {
+            console.error('Error updating comment:', err);
+            setEditUserCommentError(['Failed to update comment. Please try again.']);
+        }
+    };
+
+    // Función para manejar cambios en los inputs de edición
+    const handleUserCommentInputChange = (field: string, value: any) => {
+        setEditUserCommentText(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    // Función para borrar el comentario del usuario
+    const handleDeleteUserComment = async () => {
+        if (!window.confirm(t("profile.delete") || "Are you sure you want to delete this comment?")) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                logout();
+                return;
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/comments/${userComment?.id}`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+                const errorData = await response.json();
+                const errorText = parsedError(errorData);
+                throw errorText;
+            }
+
+            // Resetear estados relacionados al comentario del usuario
+            setUserComment(null);
+            setHasCommented(false);
+            setEditingUserComment(false);
+            setEditUserCommentText({ comment: "", rating: 1 });
+            setEditUserCommentError(null);
+        } catch (err) {
+            console.error('Error deleting comment:', err);
+            setError(['Failed to delete comment. Please try again.']);
+        }
+    };
+    
     const loadSubtitles = async (torrent: Torrent) => {
         if (!id) return [];
         
@@ -384,7 +507,8 @@ export default function MovieDetails() {
                 
                 for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                     const track = videoRef.current.textTracks[i];
-                    console.log(`Final Track ${i}:`, {
+                    track.mode = 'disabled';
+                    console.log(`Track ${i} disabled:`, {
                         kind: track.kind,
                         label: track.label,
                         language: track.language,
@@ -401,11 +525,9 @@ export default function MovieDetails() {
                     }
                 }
                 
-                if (!hasActiveTrack && videoRef.current.textTracks.length > 0) {
-                    videoRef.current.textTracks[0].mode = 'showing';
-                    console.log('Activated first track as fallback');
-                }
+                console.log('Subtitle tracks available but remaining disabled by user choice');
             }
+            
         }, 2000);
     };
 
@@ -605,8 +727,10 @@ export default function MovieDetails() {
     const movie = movieData;
     return (
         <div className="p-4 bg-dark-900 text-white">
-            <div className="max-w-4xl mx-auto mx-auto flex flex-col md:flex-row">
-                <img src={movie?.poster} alt={movie?.title} className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row">
+                <div className="flex-shrink-0">
+                    <img src={movie?.poster} alt={movie?.title} className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
+                </div>
                 <div>
                     <h1 className="text-4xl font-bold">{movie?.title}</h1>
                     <p className="text-gray-400">{movie?.year ?? "N/A"} • {movie?.rating ?? "N/A"}/10⭐ </p>
@@ -696,7 +820,7 @@ export default function MovieDetails() {
                 <div className="mb-8">
                     <h2 className="text-xl font-semibold mb-4">{t("movies.comment")}</h2>
                     <div className="bg-gray-700 rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
                                     {userComment.username.charAt(0).toUpperCase()}
@@ -708,14 +832,99 @@ export default function MovieDetails() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                                {renderStars(userComment.rating)}
-                                <span className="ml-1 text-sm text-gray-400">
-                                    ({userComment.rating}/5)
-                                </span>
+                            <div className="flex flex-col items-end gap-2">
+                                {!editingUserComment && (
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleEditUserComment}
+                                            className="text-gray-400 hover:text-blue-500 transition-colors p-1"
+                                            title="Edit comment"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteUserComment}
+                                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                            title="Delete comment"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
+                                {!editingUserComment ? (
+                                    <div className="flex items-center gap-1">
+                                        {renderStars(userComment.rating)}
+                                        <span className="ml-1 text-sm text-gray-400">
+                                            ({userComment.rating}/5)
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                onClick={() => handleUserCommentInputChange('rating', star)}
+                                                className={`transition-colors ${
+                                                    star <= editUserCommentText.rating
+                                                        ? 'text-yellow-400 hover:text-yellow-300'
+                                                        : 'text-gray-400 hover:text-gray-300'
+                                                }`}
+                                            >
+                                                <Star className="h-4 w-4 fill-current" />
+                                            </button>
+                                        ))}
+                                        <span className="ml-1 text-sm text-gray-400">
+                                            ({editUserCommentText.rating}/5)
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <p className="text-gray-200 leading-relaxed">{userComment.comment}</p>
+                        
+                        {!editingUserComment ? (
+                            <p className="text-gray-200 leading-relaxed">{userComment.comment}</p>
+                        ) : (
+                            <div>
+                                <textarea
+                                    id="edit-user-comment"
+                                    name="edit-user-comment"
+                                    value={editUserCommentText.comment}
+                                    onChange={(e) => handleUserCommentInputChange('comment', e.target.value)}
+                                    className="w-full p-3 bg-gray-600 text-white rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows={3}
+                                    placeholder="Write your comment..."
+                                    maxLength={1000}
+                                />
+                                <div className="flex justify-between items-center mt-2">
+                                    <div className="text-xs text-gray-400">
+                                        {editUserCommentText.comment.length}/1000 {t("movies.character")}
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={handleSaveEditUserComment}
+                                            className="text-gray-400 hover:text-green-500 transition-colors p-1"
+                                            title="Save changes"
+                                        >
+                                            <Check className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={handleCancelEditUserComment}
+                                            className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                            title="Cancel edit"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                {editUserCommentError && editUserCommentError.length > 0 && (
+                                    <div className="mt-2 text-red-500 text-xs">
+                                        {editUserCommentError.map((err, index) => (
+                                            <p key={index}>{err}</p>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (
