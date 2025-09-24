@@ -45,24 +45,18 @@ class UserResponse(BaseModel):
     
 
 class ProfileUpdate(BaseModel):
-    birth_year: int = Field(..., ge=1900, le=datetime.now().year)
-    gender: str = Field(..., min_length=1, max_length=20)
-    favorite_movie_id: Optional[uuid.UUID] = None
-    worst_movie_id: Optional[uuid.UUID] = None
-    email: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    first_name: str = Field(..., min_length=1, max_length=50)
+    last_name: str = Field(..., min_length=1, max_length=50)
+    email: str = Field(..., regex=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    email_confirm: str
     
-    @validator('birth_year')
-    def validate_birth_year(cls, v):
-        if v < 1900 or v > datetime.now().year:
-            raise ValueError("Birth year must be between 1900 and current year")
-        return v
-        
-    @validator('email')
-    def validate_email(cls, v):
-        if v is not None and not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", v):
-            raise ValueError("Invalid email format")
+    birth_year: Optional[int] = Field(None, ge=1900, le=datetime.now().year)
+    gender: Optional[str] = Field(None, max_length=20)
+    
+    @validator('email_confirm')
+    def emails_match(cls, v, values):
+        if 'email' in values and v != values['email']:
+            raise ValueError('Email addresses do not match')
         return v
 
 
