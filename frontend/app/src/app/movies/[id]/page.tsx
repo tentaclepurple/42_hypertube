@@ -605,8 +605,10 @@ export default function MovieDetails() {
     const movie = movieData;
     return (
         <div className="p-4 bg-dark-900 text-white">
-            <div className="max-w-4xl mx-auto mx-auto flex flex-col md:flex-row">
-                <img src={movie?.poster} alt={movie?.title} className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row">
+                <div className="flex-shrink-0">
+                    <img src={movie?.poster} alt={movie?.title} className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
+                </div>
                 <div>
                     <h1 className="text-4xl font-bold">{movie?.title}</h1>
                     <p className="text-gray-400">{movie?.year ?? "N/A"} • {movie?.rating ?? "N/A"}/10⭐ </p>
