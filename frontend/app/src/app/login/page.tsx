@@ -74,8 +74,7 @@ export default function Login() {
       login(data.access_token, data.user);
       router.push('/');
     } catch (error) {
-      const err = error instanceof Error ? error.message : String(error);
-      setError(err);
+      setErrorS(error instanceof Error ? [error.message] : [String(error)]);
     } finally {
       setLoading(false);
     } 
