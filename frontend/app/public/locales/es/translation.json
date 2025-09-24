@@ -13,7 +13,9 @@
         "login": "Iniciar sesión",
         "register": "Registrarse",
         "favorites": "Favoritos",
-        "viewProgress": "Ver Progreso"
+        "watching": "Seguir viendo",
+        "language": "Idioma",
+        "logout": "Cerrar sesión"
     },
     "login": {
         "username": "Usuario",

@@ -1,12 +1,10 @@
-// frontend/app/src/api/page.tsx
-
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../context/authcontext';
+import { useAuth } from '../app/context/authcontext';
 import { useTranslation } from 'react-i18next';
-import { parsedError} from '../ui/error/parsedError';
-import { Key, Copy, AlertTriangle, Dice1 } from 'lucide-react';
+import { parsedError} from '../app/ui/error/parsedError';
+import { Key, AlertTriangle } from 'lucide-react';
 
 interface ApiKeyProps {
   apiKey: string;
@@ -19,7 +17,6 @@ export default function Apipage(){
     const [loading, setLoading] = useState<boolean>(false);
     const [apiKey, setApiKey] = useState<ApiKeyProps | null>(null);
     const [error, setError] = useState<string[] | null>(null);
-    const [copyField, setCopyField] = useState<string>('');
 
     const generateApiKey = async () => {
         setLoading(true);
@@ -35,7 +32,6 @@ export default function Apipage(){
                 body: JSON.stringify({ 
                     name: `${user?.username}`,
                     expires_in_days: 30,
-
                 }),
             });
 
@@ -53,16 +49,6 @@ export default function Apipage(){
             setError(Array.isArray(err) ? err : [String(err)]);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const copyToClipboard = async (text: string, field: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            setCopyField(field);
-            setTimeout(() => setCopyField(''), 2000);
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
         }
     };
 
@@ -94,7 +80,7 @@ export default function Apipage(){
                         )}
                         <button
                             onClick={generateApiKey}
-                            className=' hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mx-auto'
+                            className='bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 mx-auto'
                             disabled={loading}
                         >
                             {loading ? (
@@ -125,34 +111,16 @@ export default function Apipage(){
                                 <label className='block text-sm font-medium text-gray-300 mb-2'>
                                     API KEY
                                 </label>
-                                <div className='flex items-center gap-2'>
-                                    <div className='flex-1 text-gray-200 break-allflex-1 px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm break-all'>
-                                        {apiKey.apiKey}
-                                    </div>
-                                    <button
-                                        onClick={() => copyToClipboard(apiKey.apiKey, 'apiKey')}
-                                        className='px-4 py-3 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap'
-                                    >
-                                        <Copy size={16} />
-                                        {copyField === 'apiKey' ? t('api.copied') : t('api.copy')}
-                                    </button>
+                                <div className='px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm break-all'>
+                                    {apiKey.apiKey}
                                 </div>
                             </div>
                             <div>
                                 <label className='block text-sm font-medium text-gray-300 mb-2'>
                                     API SECRET
                                 </label>
-                                <div className='flex items-center gap-2'>
-                                    <div className='flex-1 text-gray-200 break-all px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm break-all'>
-                                        {apiKey.apiSecret}
-                                    </div>
-                                    <button
-                                        onClick={() => copyToClipboard(apiKey.apiSecret, 'apiSecret')}
-                                        className='px-4 py-3 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap'
-                                    >
-                                        <Copy size={16} />
-                                        {copyField === 'apiSecret' ? t('api.copied') : t('api.copy')}
-                                    </button>
+                                <div className='px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm break-all'>
+                                    {apiKey.apiSecret}
                                 </div>
                             </div>
                         </div>
@@ -162,5 +130,3 @@ export default function Apipage(){
         </div>
     );
 }
-
-
