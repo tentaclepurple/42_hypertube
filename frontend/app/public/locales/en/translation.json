@@ -1,7 +1,8 @@
 {
     "main": {
         "welcome": "Welcome to Hypertube",
-        "dive": "Dive into the world of Hypertube"
+        "dive": "Dive into the world of Hypertube",
+        "popularMovies": "Popular Movies"
     },
     "footer": {
         "madeBy": "Made by ",
