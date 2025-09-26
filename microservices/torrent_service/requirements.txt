@@ -8,6 +8,7 @@ libtorrent
 
 asyncpg==0.30.0
 
-
+# Async HTTP client for subtitles API
+aiohttp==3.11.18
 
 # NO incluir python-libtorrent - se instala desde sistema

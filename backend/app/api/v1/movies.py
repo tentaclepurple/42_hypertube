@@ -445,9 +445,10 @@ async def _check_streaming_threshold(file_path: Path) -> bool:
         blocks_allocated = stat_info.st_blocks * 512
         
         real_downloaded = blocks_allocated
+
+        MIN_SIZE_MB = int(os.environ.get("STREAMING_MIN_SIZE_MB", "50"))
+        MIN_PERCENTAGE = float(os.environ.get("STREAMING_MIN_PERCENTAGE", "0.25"))
         
-        MIN_SIZE_MB = 50
-        MIN_PERCENTAGE = 0.25  # At least 25% of actual file size
                 
         # Percentage check
         min_percentage_bytes = MIN_PERCENTAGE * file_size
@@ -919,15 +920,11 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
 
                         if not safe_pattern.match(path_str):
                             rejected_chars = [c for c in path_str if not re.match(pattern, c)]
-                            print(f"REJECTED path: '{path_str}' - contains: {rejected_chars}", flush=True)
                             continue
                             
                         if not safe_pattern.match(filename_str):
                             rejected_chars = [c for c in filename_str if not re.match(pattern, c)]
-                            print(f"REJECTED filename: '{filename_str}' - contains: {rejected_chars}", flush=True)
                             continue
-
-                        print(f"DEBUG: Found subtitle file: {subtitle_file}, size: {subtitle_file.stat().st_size}", flush=True)
 
                         detected_lang = _detect_subtitle_language(filename_str)
                         
@@ -960,12 +957,12 @@ def _detect_subtitle_language(filename: str) -> str:
         filename_lower = filename.lower()
         
         language_patterns = {
-            'Spanish': ['spanish', 'español', 'castellano', 'cast', 'spa', 'es'],
-            'English': ['english', 'eng', 'en', 'ingles'],
-            'French': ['french', 'français', 'francais', 'fra', 'fr'],
-            'German': ['german', 'deutsch', 'ger', 'de'],
-            'Italian': ['italian', 'italiano', 'ita', 'it'],
-            'Portuguese': ['portuguese', 'português', 'portugues', 'por', 'pt'],
+            'Spanish': ['spanish', 'espanol', 'castellano', 'cast', 'spa'],
+            'English': ['english', 'eng', 'ingles'],
+            'French': ['french', 'français', 'francais', 'fra'],
+            'German': ['german', 'deutsch', 'ger'],
+            'Italian': ['italian', 'italiano', 'ita'],
+            'Portuguese': ['portuguese', 'portugues'],
             'Japanese': ['japanese', 'jpn', 'ja'],
             'Chinese': ['chinese', 'chi', 'zh'],
             'Korean': ['korean', 'kor', 'ko'],
