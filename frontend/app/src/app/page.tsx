@@ -10,8 +10,6 @@ export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [scrollInterval, setScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
@@ -24,6 +22,7 @@ export default function Home() {
           throw new Error('Failed to fetch movies');
         }
         const data: Movie[] = await response.json();
+        console.log(data);
         setMovies(data);
         if (data.length > 0) {
           setSelectedMovie(data[0]);
@@ -40,7 +39,6 @@ export default function Home() {
 
   const handleMovieSelect = (movie: Movie, index: number) => {
     setSelectedMovie(movie);
-    setCurrentIndex(index);
   };
 
   const startScroll = (direction: "left" | "right") => {
@@ -81,9 +79,9 @@ export default function Home() {
   }
 
   return (
-    <main className="bg-black text-white fixed inset-0 top-16 bottom-16 overflow-hidden flex flex-col">
+    <main className="bg-black text-white fixed inset-0 top-16 bottom-16 flex flex-col overflow-hiddenbg-black text-white fixed inset-0 top-16 bottom-16 flex flex-col overflow-hidden">
       {selectedMovie && (
-        <div className="relative h-[80vh] flex items-end justify-start">
+        <div className="relative flex-1 flex items-end justify-start overflow-hidden">
           <Image
             src={selectedMovie.poster || '/no-poster.png'}
             alt={selectedMovie.title}
@@ -94,7 +92,7 @@ export default function Home() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
           <div className="relative z-10 p-8 flex gap-6 items-end">
-            <div className="relative w-60 md:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl">
+            <div className="relative w-36 sm:w-48 md:w-60 lg:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl">
               <Image
                 src={selectedMovie.poster || '/no-poster.png'}
                 alt={selectedMovie.title}
@@ -104,9 +102,8 @@ export default function Home() {
               />
             </div>
             <div className="max-w-xl">
-              <h1 className="text-4xl font-bold mb-2">{selectedMovie.title}</h1>
-              <p className="text-gray-300">{selectedMovie.year}</p>
-              <p className="mt-4 text-gray-200 line-clamp-3">{selectedMovie.summary}</p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{selectedMovie.title}</h1>
+              <p className="text-sm sm:text-base md:text-lg text-gray-300">{selectedMovie.year}</p>
             </div>
           </div>
         </div>
@@ -160,12 +157,6 @@ export default function Home() {
           ))}
         </div>
       </div>
-
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </main>
   );
 }
