@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
   images: {
+    domains: ['yts.mx', 'image.tmdb.org'],
     remotePatterns: [
       {
         protocol: 'https',
