@@ -35,7 +35,6 @@ export default function MovieDetails() {
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     
-    // Estados para editar/borrar el comentario del usuario
     const [editingUserComment, setEditingUserComment] = useState(false);
     const [editUserCommentText, setEditUserCommentText] = useState({
         comment: "",

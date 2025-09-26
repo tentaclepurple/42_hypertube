@@ -5,12 +5,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { Movie } from "./movies/types/movies";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [scrollInterval, setScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const { t } = useTranslation();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchPublicMovies = async () => {
@@ -47,8 +49,12 @@ export default function Home() {
     }
   };
 
-  const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
+  const handleMovieClick = (movie: Movie) => {
+    if (selectedMovie?.id === movie.id) {
+      window.location.href = `/movies/${movie.id}`;
+    } else {
+      setSelectedMovie(movie);
+    }
   };
 
   return (
@@ -64,19 +70,25 @@ export default function Home() {
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+          
           <div className="relative z-10 p-8 flex gap-6 items-end">
-            <div className="relative w-36 sm:w-48 md:w-60 lg:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl">
-              <Image
-                src={selectedMovie.poster || "/no-poster.png"}
-                alt={selectedMovie.title}
-                fill
-                unoptimized
-                className="object-cover"
-              />
-            </div>
-            <div className="max-w-xl">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{selectedMovie.title}</h1>
-              <p className="text-sm sm:text-base md:text-lg text-gray-300">{selectedMovie.year}</p>
+            <div
+              className="relative z-10 p-8 flex gap-6 items-end cursor-pointer"
+              onClick={() => router.push(`/movies/${selectedMovie.id}`)}
+            >
+              <div className="relative w-36 sm:w-48 md:w-60 lg:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl">
+                <Image
+                  src={selectedMovie.poster || "/no-poster.png"}
+                  alt={selectedMovie.title}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
+              <div className="max-w-xl">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{selectedMovie.title}</h1>
+                <p className="text-sm sm:text-base md:text-lg text-gray-300">{selectedMovie.year}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -105,7 +117,7 @@ export default function Home() {
           {movies.map((movie) => (
             <div
               key={movie.id || movie.imdb_id}
-              onClick={() => handleMovieSelect(movie)}
+              onClick={() => handleMovieClick(movie)}
               className={`flex-shrink-0 cursor-pointer transition-transform duration-300 hover:scale-105 ${
                 selectedMovie?.id === movie.id ? "ring-2 ring-red-600" : ""
               }`}

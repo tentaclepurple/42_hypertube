@@ -39,9 +39,7 @@ export default function Movies() {
                 };
                 const data: Movie[] = await response.json();
                 setMovies((prevMovies) => {
-                    // Create a set of existing IDs
                     const existingIds = new Set(prevMovies.map(m => m.imdb_id || m.id));
-                    // Filter out new movies that do not already exist
                     const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
                     return [...prevMovies, ...newMovies];
                 });
