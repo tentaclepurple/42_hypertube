@@ -58,9 +58,9 @@ export default function Home() {
   };
 
   return (
-    <main className="bg-black text-white fixed inset-0 top-16 bottom-16 flex flex-col overflow-auto md:overflow-hidden">
+    <main className="bg-black text-white fixed inset-0 top-16 bottom-16 flex flex-col overflow-auto lg:overflow-hidden">
       {selectedMovie && (
-        <div className="relative flex-1 flex items-end justify-start overflow-hidden hidden md:flex">
+        <div className="relative flex-1 flex flex-col lg:flex-row items-center lg:items-end justify-center lg:justify-start overflow-hidden">
           <Image
             src={selectedMovie.poster || "/no-poster.png"}
             alt={selectedMovie.title}
@@ -69,49 +69,81 @@ export default function Home() {
             className="object-cover blur-2xl scale-110 opacity-50"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-          
-          <div className="relative z-10 p-8 flex gap-6 items-end">
+          <div className="relative z-10 w-full flex flex-col lg:hidden items-center gap-3 p-4 sm:p-6">
             <div
-              className="relative z-10 p-8 flex gap-6 items-end cursor-pointer"
+              className="relative w-40 sm:w-48 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl cursor-pointer"
               onClick={() => router.push(`/movies/${selectedMovie.id}`)}
             >
-              <div className="relative w-36 sm:w-48 md:w-60 lg:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl">
-                <Image
-                  src={selectedMovie.poster || "/no-poster.png"}
-                  alt={selectedMovie.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              </div>
-              <div className="max-w-xl">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{selectedMovie.title}</h1>
-                <p className="text-sm sm:text-base md:text-lg text-gray-300">{selectedMovie.year}</p>
-              </div>
+              <Image
+                src={selectedMovie.poster || "/no-poster.png"}
+                alt={selectedMovie.title}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
+            <div
+              className="text-center max-w-xs sm:max-w-md"
+              onClick={() => router.push(`/movies/${selectedMovie.id}`)}
+            >
+              <h1 className="text-base sm:text-xl font-bold leading-tight">
+                {selectedMovie.title}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-300">{selectedMovie.year}</p>
+            </div>
+          </div>
+          <div className="relative z-10 hidden lg:flex gap-6 p-8 items-end">
+            <div
+              className="relative w-36 sm:w-48 md:w-60 lg:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl cursor-pointer"
+              onClick={() => router.push(`/movies/${selectedMovie.id}`)}
+            >
+              <Image
+                src={selectedMovie.poster || "/no-poster.png"}
+                alt={selectedMovie.title}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
+            <div
+              className="max-w-xl cursor-pointer"
+              onClick={() => router.push(`/movies/${selectedMovie.id}`)}
+            >
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
+                {selectedMovie.title}
+              </h1>
+              <p className="text-sm sm:text-base md:text-lg text-gray-300">{selectedMovie.year}</p>
             </div>
           </div>
         </div>
       )}
-      <div className="relative px-4 md:px-6 py-4 flex-shrink-0 bg-black">
-        <h2 className="relative z-10 text-lg md:text-xl font-bold mb-3">{t("main.popularMovies")}</h2>
+  
+      {/* Carrusel */}
+      <div className="relative px-4 md:px-6 py-4 flex-shrink-0 bg-black flex-1 flex flex-col justify-center lg:flex-none lg:justify-start">
+        <h2 className="relative z-10 text-lg md:text-xl font-bold mb-3">
+          {t("main.popularMovies")}
+        </h2>
+  
+        {/* Botones scroll (solo escritorio) */}
         <button
           onMouseEnter={() => startScroll("left")}
           onMouseLeave={stopScroll}
-          className="absolute left-2 top-1/2 z-20 -translate-y-1/2 bg-black/80 hover:bg-black/90 text-white p-3 rounded-full shadow-lg transition"
+          className="hidden md:block absolute left-2 top-1/2 z-20 -translate-y-1/2 bg-black/80 hover:bg-black/90 text-white p-3 rounded-full shadow-lg transition"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <button
           onMouseEnter={() => startScroll("right")}
           onMouseLeave={stopScroll}
-          className="absolute right-2 top-1/2 z-20 -translate-y-1/2 bg-black/80 hover:bg-black/90 text-white p-3 rounded-full shadow-lg transition"
+          className="hidden md:block absolute right-2 top-1/2 z-20 -translate-y-1/2 bg-black/80 hover:bg-black/90 text-white p-3 rounded-full shadow-lg transition"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
+  
+        {/* Lista de películas */}
         <div
           id="movie-carousel"
-          className="relative z-10 flex space-x-4 overflow-x-auto md:overflow-x-auto scrollbar-hide scroll-smooth"
+          className="relative z-10 flex space-x-4 overflow-x-auto scrollbar-hide scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {movies.map((movie) => (
@@ -122,9 +154,7 @@ export default function Home() {
                 selectedMovie?.id === movie.id ? "ring-2 ring-red-600" : ""
               }`}
             >
-              <div
-                className="w-32 h-48 md:w-40 md:h-60 relative rounded-lg overflow-hidden group"
-              >
+              <div className="w-[45vw] max-w-40 h-auto aspect-[2/3] md:w-40 md:h-60 relative rounded-lg overflow-hidden group">
                 <Image
                   src={movie.poster || "/no-poster.png"}
                   alt={movie.title}
