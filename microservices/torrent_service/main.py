@@ -11,6 +11,10 @@ import re
 import time
 import asyncpg
 import uuid
+import threading
+from queue import Queue
+
+from app.subtitles_service import SubtitlesService
 
 HOST = 'kafka'
 
@@ -24,7 +28,9 @@ class TorrentDownloader:
         self.download_path.mkdir(exist_ok=True)
         self.active_torrents = {}
         
-   
+        # Cola para mensajes de Kafka
+        self.download_queue = Queue()
+        
         self.db_url = os.environ.get("DATABASE_URL")
         if not self.db_url:
             logger.warning("DATABASE_URL is not set. Download records will not be saved.")
@@ -67,6 +73,111 @@ class TorrentDownloader:
             logger.error(f"Error initializing Kafka Producer: {e}")
             self.producer = None
 
+    async def _get_movie_info_from_db(self, movie_id: str) -> dict:
+        """Get movie information from database"""
+        if not self.db_url:
+            return {}
+            
+        try:
+            conn = await asyncpg.connect(self.db_url, statement_cache_size=0)
+            
+            # Query movie information
+            result = await conn.fetchrow(
+                """
+                SELECT imdb_id, title, year 
+                FROM movies 
+                WHERE id = $1::uuid
+                """,
+                movie_id
+            )
+            
+            await conn.close()
+            
+            if result:
+                return {
+                    'imdb_id': result['imdb_id'],
+                    'title': result['title'],
+                    'year': result['year']
+                }
+            else:
+                logger.warning(f"Movie not found in database: {movie_id}")
+                return {}
+                
+        except Exception as e:
+            logger.error(f"Error querying movie info: {e}")
+            return {}
+
+    def _get_torrent_download_directory(self, handle) -> Path:
+        """Get the actual download directory created by the torrent"""
+        if not handle.has_metadata():
+            return None
+            
+        try:
+            torrent_file = handle.get_torrent_info()
+            torrent_name = torrent_file.name()
+            
+            # The torrent creates a subdirectory with its name
+            torrent_directory = self.download_path / torrent_name
+            return torrent_directory
+            
+        except Exception as e:
+            logger.error(f"Error getting torrent directory: {e}")
+            return None
+
+    async def _download_movie_subtitles(self, movie_id: str, movie_title: str, torrent_directory: Path):
+        """Download subtitles for the movie in the torrent's actual directory"""
+        try:
+            logger.info(f"SUBTITLES: Starting download for movie {movie_id}")
+            logger.info(f"SUBTITLES: Target directory: {torrent_directory}")
+            
+            # Verify directory exists
+            if not torrent_directory.exists():
+                logger.error(f"SUBTITLES: Directory does not exist: {torrent_directory}")
+                return {'spanish': False, 'english': False}
+            
+            # Get movie info from database
+            movie_info = await self._get_movie_info_from_db(movie_id)
+            
+            imdb_id = movie_info.get('imdb_id')
+            db_title = movie_info.get('title')
+            logger.info(f"SUBTITLES: IMDB ID: {imdb_id}, DB TITLE: {db_title}")
+            
+            # Use database title if available, fallback to provided title
+            title_to_use = db_title or movie_title
+            
+            logger.info(f"SUBTITLES: Downloading subtitles for: {title_to_use}")
+            if imdb_id:
+                logger.info(f"SUBTITLES: Using IMDB ID: {imdb_id}")
+            else:
+                logger.info("SUBTITLES: No IMDB ID found, using title search")
+            
+            # Initialize subtitles service
+            subtitles_service = SubtitlesService()
+            
+            # Download subtitles to the torrent's actual directory
+            results = await subtitles_service.download_subtitles_for_movie(
+                movie_directory=torrent_directory,
+                imdb_id=imdb_id,
+                movie_title=title_to_use
+            )
+            
+            # Log results
+            if results.get('spanish'):
+                logger.info("SUBTITLES: Spanish subtitles downloaded successfully")
+            else:
+                logger.warning("SUBTITLES: Failed to download Spanish subtitles")
+                
+            if results.get('english'):
+                logger.info("SUBTITLES: English subtitles downloaded successfully")
+            else:
+                logger.warning("SUBTITLES: Failed to download English subtitles")
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"SUBTITLES: Error downloading subtitles: {e}")
+            return {'spanish': False, 'english': False}
+
     async def _check_download_status(self, torrent_hash: str) -> bool:
         """Check if download already exists (completed or in progress)"""
         if not self.db_url:
@@ -74,7 +185,7 @@ class TorrentDownloader:
             
         # Check if already in active downloads
         if torrent_hash in self.active_torrents:
-            print(f"Download in progress: {torrent_hash[:8]}...")
+            logger.info(f"Download in progress: {torrent_hash[:8]}...")
             return True
             
         try:
@@ -93,19 +204,19 @@ class TorrentDownloader:
             await conn.close()
             
             if result:
-                print(f"Download already completed: {torrent_hash[:8]}...")
+                logger.info(f"Download already completed: {torrent_hash[:8]}...")
                 return True
                 
             return False
             
         except Exception as e:
-            print(f"ERROR checking download status: {e}")
+            logger.error(f"ERROR checking download status: {e}")
             return False
 
     async def _mark_download_started(self, movie_id: str, torrent_hash: str):
         """Mark download as started immediately when request is accepted"""
         await self._update_download_record(movie_id, torrent_hash, 'downloading', 0)
-        print(f"Download marked as started: {torrent_hash[:8]}...")
+        logger.info(f"Download marked as started: {torrent_hash[:8]}...")
     
     async def _update_download_record(self, movie_id: str, torrent_hash: str, status: str, progress: int = 0, file_path: str = None):
         """Update download record in movie_downloads_42"""
@@ -241,7 +352,7 @@ class TorrentDownloader:
             return largest_file
             
         except Exception as e:
-            print(f"ERROR getting main video file: {e}")
+            logger.error(f"ERROR getting main video file: {e}")
             return None
     
     async def start_download(self, movie_id: str, torrent_input: str, movie_title: str = None):
@@ -265,7 +376,7 @@ class TorrentDownloader:
 
             # Check if torrent is already downloaded or in progress
             if await self._check_download_status(torrent_hash):
-                print(f"Torrent {torrent_hash[:8]}... already exists or in progress")
+                logger.info(f"Torrent {torrent_hash[:8]}... already exists or in progress")
                 return
 
             # Mark download as started immediately
@@ -283,7 +394,8 @@ class TorrentDownloader:
                 })
                 return
 
-            # Configure download parameters
+            # Configure download parameters - use base download path
+            # LibTorrent will create subdirectory based on torrent name
             add_torrent_params = {
                 'save_path': str(self.download_path),
                 'storage_mode': lt.storage_mode_t.storage_mode_sparse,
@@ -317,7 +429,9 @@ class TorrentDownloader:
                 'title': movie_title or movie_id,
                 'last_update': 0,
                 'file_detected': False,
-                'file_path': None
+                'file_path': None,
+                'subtitles_downloaded': False,  # Track subtitle download status
+                'torrent_directory': None,  # Will be set when metadata is available
             }
 
             # Report successful start
@@ -349,6 +463,36 @@ class TorrentDownloader:
                 'title': movie_title
             })
     
+    async def process_download_queue(self):
+        """Process downloads from queue in the main event loop"""
+        logger.info("Starting download queue processor...")
+        
+        while True:
+            try:
+                if not self.download_queue.empty():
+                    # Get message from queue
+                    message_data = self.download_queue.get()
+                    
+                    movie_id = message_data.get('movie_id')
+                    torrent_input = message_data.get('torrent_input')
+                    movie_title = message_data.get('movie_title')
+                    user_id = message_data.get('user_id', 'unknown')
+                    
+                    logger.info(f"Processing queued download: {movie_id} (user: {user_id})")
+                    if movie_title:
+                        logger.info(f"Title: {movie_title}")
+                    
+                    # Process download in main event loop
+                    await self.start_download(movie_id, torrent_input, movie_title)
+                    
+                    self.download_queue.task_done()
+                    
+            except Exception as e:
+                logger.error(f"Error processing download queue: {e}")
+            
+            # Small delay to prevent tight loop
+            await asyncio.sleep(1)
+
     async def monitor_downloads(self):
         """Monitor download progress"""
         logger.info("Starting download monitor...")
@@ -370,7 +514,32 @@ class TorrentDownloader:
                     status = handle.status()
                     progress = int(status.progress * 100)
 
-                    # Detect main video file from torrent metadata (no local file search)
+                    # Detect torrent directory when metadata becomes available
+                    if not torrent_info['torrent_directory'] and handle.has_metadata():
+                        torrent_directory = self._get_torrent_download_directory(handle)
+                        if torrent_directory:
+                            torrent_info['torrent_directory'] = torrent_directory
+                            logger.info(f"Torrent directory detected: {torrent_directory}")
+
+                    # Download subtitles once directory is available and we haven't downloaded them yet
+                    if (torrent_info['torrent_directory'] and 
+                        not torrent_info['subtitles_downloaded'] and 
+                        progress > 0):  # Some progress to ensure directory creation
+                        
+                        logger.info(f"SUBTITLES: Initiating subtitle download for {torrent_hash[:8]}...")
+                        try:
+                            await self._download_movie_subtitles(
+                                movie_id, 
+                                torrent_info['title'], 
+                                torrent_info['torrent_directory']
+                            )
+                            torrent_info['subtitles_downloaded'] = True
+                            logger.info(f"SUBTITLES: Subtitle download completed for {torrent_hash[:8]}...")
+                        except Exception as e:
+                            logger.error(f"SUBTITLES: Subtitle download failed for {torrent_hash[:8]}...: {e}")
+                            torrent_info['subtitles_downloaded'] = True  # Mark as attempted to avoid retries
+
+                    # Detect main video file from torrent metadata
                     if not torrent_info['file_detected'] and progress > 0:
                         main_file_path = self._get_torrent_main_video_file(handle)
                         
@@ -387,7 +556,7 @@ class TorrentDownloader:
                                 main_file_path
                             )
                             
-                            print(f"File detected from torrent metadata {torrent_hash[:8]}...: {Path(main_file_path).name}")
+                            logger.info(f"File detected from torrent metadata {torrent_hash[:8]}...: {Path(main_file_path).name}")
 
                     # Only report significant changes
                     last_progress = torrent_info['last_progress']
@@ -398,7 +567,7 @@ class TorrentDownloader:
                         time_since_last > 30 or
                         status.is_seeding or
                         status.error or
-                        not torrent_info['file_detected']  # Update when we detect file
+                        not torrent_info['file_detected']
                     )
                     
                     if should_update:
@@ -462,8 +631,8 @@ class TorrentDownloader:
                     file_path
                 )
                 
-                print(f"Download completed and registered: {torrent_hash[:8]}...")
-                print(f"   File: {Path(file_path).name}")
+                logger.info(f"Download completed and registered: {torrent_hash[:8]}...")
+                logger.info(f"   File: {Path(file_path).name}")
                 
             else:
                 # Fallback: try to get file from torrent metadata one more time
@@ -478,7 +647,7 @@ class TorrentDownloader:
                         100, 
                         main_file
                     )
-                    print(f"Download completed with fallback detection: {torrent_hash[:8]}...")
+                    logger.info(f"Download completed with fallback detection: {torrent_hash[:8]}...")
                 else:
                     # Mark as completed without file path
                     await self._update_download_record(
@@ -487,90 +656,80 @@ class TorrentDownloader:
                         'completed', 
                         100
                     )
-                    print(f"Download completed (no video file detected): {torrent_hash[:8]}...")
+                    logger.info(f"Download completed (no video file detected): {torrent_hash[:8]}...")
 
         except Exception as e:
-            print(f"ERROR registering completed download for {torrent_hash[:8]}...: {e}")
+            logger.error(f"ERROR registering completed download for {torrent_hash[:8]}...: {e}")
 
 
-def process_kafka_message(downloader, message):
-    """Process a Kafka message synchronously"""
-    try:
-        data = message.value
-        movie_id = data.get('movie_id')
-
-        # Support both 'magnet_link' and 'torrent_hash'
-        torrent_input = data.get('magnet_link') or data.get('torrent_hash')
-        
-        movie_title = data.get('movie_title') or data.get('title')
-        user_id = data.get('user_id', 'unknown')
-        
-        if not movie_id or not torrent_input:
-            logger.error("Invalid message: missing movie_id or torrent_input")
-            return False
-
-        logger.info(f"Request received: {movie_id} (user: {user_id})")
-        if movie_title:
-            logger.info(f"Title: {movie_title}")
-
-        # Execute download asynchronously
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(downloader.start_download(movie_id, torrent_input, movie_title))
-        loop.close()
-        
-        return True
-        
-    except json.JSONDecodeError as e:
-        logger.error(f"Error decoding JSON: {e}")
-        return False
-    except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        return False
-
-async def start_kafka_consumer(downloader):
+def start_kafka_consumer(downloader):
     """Start the Kafka consumer in a separate thread"""
-    import threading
-    
-    def kafka_consumer_thread():
-        logger.info("Starting Kafka consumer...")
+    logger.info("Starting Kafka consumer...")
 
-        try:
-            consumer = KafkaConsumer(
-                'movie-download-requests',
-                bootstrap_servers=[f'{HOST}:9092'],
-                group_id='torrent-service',
-                value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-                auto_offset_reset='latest',
-                enable_auto_commit=True
-            )
+    try:
+        consumer = KafkaConsumer(
+            'movie-download-requests',
+            bootstrap_servers=[f'{HOST}:9092'],
+            group_id='torrent-service',
+            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+            auto_offset_reset='latest',
+            enable_auto_commit=True
+        )
 
-            logger.info("Kafka consumer connected and waiting for messages...")
+        logger.info("Kafka consumer connected and waiting for messages...")
 
-            for message in consumer:
-                process_kafka_message(downloader, message)
+        for message in consumer:
+            try:
+                data = message.value
+                movie_id = data.get('movie_id')
+
+                # Support both 'magnet_link' and 'torrent_hash'
+                torrent_input = data.get('magnet_link') or data.get('torrent_hash')
                 
-        except Exception as e:
-            logger.error(f"Error in Kafka consumer: {e}")
+                movie_title = data.get('movie_title') or data.get('title')
+                user_id = data.get('user_id', 'unknown')
+                
+                if not movie_id or not torrent_input:
+                    logger.error("Invalid message: missing movie_id or torrent_input")
+                    continue
 
-    # Start in separate thread
-    kafka_thread = threading.Thread(target=kafka_consumer_thread, daemon=True)
-    kafka_thread.start()
+                # Add to queue instead of processing directly
+                message_data = {
+                    'movie_id': movie_id,
+                    'torrent_input': torrent_input,
+                    'movie_title': movie_title,
+                    'user_id': user_id
+                }
+                
+                downloader.download_queue.put(message_data)
+                logger.info(f"Message queued: {movie_id} (user: {user_id})")
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Error decoding JSON: {e}")
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
+                
+    except Exception as e:
+        logger.error(f"Error in Kafka consumer: {e}")
 
-    logger.info("Kafka consumer started in separate thread")
 
 async def main():
-    logger.info("Torrent Service started (with movie_downloads_42)")
+    logger.info("Torrent Service started (with movie_downloads)")
     logger.info(f"Download directory: /data/movies")
 
     try:
         downloader = TorrentDownloader()
         
         # Start Kafka consumer in separate thread
-        await start_kafka_consumer(downloader)
+        kafka_thread = threading.Thread(target=start_kafka_consumer, args=(downloader,), daemon=True)
+        kafka_thread.start()
+        logger.info("Kafka consumer started in separate thread")
         
-        # Start download monitor
-        await downloader.monitor_downloads()
+        # Start both the download queue processor and monitor concurrently
+        await asyncio.gather(
+            downloader.process_download_queue(),
+            downloader.monitor_downloads()
+        )
         
     except KeyboardInterrupt:
         logger.info("Torrent Service stopped by user")
