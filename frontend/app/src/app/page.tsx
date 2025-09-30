@@ -92,9 +92,9 @@ export default function Home() {
               <p className="text-xs sm:text-sm text-gray-300">{selectedMovie.year}</p>
             </div>
           </div>
-          <div className="relative z-10 hidden lg:flex gap-6 p-8 items-end">
+          <div className="relative z-10 hidden lg:flex gap-6 p-4 md:p-6 lg:p-8 items-end">
             <div
-              className="relative w-36 sm:w-48 md:w-60 lg:w-72 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl cursor-pointer"
+              className="relative rounded-lg overflow-hidden shadow-2xl cursor-pointer w-[25vw] md:w-[20vw] lg:w-[18vw] max-w-[280px] aspect-[2/3]"
               onClick={() => router.push(`/movies/${selectedMovie.id}`)}
             >
               <Image
@@ -106,13 +106,13 @@ export default function Home() {
               />
             </div>
             <div
-              className="max-w-xl cursor-pointer"
+              className="max-w-[50vw] cursor-pointer"
               onClick={() => router.push(`/movies/${selectedMovie.id}`)}
             >
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
+              <h1 className="font-bold mb-2 leading-tight text-[2.5vw] md:text-[2vw] lg:text-5xl">
                 {selectedMovie.title}
               </h1>
-              <p className="text-sm sm:text-base md:text-lg text-gray-300">{selectedMovie.year}</p>
+              <p className="text-gray-300 text-[1.2vw] md:text-[1vw] lg:text-lg">{selectedMovie.year}</p>
             </div>
           </div>
         </div>
