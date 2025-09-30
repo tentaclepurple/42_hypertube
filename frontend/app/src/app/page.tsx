@@ -117,14 +117,10 @@ export default function Home() {
           </div>
         </div>
       )}
-  
-      {/* Carrusel */}
       <div className="relative px-4 md:px-6 py-4 flex-shrink-0 bg-black flex-1 flex flex-col justify-center lg:flex-none lg:justify-start">
         <h2 className="relative z-10 text-lg md:text-xl font-bold mb-3">
           {t("main.popularMovies")}
         </h2>
-  
-        {/* Botones scroll (solo escritorio) */}
         <button
           onMouseEnter={() => startScroll("left")}
           onMouseLeave={stopScroll}
@@ -139,11 +135,9 @@ export default function Home() {
         >
           <ChevronRight className="w-6 h-6" />
         </button>
-  
-        {/* Lista de películas */}
         <div
           id="movie-carousel"
-          className="relative z-10 flex space-x-4 overflow-x-auto scrollbar-hide scroll-smooth"
+          className="relative z-10 flex space-x-4 overflow-x-auto md:overflow-x-auto scrollbar-hide scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {movies.map((movie) => (
@@ -154,7 +148,7 @@ export default function Home() {
                 selectedMovie?.id === movie.id ? "ring-2 ring-red-600" : ""
               }`}
             >
-              <div className="w-[45vw] max-w-40 h-auto aspect-[2/3] md:w-40 md:h-60 relative rounded-lg overflow-hidden group">
+              <div className="w-[30vw] sm:w-[22vw] md:w-[18vw] lg:w-[12vw] max-w-[160px] aspect-[2/3] rounded-lg overflow-hidden relative group">
                 <Image
                   src={movie.poster || "/no-poster.png"}
                   alt={movie.title}
