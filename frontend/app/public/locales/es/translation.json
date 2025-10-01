@@ -82,6 +82,7 @@
         "notsay": "Prefiero no decirlo",
         "born": "Nacido en ",
         "delete":"¿Estás seguro de que quieres eliminar este comentario?",
+        "tryAgain":"Ocurrió un error. Por favor, inténtalo de nuevo.",
         "allGenders": {
             "male": "Masculino",
             "female": "Femenino",

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/authcontext';
 import { useRouter } from 'next/navigation';
-import { Menu, X, LogOutIcon, ChevronDown } from "lucide-react";
+import { LogOutIcon } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';

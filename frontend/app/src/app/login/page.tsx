@@ -1,6 +1,3 @@
-// frontend/app/src/app/login/page.tsx
-
-
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -70,7 +67,6 @@ export default function Login() {
       
       const data = await response.json();
       
-      // Use the login function which will set both localStorage and cookies
       login(data.access_token, data.user);
       router.push('/');
     } catch (error) {
@@ -80,9 +76,7 @@ export default function Login() {
     } 
   }
 
-  // IMPORTANT: Use direct redirection instead of fetch
   const handleLogin = (provider: string) => {
-    // Do NOT use fetch, but direct redirection.
     window.location.href = `${process.env.NEXT_PUBLIC_URL}/api/v1/auth/oauth/${provider}`;
   };
 
