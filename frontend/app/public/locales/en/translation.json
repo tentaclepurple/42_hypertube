@@ -189,6 +189,8 @@
         "important": "Important",
         "warning_info": "Save these credentials now! They will disappear when you navigate away from this page.",
         "copy": "Copy",
-        "copied": "Copied!"
+        "copied": "Copied!",
+        "documentation": "API Documentation",
+        "docu_info": "Find out how to use the API with our comprehensive documentation"
     }
 }
