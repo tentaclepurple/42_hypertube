@@ -67,7 +67,7 @@ export default function Navbar() {
                                 />
                             </button>
                             {isOpen && (
-                                <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+                                <div className="absolute right-0 mt-2 w-56 bg-black rounded-lg shadow-lg border border-gray-700 z-50">
                                     <div className="px-4 py-3 border-b border-gray-700">
                                         <Link 
                                             href="/profile" 
