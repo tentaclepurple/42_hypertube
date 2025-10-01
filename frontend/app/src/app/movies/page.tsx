@@ -8,7 +8,6 @@ import { parsedError } from "../ui/error/parsedError";
 import { useTranslation } from 'react-i18next';
 import { useMovieFilters } from "../ui/filters/useMovieFilters";
 import { MovieFilters } from "../ui/filters/movieFilters";
-import { LinkIcon } from "lucide-react";
 
 export default function Movies() {
     const { logout } = useAuth();
@@ -138,12 +137,11 @@ export default function Movies() {
             ))}
         </div>
         {loading && (
-        <div className="text-center mt-4 py-2">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-            <p className="mt-2">{t("movies.loadingMore")}</p>
-        </div>
+            <div className="text-center mt-4 py-2">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
+                <p className="mt-2">{t("movies.loadingMore")}</p>
+            </div>
         )}
-        <div ref={observerRef} className="h-10" />
-    </div>
-    );       
-  }
+        <div ref={observerRef} className="h-10" /></div>
+    );
+}
