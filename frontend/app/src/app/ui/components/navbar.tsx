@@ -26,7 +26,8 @@ export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
     const menuRef = useRef<HTMLDivElement>(null);
-    const toggleMenu = () => setIsOpen(!isOpen);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const toggleMenu = () => setIsOpen((prev) => !prev);
     const closeMenu = () => setIsOpen(false);
     const { t, i18n } = useTranslation();
     
@@ -37,7 +38,12 @@ export default function Navbar() {
     };
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            if (
+                menuRef.current && 
+                !menuRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
+            ) {
                 setIsOpen(false);
             }
         };
@@ -65,6 +71,7 @@ export default function Navbar() {
                     ) : (
                         <div className="relative">
                             <button
+                                ref={buttonRef}
                                 onClick={toggleMenu}
                                 className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                             >
@@ -73,7 +80,8 @@ export default function Navbar() {
                                     alt="avatar"
                                     width={40}
                                     height={40}
-                                    className="rounded-full border border-gray-600"
+                                    className="rounded-full border border-gray-600 object-cover object-center"
+                                    style={{ width: '40px', height: '40px', objectPosition: 'center' }}
                                 />
                             </button>
                             {isOpen && (
