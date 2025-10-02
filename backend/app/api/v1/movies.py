@@ -331,7 +331,7 @@ async def _serve_complete_file(file_path: str, movie_title: str, range_header: s
     # Serve complete file
     async def file_generator():
         async with aiofiles.open(file_path, 'rb') as file:
-            while chunk := await file.read(8192):
+            while chunk := await file.read(262144):
                 yield chunk
     
     headers = {
@@ -370,7 +370,7 @@ async def _serve_partial_file(file_path: Path, movie_title: str, range_header: s
     
     async def partial_file_generator():
         async with aiofiles.open(file_path, 'rb') as file:
-            while chunk := await file.read(8192):
+            while chunk := await file.read(262144):
                 yield chunk
     
     headers = {
@@ -407,7 +407,7 @@ async def _serve_range_request(file_path: str, file_size: int, range_header: str
                 remaining = content_length
                 
                 while remaining > 0:
-                    chunk_size = min(8192, remaining)
+                    chunk_size = min(262144, remaining)
                     chunk = await file.read(chunk_size)
                     if not chunk:
                         break
@@ -1033,7 +1033,7 @@ async def serve_subtitle_file(
             # Serve the file
             async def subtitle_generator():
                 async with aiofiles.open(subtitle_full_path, 'rb') as file:
-                    while chunk := await file.read(8192):
+                    while chunk := await file.read(262144):
                         yield chunk
             
             file_size = subtitle_full_path.stat().st_size

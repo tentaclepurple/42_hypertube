@@ -5,7 +5,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - NEXT_PUBLIC_URL=http://localhost:8000  #http://localhost:8000
+      - NEXT_PUBLIC_URL=http://localhost:8000
     ports:
       - "3000:3000"
     volumes:
@@ -84,6 +84,14 @@ services:
         condition: service_healthy
       zookeeper:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.5'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
   
   torrent_service:
     container_name: torrent_service
@@ -111,6 +119,15 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    cpu_shares: 512
 
 networks:
   hypertube-network:
