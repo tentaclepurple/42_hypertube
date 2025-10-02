@@ -446,8 +446,8 @@ async def _check_streaming_threshold(file_path: Path) -> bool:
         
         real_downloaded = blocks_allocated
 
-        MIN_SIZE_MB = int(os.environ.get("STREAMING_MIN_SIZE_MB", "50"))
-        MIN_PERCENTAGE = float(os.environ.get("STREAMING_MIN_PERCENTAGE", "0.25"))
+        MIN_SIZE_MB = int(os.environ.get("STREAMING_MIN_SIZE_MB", "950"))
+        MIN_PERCENTAGE = float(os.environ.get("STREAMING_MIN_PERCENTAGE", "1"))
         
                 
         # Percentage check
@@ -464,7 +464,7 @@ async def _check_streaming_threshold(file_path: Path) -> bool:
         #         print(f"DEBUG: Passed active download check - file recently modified and has {real_downloaded/1024/1024:.1f}MB")
         #         return True
 
-        print(f"DEBUG: Waiting - need {min_percentage_bytes/1024/1024:.1f}MB for 25%, have {real_downloaded/1024/1024:.1f}MB")
+        print(f"DEBUG: Waiting - need {min_percentage_bytes/1024/1024:.1f}, have {real_downloaded/1024/1024:.1f}MB")
         return False
         
     except Exception as e:
