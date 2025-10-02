@@ -82,6 +82,7 @@
         "notsay": "Prefiero no decirlo",
         "born": "Nacido en ",
         "delete":"¿Estás seguro de que quieres eliminar este comentario?",
+        "tryAgain":"Ocurrió un error. Por favor, inténtalo de nuevo.",
         "allGenders": {
             "male": "Masculino",
             "female": "Femenino",
@@ -157,7 +158,8 @@
                 "title": "Título",
                 "year": "Año",
                 "rating": "Valoración",
-                "viewPercentage": "Porcentaje de visualización"
+                "viewPercentage": "Porcentaje de visualización",
+                "hypertube_rating": "Valoración de Hypertube"
             },
             "order": {
                 "orderBy": "Ordenar por",
@@ -186,6 +188,8 @@
         "important": "Importante",
         "warning_info": "¡Guarda estas credenciales ahora! Desaparecerán cuando salgas de esta página.",
         "copy": "Copiar",
-        "copied": "¡Copiado!"
+        "copied": "¡Copiado!",
+        "documentation": "Documentación API",
+        "docu_info": "Descubre cómo usar la API con nuestra documentación completa"
     }
 }

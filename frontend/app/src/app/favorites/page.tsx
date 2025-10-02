@@ -108,5 +108,5 @@ export default function FavoriteMovies() {
         )}
         <div ref={observerRef} className="h-10" />
     </div>
-    );       
+    );
   }

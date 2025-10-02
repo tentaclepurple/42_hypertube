@@ -1,5 +1,3 @@
-// frontend/app/src/app/context/authcontext.tsx
-
 'use client';
  
  import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -29,7 +27,6 @@
  
  const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
- // Helper function to set secure cookies
  const setSecureCookie = (name: string, value: string, maxAge: number = 86400) => {
    const cookieOptions = [
      `${name}=${value}`,
@@ -38,7 +35,6 @@
      `samesite=strict`
    ];
 
-   // Add secure flag only in production/HTTPS
    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
      cookieOptions.push('secure');
    }
@@ -46,7 +42,6 @@
    document.cookie = cookieOptions.join('; ');
  };
 
- // Helper function to remove cookies
  const removeCookie = (name: string) => {
    const cookieOptions = [
      `${name}=`,
@@ -69,15 +64,12 @@
    const router = useRouter();
  
    useEffect(() => {
-     // Check if user is logged in on mount
      const token = localStorage.getItem('token');
      const storedUser = localStorage.getItem('user');
      if (token && storedUser) {
        try {
          setToken(token);
          setUser(JSON.parse(storedUser));
-
-         // Set the cookie with proper options
          setSecureCookie('access_token', token);
          
        } catch (error) {
@@ -95,7 +87,6 @@
      localStorage.setItem('token', token);
      localStorage.setItem('user', JSON.stringify(userData));
 
-     // Set secure cookie for API requests
      setSecureCookie('access_token', token);
      
      setUser(userData);
@@ -115,7 +106,6 @@
      localStorage.removeItem('token');
      localStorage.removeItem('user');
 
-     // Remove the cookie properly
      removeCookie('access_token');
 
      setUser(null);

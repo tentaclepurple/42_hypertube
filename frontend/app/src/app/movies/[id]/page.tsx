@@ -1,5 +1,3 @@
-// frontend/app/src/app/movies/%5Bid%5D/page.tsx
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -31,11 +29,9 @@ export default function MovieDetails() {
     const [isStreamingModalOpen, setisStreamModalOpen] = useState(false);
     const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
     const [subtitleError, setSubtitleError] = useState<string | null>(null);
-    const [favoriteMessage, setFavoriteMessage] = useState<string | null>(null);
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     
-    // Estados para editar/borrar el comentario del usuario
     const [editingUserComment, setEditingUserComment] = useState(false);
     const [editUserCommentText, setEditUserCommentText] = useState({
         comment: "",
@@ -148,11 +144,6 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setIsFavorite(data.is_favorite);
-            setFavoriteMessage(data.is_favorite ? t("movies.addedFavorites") : t("movies.removedFavorites"));
-
-            setTimeout(() => {
-                setFavoriteMessage(null);
-            }, 3000);
         } catch (err) {
             setError(err as string[]);
         } finally {
@@ -162,7 +153,6 @@ export default function MovieDetails() {
         }
     };
 
-    // Función para iniciar la edición del comentario del usuario
     const handleEditUserComment = () => {
         if (userComment) {
             setEditingUserComment(true);
@@ -174,14 +164,12 @@ export default function MovieDetails() {
         }
     };
 
-    // Función para cancelar la edición
     const handleCancelEditUserComment = () => {
         setEditingUserComment(false);
         setEditUserCommentText({ comment: "", rating: 1 });
         setEditUserCommentError(null);
     };
 
-    // Función para guardar la edición
     const handleSaveEditUserComment = async () => {
         if (!editUserCommentText.comment.trim()) {
             setEditUserCommentError(['Comment cannot be empty']);
@@ -225,7 +213,6 @@ export default function MovieDetails() {
         }
     };
 
-    // Función para manejar cambios en los inputs de edición
     const handleUserCommentInputChange = (field: string, value: any) => {
         setEditUserCommentText(prev => ({
             ...prev,
@@ -233,7 +220,6 @@ export default function MovieDetails() {
         }));
     };
 
-    // Función para borrar el comentario del usuario
     const handleDeleteUserComment = async () => {
         if (!window.confirm(t("profile.delete") || "Are you sure you want to delete this comment?")) {
             return;
@@ -263,7 +249,6 @@ export default function MovieDetails() {
                 throw errorText;
             }
 
-            // Resetear estados relacionados al comentario del usuario
             setUserComment(null);
             setHasCommented(false);
             setEditingUserComment(false);
@@ -419,11 +404,10 @@ export default function MovieDetails() {
                 return value;
             }
         }
-        
+
         const match = language.match(/^([a-z]{2})\b/i);
         return match ? match[1].toLowerCase() : 'en';
     };
-
 
     const handleLoadedMetadata = async (subtitles: any[], currentTorrent: Torrent) => {
         console.log('Video metadata loaded, processing subtitles...');
@@ -808,11 +792,6 @@ export default function MovieDetails() {
                         />
                     </button>
                     </div>
-                    {favoriteMessage && (
-                        <div className="mt-3 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
-                            {favoriteMessage}
-                        </div>
-                    )}
                 </div>
             </div>
 

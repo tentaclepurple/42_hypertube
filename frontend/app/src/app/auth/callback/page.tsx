@@ -1,5 +1,3 @@
-// frontend/app/src/app/auth/callback/page.tsx
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -31,7 +29,6 @@ export default function AuthCallback() {
         const userData = JSON.parse(decodeURIComponent(userParam));
         processAuth.current = true;
         
-        // Use the login function which will set both localStorage and cookies
         login(token, userData);
         router.push('/');
       } catch (err) {

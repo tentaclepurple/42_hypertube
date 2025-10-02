@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/authcontext';
 import { useRouter } from 'next/navigation';
-import { Menu, X, LogOutIcon, ChevronDown } from "lucide-react";
+import { LogOutIcon } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -24,9 +24,10 @@ const languages = {
 export default function Navbar() {
     const { user, isAuthenticated, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
-    const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
     const router = useRouter();
-    const toggleMenu = () => setIsOpen(!isOpen);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const toggleMenu = () => setIsOpen((prev) => !prev);
     const closeMenu = () => setIsOpen(false);
     const { t, i18n } = useTranslation();
     
@@ -34,8 +35,23 @@ export default function Navbar() {
     
     const changeLanguage = (lng: string) => {
         i18n.changeLanguage(lng);
-        setIsLanguageDropdownOpen(false);
     };
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                menuRef.current && 
+                !menuRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
+            ) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     return (
         <nav className='bg-dark-900 text-white p-4'>
@@ -55,6 +71,7 @@ export default function Navbar() {
                     ) : (
                         <div className="relative">
                             <button
+                                ref={buttonRef}
                                 onClick={toggleMenu}
                                 className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200"
                             >
@@ -63,13 +80,16 @@ export default function Navbar() {
                                     alt="avatar"
                                     width={40}
                                     height={40}
-                                    className="rounded-full border border-gray-600"
+                                    className="rounded-full border border-gray-600 object-cover object-center"
+                                    style={{ width: '40px', height: '40px', objectPosition: 'center' }}
                                 />
                             </button>
                             {isOpen && (
-                                <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+                                <div 
+                                    ref={menuRef}
+                                    className="absolute right-0 mt-2 w-56 bg-black rounded-lg shadow-lg border border-gray-700 z-50">
                                     <div className="px-4 py-3 border-b border-gray-700">
-                                        <Link 
+                                        <Link
                                             href="/profile" 
                                             className="cursor-pointer hover:text-gray-300 font-medium"
                                             title='Edit Profile'

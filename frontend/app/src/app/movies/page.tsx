@@ -6,16 +6,34 @@ import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
 import { useTranslation } from 'react-i18next';
+import { useMovieFilters } from "../ui/filters/useMovieFilters";
+import { MovieFilters } from "../ui/filters/movieFilters";
 
 export default function Movies() {
     const { logout } = useAuth();
     const [movies, setMovies] = useState<Movie[]>([]);
+    const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
     const [error, setError] = useState<string[] | null>(null);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const { t } = useTranslation();
+    const {
+        filters,
+        showFilters,
+        setShowFilters,
+        filterAndSortMovies,
+        handleFilterChange,
+        toggleGenre,
+        clearAllFilters
+    } = useMovieFilters()
+
+    useEffect(() => {
+        const filtered = filterAndSortMovies(movies);
+        setFilteredMovies(filtered);
+    }, [movies, filters]);
     
     useEffect(() => {
         const fetchMovies = async () => {
@@ -24,7 +42,7 @@ export default function Movies() {
             const token = localStorage.getItem('token');
             try
             {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}&limit=10`, 
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}&limit=${limit}`, 
                 {
                     method: 'GET',
                     headers: {
@@ -39,13 +57,11 @@ export default function Movies() {
                 };
                 const data: Movie[] = await response.json();
                 setMovies((prevMovies) => {
-                    // Create a set of existing IDs
                     const existingIds = new Set(prevMovies.map(m => m.imdb_id || m.id));
-                    // Filter out new movies that do not already exist
                     const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
                     return [...prevMovies, ...newMovies];
                 });
-                setHasMore(data.length > 0);
+                setHasMore(data.length === limit);
             }catch(err){
                 setError(err as string[]);
             }finally{
@@ -53,7 +69,7 @@ export default function Movies() {
             }
         };
         fetchMovies();
-    }, [page]);
+    }, [page, limit]);
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
@@ -65,6 +81,13 @@ export default function Movies() {
         return () => observer.disconnect();
     }, [hasMore]);
 
+    const handleLimitChange = (newLimit: number) => {
+        setLimit(newLimit);
+        setPage(1);
+        setMovies([]);
+        setHasMore(true);
+    };
+
     return (
         <div className="p-4 bg-dark-900 text-white">
             {error && (
@@ -74,8 +97,19 @@ export default function Movies() {
                     </div>
                 </div>
             )}
+        <MovieFilters
+            filters={filters}
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            onFilterChange={handleFilterChange}
+            onToggleGenre={toggleGenre}
+            onClearFilters={clearAllFilters}
+            limit={limit}
+            onLimitChange={handleLimitChange}
+            showLimitSelector={true}
+        />
         <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {movies.map((movie) => (
+            {filteredMovies.map((movie) => (
                 <Link key={movie.imdb_id || movie.id} href={`/movies/${movie.id}`} passHref>
                     <div className="bg-gray-800 p-2 rounded-lg transition-transform hover:scale-105">
                         <div className="relative pb-[150%]">
@@ -103,12 +137,11 @@ export default function Movies() {
             ))}
         </div>
         {loading && (
-        <div className="text-center mt-4 py-2">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
-            <p className="mt-2">{t("movies.loadingMore")}</p>
-        </div>
+            <div className="text-center mt-4 py-2">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
+                <p className="mt-2">{t("movies.loadingMore")}</p>
+            </div>
         )}
-        <div ref={observerRef} className="h-10" />
-    </div>
-    );       
-  }
+        <div ref={observerRef} className="h-10" /></div>
+    );
+}

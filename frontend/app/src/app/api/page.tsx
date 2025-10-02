@@ -159,6 +159,19 @@ export default function Apipage(){
                     </div>
                 )}
             </div>
+            <div className='mt-6 text-center'>
+                <p className='text-gray-400'>
+                    {t('api.docu_info')}
+                </p>
+                <a 
+                    href={`${process.env.NEXT_PUBLIC_URL}/docs`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className='text-blue-500 underline hover:text-blue-400'
+                >
+                    {t('api.documentation')}
+                </a>
+            </div>
         </div>
     );
 }

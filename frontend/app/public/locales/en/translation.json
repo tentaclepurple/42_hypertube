@@ -85,6 +85,7 @@
         "norecent": "No recent comments found",
         "born": "Born in ",
         "delete":"Are you sure you want to delete this comment?",
+        "tryAgain":"An error occurred. Please try again.",
         "allGenders": {
             "male": "Male",
             "female": "Female",
@@ -160,7 +161,8 @@
                 "title": "Title",
                 "year": "Year",
                 "rating": "Rating",
-                "viewPercentage": "View Percentage"
+                "viewPercentage": "View Percentage",
+                "hypertube_rating": "Hypertube Rating"
             },
             "order": {
                 "orderBy": "Order by",
@@ -189,6 +191,8 @@
         "important": "Important",
         "warning_info": "Save these credentials now! They will disappear when you navigate away from this page.",
         "copy": "Copy",
-        "copied": "Copied!"
+        "copied": "Copied!",
+        "documentation": "API Documentation",
+        "docu_info": "Find out how to use the API with our comprehensive documentation"
     }
 }

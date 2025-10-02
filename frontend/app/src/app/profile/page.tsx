@@ -269,14 +269,13 @@ export default function Profile() {
       }
 
       const data = await response.json();
-      // Preserve existing comments when updating profile
       const updatedUserData = {
         ...data,
-        comments: user?.comments || [] // Keep existing comments
+        comments: user?.comments || []
       };
       setUser(updatedUserData);
       setIsEditing(false);
-      updateUser(updatedUserData); // Update context
+      updateUser(updatedUserData);
     } catch (err) {
       console.error('Error updating profile:', err);
       setEditError(Array.isArray(err) ? err : [typeof err === 'string' ? err : 'An error occurred']);
@@ -288,13 +287,11 @@ export default function Profile() {
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file size (e.g., max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setEditImgError(['File size must be less than 5MB']);
         return;
       }
       
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         setEditImgError(['Please select a valid image file']);
         return;
@@ -410,8 +407,8 @@ export default function Profile() {
             c.id === updatedComment.id 
               ? {
                   ...updatedComment,
-                  movie_title: c.movie_title, // Preserve movie title
-                  movie_id: c.movie_id // Preserve movie id
+                  movie_title: c.movie_title,
+                  movie_id: c.movie_id
                 }
               : c
           ) || [],
@@ -492,7 +489,6 @@ export default function Profile() {
     setProfilePicture(null);
   };
 
-  // Helper function to safely render values
   const safeRender = (value: any, fallback: string = "N/A"): string => {
     if (value === null || value === undefined || value === "") return fallback;
     if (typeof value === 'object') return fallback;
@@ -523,7 +519,7 @@ export default function Profile() {
             onClick={() => window.location.reload()} 
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
-            Try Again
+            {t("profile.tryAgain")}
           </button>
         </div>
       </div>
@@ -533,7 +529,7 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="min-h-screen p-6 bg-dark-900 text-white flex items-center justify-center">
-        <p>No user data available</p>
+        <p>{t("profile.notfound")}</p>
       </div>
     );
   }
@@ -543,7 +539,6 @@ export default function Profile() {
       <div className="max-w-4xl mx-auto">
         {!isEditing ? (
           <>
-            {/* Profile Display Mode */}
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
               <img
                 src={user.profile_picture || '/default-avatar.png'}
@@ -569,8 +564,6 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-
-            {/* Comments Section */}
             <div className="mt-8">
               <h2 className="text-2xl font-semibold mb-6 text-center">{t("profile.comments")}</h2>
               {(!user.comments || user.comments.length === 0) ? (
@@ -702,7 +695,6 @@ export default function Profile() {
             </div>
           </>
         ) : (
-          /* Profile Edit Mode */
           <div className="mt-6">
             <h1 className="text-3xl font-bold mb-6 text-center">Edit Profile</h1>
             <div className="flex flex-col lg:flex-row items-start gap-8">
