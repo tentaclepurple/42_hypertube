@@ -158,7 +158,8 @@
                 "title": "Título",
                 "year": "Año",
                 "rating": "Valoración",
-                "viewPercentage": "Porcentaje de visualización"
+                "viewPercentage": "Porcentaje de visualización",
+                "hypertube_rating": "Valoración de Hypertube"
             },
             "order": {
                 "orderBy": "Ordenar por",

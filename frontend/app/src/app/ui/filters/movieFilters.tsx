@@ -32,7 +32,8 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
         { value: 'title', label: t("search.filter.sortOptions.title") },
         { value: 'year', label: t("search.filter.sortOptions.year") },
         { value: 'rating', label: t("search.filter.sortOptions.rating") },
-        { value: 'view_percentage', label: t("search.filter.sortOptions.viewPercentage") }
+        { value: 'view_percentage', label: t("search.filter.sortOptions.viewPercentage") },
+        { value: 'hypertube_rating', label: t("search.filter.sortOptions.hypertube_rating") }
     ];
 
     const limitOptions = [10, 20, 30, 50];
@@ -74,32 +75,6 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
                                 className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 min="1900"
                                 max={new Date().getFullYear()}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-2">{t("search.filter.minRating")}</label>
-                            <input
-                                type="number"
-                                placeholder="e.g. 7.0"
-                                value={filters.ratingFrom}
-                                onChange={(e) => onFilterChange('ratingFrom', e.target.value)}
-                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                min="0"
-                                max="10"
-                                step="0.1"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-2">{t("search.filter.maxRating")}</label>
-                            <input
-                                type="number"
-                                placeholder="e.g. 10.0"
-                                value={filters.ratingTo}
-                                onChange={(e) => onFilterChange('ratingTo', e.target.value)}
-                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                min="0"
-                                max="10"
-                                step="0.1"
                             />
                         </div>
                         <div>

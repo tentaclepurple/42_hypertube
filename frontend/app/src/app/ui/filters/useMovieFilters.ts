@@ -6,8 +6,6 @@ export interface SearchFilters {
     query: string;
     yearFrom: string;
     yearTo: string;
-    ratingFrom: string;
-    ratingTo: string;
     sortBy: string;
     sortOrder: string;
     genres: string[];
@@ -44,8 +42,6 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         query: initialquery,
         yearFrom: '',
         yearTo: '',
-        ratingFrom: '',
-        ratingTo: '',
         sortBy: 'rating',
         sortOrder: 'desc',
         genres: []
@@ -65,13 +61,6 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         }
         if (filters.yearTo) {
             filtered = filtered.filter(movie => movie.year <= parseInt(filters.yearTo));
-        }
-
-        if (filters.ratingFrom) {
-            filtered = filtered.filter(movie => movie.rating >= parseFloat(filters.ratingFrom));
-        }
-        if (filters.ratingTo) {
-            filtered = filtered.filter(movie => movie.rating <= parseFloat(filters.ratingTo));
         }
 
         if (filters.genres.length > 0) {
@@ -95,10 +84,6 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
                 case 'year':
                     aValue = a.year;
                     bValue = b.year;
-                    break;
-                case 'rating':
-                    aValue = a.rating;
-                    bValue = b.rating;
                     break;
                 case 'view_percentage':
                     aValue = a.view_percentage || 0;
@@ -142,9 +127,8 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
 
     const hasActiveFilters = (): boolean => {
         return Boolean (
-            filters.yearFrom || filters.yearTo || 
-               filters.ratingFrom || filters.ratingTo ||
-               filters.genres.length > 0
+            filters.yearFrom || filters.yearTo ||
+            filters.genres.length > 0
         );
     };
 
@@ -165,8 +149,6 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
             query: filters.query,
             yearFrom: '',
             yearTo: '',
-            ratingFrom: '',
-            ratingTo: '',
             sortBy: 'rating',
             sortOrder: 'desc',
             genres: []

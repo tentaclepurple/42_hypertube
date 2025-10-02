@@ -161,7 +161,8 @@
                 "title": "Title",
                 "year": "Year",
                 "rating": "Rating",
-                "viewPercentage": "View Percentage"
+                "viewPercentage": "View Percentage",
+                "hypertube_rating": "Hypertube Rating"
             },
             "order": {
                 "orderBy": "Order by",
