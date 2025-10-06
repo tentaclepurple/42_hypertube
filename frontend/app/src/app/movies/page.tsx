@@ -23,6 +23,7 @@ export default function Movies() {
         filters,
         showFilters,
         setShowFilters,
+        buildQueryString,
         filterAndSortMovies,
         handleFilterChange,
         toggleGenre,
@@ -40,8 +41,10 @@ export default function Movies() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try
-            {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}`, 
+            {   
+                const queryString = buildQueryString(page);
+                console.log(queryString);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?${queryString}`,
                 {
                     method: 'GET',
                     headers: {
