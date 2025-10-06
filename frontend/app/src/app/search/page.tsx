@@ -21,7 +21,6 @@ export default function Search() {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [initialSearch, setInitialSearch] = useState(false);
-    const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { t } = useTranslation();
@@ -64,7 +63,7 @@ export default function Search() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try {
-                const queryString = buildQueryString(page, limit);
+                const queryString = buildQueryString(page);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/movies?${queryString}`, {
                     method: 'GET',
                     headers: {
@@ -91,7 +90,7 @@ export default function Search() {
                         return [...prevMovies, ...newMovies];
                     });
                 }
-                setHasMore(data.length === limit);
+                setHasMore(data.length > 0);
             } catch (err) {
                 setHasMore(false);
                 setError(err as string[]);
@@ -101,7 +100,7 @@ export default function Search() {
         };
         
         fetchMovies();
-    }, [debouncedQuery, page, filters, limit]);
+    }, [debouncedQuery, page, filters]);
 
     useEffect(() => {
         if (!hasMore || loading || isLoggingOut) return;
@@ -113,12 +112,6 @@ export default function Search() {
         if (observerRef.current) observer.observe(observerRef.current);
         return () => observer.disconnect();
     }, [hasMore, loading, debouncedQuery, filters]);
-
-    const handleLimitChange = (newLimit: number) => {
-        setLimit(newLimit);
-        setPage(1);
-        setAllMovies([]);
-    };
 
     const renderContent = () => {
         if (filteredMovies.length === 0 && !loading && initialSearch) {
@@ -191,9 +184,6 @@ export default function Search() {
                 onFilterChange={handleFilterChange}
                 onToggleGenre={toggleGenre}
                 onClearFilters={clearAllFilters}
-                limit={limit}
-                onLimitChange={handleLimitChange}
-                showLimitSelector={true}
             />
             {error && (
                 <div className="text-center mt-4 py-2">
