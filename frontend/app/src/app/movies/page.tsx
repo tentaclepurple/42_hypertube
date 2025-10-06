@@ -17,7 +17,6 @@ export default function Movies() {
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const { t } = useTranslation();
     const {
@@ -42,7 +41,7 @@ export default function Movies() {
             const token = localStorage.getItem('token');
             try
             {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}&limit=${limit}`, 
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}`, 
                 {
                     method: 'GET',
                     headers: {
@@ -61,7 +60,7 @@ export default function Movies() {
                     const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
                     return [...prevMovies, ...newMovies];
                 });
-                setHasMore(data.length === limit);
+                setHasMore(data.length > 0);
             }catch(err){
                 setError(err as string[]);
             }finally{
@@ -69,7 +68,7 @@ export default function Movies() {
             }
         };
         fetchMovies();
-    }, [page, limit]);
+    }, [page]);
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
@@ -81,12 +80,6 @@ export default function Movies() {
         return () => observer.disconnect();
     }, [hasMore]);
 
-    const handleLimitChange = (newLimit: number) => {
-        setLimit(newLimit);
-        setPage(1);
-        setMovies([]);
-        setHasMore(true);
-    };
 
     return (
         <div className="p-4 bg-dark-900 text-white">
@@ -104,9 +97,6 @@ export default function Movies() {
             onFilterChange={handleFilterChange}
             onToggleGenre={toggleGenre}
             onClearFilters={clearAllFilters}
-            limit={limit}
-            onLimitChange={handleLimitChange}
-            showLimitSelector={true}
         />
         <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {filteredMovies.map((movie) => (
