@@ -55,7 +55,8 @@
         "firstComment": "¡Aún no hay comentarios, sé el primero en comentar!",
         "watched": "✅ Visto",
         "addedFavorites": "Añadido a favoritos",
-        "removedFavorites": "Eliminado de favoritos"
+        "removedFavorites": "Eliminado de favoritos",
+        "noMoviesFound": "No se han encontrado películas con los filtros actuales"
     },
     "profile": {
         "loading": "Cargando prefil...",

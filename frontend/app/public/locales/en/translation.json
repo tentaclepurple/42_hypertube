@@ -56,7 +56,8 @@
         "firstComment": "There are no comments yet, be the first to comment!",
         "watched": "✅ Watched",
         "addedFavorites": "Added to favorites",
-        "removedFavorites": "Removed from favorites"
+        "removedFavorites": "Removed from favorites",
+        "noMoviesFound": "No movies found with current filters"
     },
     "profile": {
         "loading": "Loading profile...",

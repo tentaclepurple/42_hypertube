@@ -135,6 +135,11 @@ export default function Movies() {
                 <p className="mt-2">{t("movies.loadingMore")}</p>
             </div>
         )}
+        {filteredMovies.length === 0 && !loading &&(
+            <div className="text-center mt-4 py-2">
+                <p>{t("movies.noMoviesFound")}</p>
+            </div>
+        )}
         <div ref={observerRef} className="h-10" /></div>
     );
 }
