@@ -937,7 +937,6 @@ export default function MovieDetails() {
                             <span className="ml-2 text-sm text-gray-400">({newRating}/5)</span>
                         </div>
                     </div>
-
                     <div className="mb-4">
                         <label htmlFor="comment" className="block text-sm font-medium mb-2">
                             {t("movies.comment")}
@@ -980,34 +979,37 @@ export default function MovieDetails() {
                         <p>{t("movies.firstComment")}</p>
                     </div>
                 ) : (
-                    comments.map((comment) => (
-                        <div key={comment.id} className="bg-gray-700 rounded-lg p-4">
-                            <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
-                                        {comment.username.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <Link href={`/profile/${comment.username}`}>
-                                            <p className="font-medium hover:text-blue-400 cursor-pointer">
-                                                {comment.username}
+                    <>
+                        <h2 className="text-xl font-semibold mb-4">{t("movies.comments")}</h2>
+                        {comments.map((comment) => (
+                            <div key={comment.id} className="bg-gray-700 rounded-lg p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
+                                            {comment.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <Link href={`/profile/${comment.username}`}>
+                                                <p className="font-medium hover:text-blue-400 cursor-pointer">
+                                                    {comment.username}
+                                                </p>
+                                            </Link>
+                                            <p className="text-xs text-gray-400">
+                                                {formatDate(comment.created_at)}
                                             </p>
-                                        </Link>
-                                        <p className="text-xs text-gray-400">
-                                            {formatDate(comment.created_at)}
-                                        </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {renderStars(comment.rating)}
+                                        <span className="ml-1 text-sm text-gray-400">
+                                            ({comment.rating}/5)
+                                        </span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    {renderStars(comment.rating)}
-                                    <span className="ml-1 text-sm text-gray-400">
-                                        ({comment.rating}/5)
-                                    </span>
-                                </div>
+                                <p className="text-gray-200 leading-relaxed">{comment.comment}</p>
                             </div>
-                            <p className="text-gray-200 leading-relaxed">{comment.comment}</p>
-                        </div>
-                    ))
+                        ))}
+                    </>
                 )}
             </div>
             
