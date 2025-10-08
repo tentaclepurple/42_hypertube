@@ -128,7 +128,6 @@ class TorrentDownloader:
         """Download subtitles for the movie in the torrent's actual directory"""
         try:
             logger.info(f"SUBTITLES: Starting download for movie {movie_id}")
-            logger.info(f"SUBTITLES: Target directory: {torrent_directory}")
             
             # Verify directory exists
             if not torrent_directory.exists():
