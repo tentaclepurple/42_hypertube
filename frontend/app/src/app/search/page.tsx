@@ -160,6 +160,7 @@ export default function Search() {
 
     return (
         <div className="p-4 bg-dark-900 text-white">
+            <h1 className="text-4xl font-bold mb-6 text-center">{t("search.pageTitle")}</h1>
             <div className="relative mb-4 max-w-2xl mx-auto">
                 <input
                     type="text"

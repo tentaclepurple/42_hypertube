@@ -86,6 +86,7 @@ export default function Movies() {
 
     return (
         <div className="p-4 bg-dark-900 text-white">
+            <h1 className="text-4xl font-bold mb-6 text-center">{t("movies.pageTitle")}</h1>
             {error && (
                 <div className="text-center mt-4 py-2">
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
