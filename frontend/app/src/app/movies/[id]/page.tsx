@@ -446,9 +446,9 @@ export default function MovieDetails() {
                 track.srclang = langCode;
                 track.label = detectedLanguage;
 
-                const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
-                                detectedLanguage.toLowerCase().includes('español') ||
-                                langCode === 'es';
+                // const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
+                //                 detectedLanguage.toLowerCase().includes('español') ||
+                //                 langCode === 'es';
                 
                 track.default = false;
                 
@@ -501,13 +501,13 @@ export default function MovieDetails() {
                     });
                 }
 
-                let hasActiveTrack = false;
-                for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-                    if (videoRef.current.textTracks[i].mode === 'showing') {
-                        hasActiveTrack = true;
-                        break;
-                    }
-                }
+                // let hasActiveTrack = false;
+                // for (let i = 0; i < videoRef.current.textTracks.length; i++) {
+                //     if (videoRef.current.textTracks[i].mode === 'showing') {
+                //         hasActiveTrack = true;
+                //         break;
+                //     }
+                // }
                 
                 console.log('Subtitle tracks available but remaining disabled by user choice');
             }
