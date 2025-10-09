@@ -93,6 +93,7 @@ export default function Search() {
                     });
                 }
                 setHasMore(data.length > 0);
+                setError(null);
             } catch (err) {
                 setHasMore(false);
                 setError(err as string[]);
@@ -102,20 +103,22 @@ export default function Search() {
         };
         
         fetchMovies();
-    }, [debouncedQuery, page, filters]);
+    }, [debouncedQuery, page, JSON.stringify(filters)]);
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasMore && !loading &&  debouncedQuery) {
-                if(filteredMovies.length > 0)
-                    setPage((prevPage) => prevPage + 1);
-            }
+          if (entries[0].isIntersecting && hasMore && !loading && debouncedQuery) {
+                setPage(prevPage => prevPage + 1);
+          }
         }, { threshold: 1 });
-        if (observerRef.current && hasMore && debouncedQuery && filteredMovies.length > 0) {
-            observer.observe(observerRef.current);
+
+        if (observerRef.current) {
+          observer.observe(observerRef.current);
         }
-        return () => observer.disconnect();
-    }, [hasMore, loading, debouncedQuery]);
+        return () => {
+          if (observerRef.current) observer.unobserve(observerRef.current);
+        };
+      }, [hasMore, debouncedQuery]);
 
     const renderContent = () => {
 
