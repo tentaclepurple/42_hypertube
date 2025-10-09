@@ -23,10 +23,7 @@ export default function Movies() {
         filters,
         showFilters,
         setShowFilters,
-<<<<<<< HEAD
         buildQueryString,
-=======
->>>>>>> imontero_ddns
         filterAndSortMovies,
         handleFilterChange,
         toggleGenre,
@@ -44,15 +41,10 @@ export default function Movies() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try
-<<<<<<< HEAD
             {   
                 const queryString = buildQueryString(page);
                 console.log(queryString);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?${queryString}`,
-=======
-            {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}`, 
->>>>>>> imontero_ddns
                 {
                     method: 'GET',
                     headers: {
@@ -144,14 +136,11 @@ export default function Movies() {
                 <p className="mt-2">{t("movies.loadingMore")}</p>
             </div>
         )}
-<<<<<<< HEAD
         {filteredMovies.length === 0 && !loading &&(
             <div className="text-center mt-4 py-2">
                 <p>{t("movies.noMoviesFound")}</p>
             </div>
         )}
-=======
->>>>>>> imontero_ddns
         <div ref={observerRef} className="h-10" /></div>
     );
 }
