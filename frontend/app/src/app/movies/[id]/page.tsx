@@ -31,7 +31,8 @@ export default function MovieDetails() {
     const [subtitleError, setSubtitleError] = useState<string | null>(null);
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
-    
+    const [isPreparingStream, setIsPreparingStream] = useState(false);
+    const [estimatedWaitTime, setEstimatedWaitTime] = useState<number | null>(null);
     const [editingUserComment, setEditingUserComment] = useState(false);
     const [editUserCommentText, setEditUserCommentText] = useState({
         comment: "",
@@ -446,10 +447,6 @@ export default function MovieDetails() {
                 track.srclang = langCode;
                 track.label = detectedLanguage;
 
-                // const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
-                //                 detectedLanguage.toLowerCase().includes('español') ||
-                //                 langCode === 'es';
-                
                 track.default = false;
                 
                 console.log('Adding WebVTT subtitle track:', {
@@ -500,15 +497,6 @@ export default function MovieDetails() {
                         cues: track.cues ? track.cues.length : 'not loaded'
                     });
                 }
-
-                // let hasActiveTrack = false;
-                // for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-                //     if (videoRef.current.textTracks[i].mode === 'showing') {
-                //         hasActiveTrack = true;
-                //         break;
-                //     }
-                // }
-                
                 console.log('Subtitle tracks available but remaining disabled by user choice');
             }
             
@@ -539,20 +527,23 @@ export default function MovieDetails() {
                             method: "GET",
                             credentials: 'include',
                         });
+                        setIsPreparingStream(true);
                         const data = await statusResponse.json();
-                        
                         const message = data.detail?.message || 'Download in progress';
                         const retryAfter = data.detail?.retry_after || 30;
+                        setEstimatedWaitTime(data.detail?.estimated_wait || null);
                         
                         setCommentError([`${message} - Retrying in ${retryAfter}s...`]);
                         
                         setTimeout(() => handleTorrentSelect(torrent), retryAfter * 1000);
                         return;
                     }
-                    
+
                     if (!checkResponse.ok) {
                         if (checkResponse.status === 401) logout();
                         setCommentError([`Stream error: ${checkResponse.status}`]);
+                        setIsPreparingStream(false);
+                        setEstimatedWaitTime(null);
                         return;
                     }
                     
@@ -577,6 +568,7 @@ export default function MovieDetails() {
                     
                     const handleLoadedData = () => {
                         setCommentError(null);
+                        setEstimatedWaitTime(null);
                         console.log('Video data loaded');
                     };
                     
@@ -590,7 +582,7 @@ export default function MovieDetails() {
                             }
                         }
                     };
-
+                    
                     const handleTimeUpdate = () => {
                         if (videoRef.current && videoRef.current.duration > 0) {
                             const currentTime = videoRef.current.currentTime;
@@ -600,7 +592,7 @@ export default function MovieDetails() {
                             const timeDiff = now - lastUpdateTimeRef.current;
                             const currentPercentage = Math.floor(percentage);
                             const lastReported = lastUpdatePercentageRef.current;
-
+                            
                             if (timeDiff >= 30000 && currentPercentage > lastReported) {
                                 updateViewProgress(percentage);
                                 lastUpdateTimeRef.current = now;
@@ -620,7 +612,7 @@ export default function MovieDetails() {
                     videoRef.current.removeEventListener('loadedmetadata', () => {});
                     videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-
+                    
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
@@ -628,9 +620,10 @@ export default function MovieDetails() {
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
                     
                     videoRef.current.load();
-
+                    
                     setTimeout(() => {
                         if (videoRef.current) {
+                            setIsPreparingStream(false);
                             console.log('Video tracks after load:', videoRef.current.textTracks.length);
                             for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                                 const track = videoRef.current.textTracks[i];
@@ -647,6 +640,7 @@ export default function MovieDetails() {
                     
                 } catch (error) {
                     console.error('Network error:', error);
+                    setIsPreparingStream(false);
                     setCommentError([`Network error: ${error}`]);
                 }
             } else {
@@ -1020,12 +1014,33 @@ export default function MovieDetails() {
                             <h2 className="text-lg font-semibold">
                                 {movie?.title} - {selectedTorrent?.quality}
                             </h2>
-                            <button onClick={closeStreamingModal} className="p-1 rounded-full hover:bg-gray-700 transition-colors">
+                            <button
+                                onClick={closeStreamingModal}
+                                className="p-1 rounded-full hover:bg-gray-700 transition-colors"
+                            >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <video ref={videoRef} controls autoPlay className="w-full h-full object-contain bg-black" />
+                        <div className="flex-1 flex items-center justify-center p-4 relative">
+                            <video
+                                ref={videoRef}
+                                controls
+                                autoPlay
+                                className="w-full h-full object-contain bg-black"
+                            />
+                            {isPreparingStream && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-center space-y-4">
+                                    <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+                                    <p className="text-lg font-medium text-white">
+                                        {  t("movies.video.streaming") || "Preparando el streaming..."}
+                                    </p>
+                                    {estimatedWaitTime && (
+                                        <p className="text-sm text-gray-400">
+                                        {t("movies.video.time")} {estimatedWaitTime}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

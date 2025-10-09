@@ -58,7 +58,11 @@
         "watched": "✅ Visto",
         "addedFavorites": "Añadido a favoritos",
         "removedFavorites": "Eliminado de favoritos",
-        "noMoviesFound": "No se han encontrado películas con los filtros actuales"
+        "noMoviesFound": "No se han encontrado películas con los filtros actuales",
+        "video":{
+            "streaming": "Preparando el streaming...",
+            "time": "Tiempo estimado: "
+        }
     },
     "profile": {
         "loading": "Cargando prefil...",

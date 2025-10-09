@@ -673,9 +673,6 @@ def start_kafka_consumer(downloader):
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
             auto_offset_reset='latest',
             enable_auto_commit=True,
-            session_timeout_ms=30000,        # 30 segundos
-            heartbeat_interval_ms=3000,      # 3 segundos
-            max_poll_interval_ms=600000,     # 10 minutos para procesar
         )
 
         logger.info("Kafka consumer connected and waiting for messages...")

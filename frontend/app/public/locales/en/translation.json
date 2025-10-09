@@ -59,7 +59,11 @@
         "watched": "✅ Watched",
         "addedFavorites": "Added to favorites",
         "removedFavorites": "Removed from favorites",
-        "noMoviesFound": "No movies found with current filters"
+        "noMoviesFound": "No movies found with current filters",
+        "video":{
+            "streaming": "Preparing the stream...",
+            "time": "Estimated time: "
+        }
     },
     "profile": {
         "loading": "Loading profile...",
