@@ -14,15 +14,12 @@ export async function GET(
       return new NextResponse('Missing torrent_hash parameter', { status: 400 });
     }
     
-    // Awaitar params antes de usarlo
     const resolvedParams = await params;
     const movieId = resolvedParams.params[0];
     const subtitlePath = resolvedParams.params.slice(1).join('/');
     
     const backendUrl = `http://backend:8000/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
-    
-    console.log('Proxy request to:', backendUrl);
-    
+
     const response = await fetch(backendUrl, {
       method: 'GET',
       headers: {
@@ -38,9 +35,8 @@ export async function GET(
       });
     }
     
-    const subtitleContent = await response.text(); // Usar text() en lugar de arrayBuffer()
+    const subtitleContent = await response.text();
     
-    // Determinar el tipo de contenido basado en la extensión
     const contentType = getSubtitleContentType(subtitlePath);
     
     return new NextResponse(subtitleContent, {

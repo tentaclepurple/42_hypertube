@@ -43,7 +43,6 @@ export default function Movies() {
             try
             {   
                 const queryString = buildQueryString(page);
-                console.log(queryString);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?${queryString}`,
                 {
                     method: 'GET',

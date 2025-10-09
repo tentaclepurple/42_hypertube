@@ -106,15 +106,16 @@ export default function Search() {
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasMore && !loading &&(debouncedQuery || hasActiveFilters())) {
-                setPage((prevPage) => prevPage + 1);
+            if (entries[0].isIntersecting && hasMore && !loading &&  debouncedQuery) {
+                if(filteredMovies.length > 0)
+                    setPage((prevPage) => prevPage + 1);
             }
         }, { threshold: 1 });
-        if (observerRef.current && hasMore && (debouncedQuery || hasActiveFilters())) {
+        if (observerRef.current && hasMore && debouncedQuery && filteredMovies.length > 0) {
             observer.observe(observerRef.current);
         }
         return () => observer.disconnect();
-    }, [hasMore, loading, debouncedQuery, filters]);
+    }, [hasMore, loading, debouncedQuery]);
 
     const renderContent = () => {
 
@@ -210,8 +211,7 @@ export default function Search() {
                     <p className="mt-2">{t("search.loading")}</p>
                 </div>
             )}
-
-            {hasMore && filteredMovies.length > 0  &&  <div ref={observerRef} className="h-10" />}
+            <div ref={observerRef} className="h-10" />
         </div>
     );
 }
