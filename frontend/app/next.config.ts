@@ -1,11 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactStrictMode: true,
   images: {
-    domains: ['yts.mx', 'image.tmdb.org'],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'yts.mx',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'image.tmdb.org',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'ujbctboiqjsoskaflslz.supabase.co',
