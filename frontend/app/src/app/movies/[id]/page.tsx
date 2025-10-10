@@ -579,6 +579,7 @@ export default function MovieDetails() {
                     };
                     const handleLoadedData = () => {
                         setCommentError(null);
+                        setIsPreparingStream(false);
                         setEstimatedWaitTime(null);
                         console.log('Video data loaded');
                     };
