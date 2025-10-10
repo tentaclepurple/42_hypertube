@@ -23,6 +23,7 @@ export default function Movies() {
         filters,
         showFilters,
         setShowFilters,
+        buildQueryString,
         filterAndSortMovies,
         handleFilterChange,
         toggleGenre,
@@ -40,8 +41,10 @@ export default function Movies() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try
-            {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}`, 
+            {   
+                const queryString = buildQueryString(page);
+                console.log(queryString);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?${queryString}`,
                 {
                     method: 'GET',
                     headers: {
@@ -83,6 +86,7 @@ export default function Movies() {
 
     return (
         <div className="p-4 bg-dark-900 text-white">
+            <h1 className="text-4xl font-bold mb-6 text-center">{t("movies.pageTitle")}</h1>
             {error && (
                 <div className="text-center mt-4 py-2">
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -130,6 +134,11 @@ export default function Movies() {
             <div className="text-center mt-4 py-2">
                 <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
                 <p className="mt-2">{t("movies.loadingMore")}</p>
+            </div>
+        )}
+        {filteredMovies.length === 0 && !loading &&(
+            <div className="text-center mt-4 py-2">
+                <p>{t("movies.noMoviesFound")}</p>
             </div>
         )}
         <div ref={observerRef} className="h-10" /></div>

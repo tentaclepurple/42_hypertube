@@ -51,6 +51,8 @@ export default function Search() {
                 setInitialSearch(true);
                 setPage(1);
                 setAllMovies([]);
+                setHasMore(true);
+                setError(null);  
             }
         }, 500);
         return () => clearTimeout(timer);
@@ -103,17 +105,19 @@ export default function Search() {
     }, [debouncedQuery, page, filters]);
 
     useEffect(() => {
-        if (!hasMore || loading || isLoggingOut) return;
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasMore && (debouncedQuery || hasActiveFilters())) {
+            if (entries[0].isIntersecting && hasMore && !loading &&(debouncedQuery || hasActiveFilters())) {
                 setPage((prevPage) => prevPage + 1);
             }
         }, { threshold: 1 });
-        if (observerRef.current) observer.observe(observerRef.current);
+        if (observerRef.current && hasMore && (debouncedQuery || hasActiveFilters())) {
+            observer.observe(observerRef.current);
+        }
         return () => observer.disconnect();
     }, [hasMore, loading, debouncedQuery, filters]);
 
     const renderContent = () => {
+
         if (filteredMovies.length === 0 && !loading && initialSearch) {
             return (
                 <div className="text-center py-10">
@@ -156,6 +160,7 @@ export default function Search() {
 
     return (
         <div className="p-4 bg-dark-900 text-white">
+            <h1 className="text-4xl font-bold mb-6 text-center">{t("search.pageTitle")}</h1>
             <div className="relative mb-4 max-w-2xl mx-auto">
                 <input
                     type="text"
@@ -206,7 +211,7 @@ export default function Search() {
                 </div>
             )}
 
-            <div ref={observerRef} className="h-10" />
+            {hasMore && filteredMovies.length > 0  &&  <div ref={observerRef} className="h-10" />}
         </div>
     );
 }

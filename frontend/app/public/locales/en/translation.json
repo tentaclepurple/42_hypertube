@@ -37,6 +37,7 @@
         }
     },
     "movies": {
+        "pageTitle": "Movies",
         "loadingMore": "Loading more movies...",
         "loading":  "Loading movie...",
         "genres": "Genres",
@@ -47,6 +48,7 @@
         "viewing": "Viewing progress",
         "completed": "✅ Fully watched",
         "comment": "Your comment",
+        "comments": "Comments",
         "rating": "Your rating",
         "placeholder": "Write your opinion about the movie...",
         "character": "character",
@@ -56,7 +58,8 @@
         "firstComment": "There are no comments yet, be the first to comment!",
         "watched": "✅ Watched",
         "addedFavorites": "Added to favorites",
-        "removedFavorites": "Removed from favorites"
+        "removedFavorites": "Removed from favorites",
+        "noMoviesFound": "No movies found with current filters"
     },
     "profile": {
         "loading": "Loading profile...",
@@ -125,6 +128,7 @@
         }
     },
     "search": {
+        "pageTitle": "Search Movies",
         "loading": "Loading more movies...",
         "noResults": "No movies found with current filters",
         "searchPlaceholder": "Search movies...",
@@ -183,6 +187,8 @@
         "goToLogin": "Go to login" 
     },
     "api":{
+        "key": "API Keys", 
+        "pageTitle": "API Credentials",
         "description": "Generate API credentials to access HYPERTUBE programmatically",
         "key_generated": "Generate Your API Credentials",
         "key_info": "Click the button below to generate your API key and secret",
@@ -194,5 +200,12 @@
         "copied": "Copied!",
         "documentation": "API Documentation",
         "docu_info": "Find out how to use the API with our comprehensive documentation"
+    },
+    "view": {
+        "pageTitle": "Continue Watching"
+    },
+    "favorites": {
+        "pageTitle": "Favorites"
     }
+
 }
