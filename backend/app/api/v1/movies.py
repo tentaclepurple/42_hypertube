@@ -24,6 +24,8 @@ from app.models.view_progress import ViewProgressUpdate, ViewProgressResponse
 from app.services.imdb_graphql_service import IMDBGraphQLService
 from app.services.kafka_service import kafka_service
 from app.services.cleanup_service import cleanup_service
+from app.services.token_service import TokenService  # ← AGREGAR ESTA LÍNEA
+from app.services.jwt_service import JWTService      # ← AGREGAR ESTA LÍNEA
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -166,26 +168,63 @@ async def get_movie_details(
 async def stream_movie(
     movie_id: str,
     request: Request,
-    current_user: dict = Depends(get_current_user_from_cookie),
     torrent_hash: str = Query(..., description="Specific torrent hash (quality)"),
+    token: Optional[str] = Query(None, description="Authentication token"),
     range: str = Header(None)
 ):
-
-    
     """
-    Unified streaming endpoint that:
-    1. Checks if movie with specific hash is downloaded
-    2. Initiates download if not exists
-    3. Streams when sufficient data is available
-    4. Handles progressive streaming during download
+    Unified streaming endpoint with token parameter or cookie authentication
     """
     try:
-        print("USER: ", current_user["id"], flush=True)
+        # Intentar autenticar con token del query parameter primero
+        user = None
+        
+        if token:
+            try:
+                is_revoked = await TokenService.is_token_revoked(token)
+                if not is_revoked:
+                    user_id = JWTService.verify_token(token)
+                    async with get_db_connection() as conn:
+                        user_data = await conn.fetchrow(
+                            "SELECT id, email, username FROM users WHERE id = $1",
+                            uuid.UUID(user_id)
+                        )
+                        if user_data:
+                            user = dict(user_data)
+                            logger.info(f"Authenticated via token parameter for user {user_id}")
+            except Exception as e:
+                logger.warning(f"Token parameter auth failed: {e}")
+        
+        # Fallback a cookie si no hay token en parámetro
+        if not user:
+            cookie_token = request.cookies.get("access_token")
+            if cookie_token:
+                try:
+                    is_revoked = await TokenService.is_token_revoked(cookie_token)
+                    if not is_revoked:
+                        user_id = JWTService.verify_token(cookie_token)
+                        async with get_db_connection() as conn:
+                            user_data = await conn.fetchrow(
+                                "SELECT id, email, username FROM users WHERE id = $1",
+                                uuid.UUID(user_id)
+                            )
+                            if user_data:
+                                user = dict(user_data)
+                                logger.info(f"Authenticated via cookie for user {user_id}")
+                except Exception as e:
+                    logger.warning(f"Cookie auth failed: {e}")
+        
+        # Si no hay autenticación válida
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required. Provide token parameter or valid cookie."
+            )
+        
         movie_uuid = uuid.UUID(movie_id)
-        user_id = current_user["id"]
+        user_id = user["id"]
         
-        
-        logger.info(f"BACKEND: Stream request for movie {movie_id}, hash {torrent_hash}")
+        logger.info(f"BACKEND: Stream request for movie {movie_id}, hash {torrent_hash}, user {user_id}")
         
         async with get_db_connection() as conn:
             # Check if movie exists in movies table
@@ -220,7 +259,7 @@ async def stream_movie(
             download_info = await conn.fetchrow(
                 """
                 SELECT downloaded_lg, filepath_ds, hash_id, update_dt
-                FROM movie_download_42 
+                FROM movie_downloads_42 
                 WHERE movie_id = $1 AND hash_id = $2
                 ORDER BY update_dt DESC
                 LIMIT 1
@@ -241,7 +280,7 @@ async def stream_movie(
                 # File was deleted, mark as not downloaded
                 async with get_db_connection() as conn:
                     await conn.execute(
-                        "UPDATE movie_download_42 SET downloaded_lg = false WHERE hash_id = $1",
+                        "UPDATE movie_downloads_42 SET downloaded_lg = false WHERE hash_id = $1",
                         torrent_hash.lower()
                     )
                 logger.warning(f"BACKEND: Downloaded file missing, marked as not downloaded: {file_path}")
@@ -260,7 +299,6 @@ async def stream_movie(
                     logger.info(f"BACKEND: Serving partial file during download: {file_path}")
                     return await _serve_partial_file(Path(file_path), movie_title, range)
                 else:
-                    # Not enough data yet, return status
                     logger.info(f"BACKEND: File too small for streaming: {file_size} bytes")
                     raise HTTPException(
                         status_code=202,
@@ -274,7 +312,6 @@ async def stream_movie(
             else:
                 logger.warning(f"BACKEND: Filepath in DB but file doesn't exist: {file_path}")
         
-        # Check if we found ANY download info but without filepath
         if download_info:
             logger.info(f"BACKEND: Download info found but no valid filepath: {download_info}")
             raise HTTPException(
@@ -289,7 +326,6 @@ async def stream_movie(
         # CASE 3: Not downloaded, need to start download
         logger.info(f"BACKEND: No download found for movie {movie_id}, hash {torrent_hash} - starting new download")
         
-        # Initiate download via Kafka
         download_message = {
             'movie_id': str(movie_uuid),
             'torrent_hash': torrent_hash,
@@ -304,16 +340,15 @@ async def stream_movie(
         if not success:
             raise HTTPException(503, "Download service unavailable")
         
-        # Return immediate response that download has started
         raise HTTPException(
-            status_code=202,  # Accepted, processing
+            status_code=202,
             detail={
                 "message": "Download initiated, please wait",
                 "status": "starting_download",
                 "movie_id": str(movie_uuid),
                 "torrent_hash": torrent_hash,
                 "estimated_wait": "2-5 minutes",
-                "retry_after": 30  # Suggest client retry after 30 seconds
+                "retry_after": 30
             }
         )
         
@@ -531,7 +566,7 @@ async def get_streaming_status(
                 """
                 SELECT md.downloaded_lg, md.filepath_ds, md.hash_id, md.update_dt,
                        m.title
-                FROM movie_download_42 md
+                FROM movie_downloads_42 md
                 JOIN movies m ON m.id = md.movie_id  
                 WHERE md.movie_id = $1 AND md.hash_id = $2
                 ORDER BY md.update_dt DESC
@@ -883,7 +918,7 @@ async def get_movie_subtitles(
         async with get_db_connection() as conn:
             download_info = await conn.fetchrow(
                 """
-                SELECT filepath_ds FROM movie_download_42 
+                SELECT filepath_ds FROM movie_downloads_42 
                 WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
                 """,
                 movie_uuid, torrent_hash.lower()
@@ -1008,7 +1043,7 @@ async def serve_subtitle_file(
         async with get_db_connection() as conn:
             download_info = await conn.fetchrow(
                 """
-                SELECT filepath_ds FROM movie_download_42 
+                SELECT filepath_ds FROM movie_downloads_42 
                 WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
                 """,
                 movie_uuid, torrent_hash.lower()

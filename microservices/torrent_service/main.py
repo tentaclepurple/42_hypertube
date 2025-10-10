@@ -127,8 +127,7 @@ class TorrentDownloader:
     async def _download_movie_subtitles(self, movie_id: str, movie_title: str, torrent_directory: Path):
         """Download subtitles for the movie in the torrent's actual directory"""
         try:
-            logger.info(f"SUBTITLES: Starting download for movie {movie_id}")
-            logger.info(f"SUBTITLES: Target directory: {torrent_directory}")
+
             
             # Verify directory exists
             if not torrent_directory.exists():
@@ -140,16 +139,10 @@ class TorrentDownloader:
             
             imdb_id = movie_info.get('imdb_id')
             db_title = movie_info.get('title')
-            logger.info(f"SUBTITLES: IMDB ID: {imdb_id}, DB TITLE: {db_title}")
             
             # Use database title if available, fallback to provided title
             title_to_use = db_title or movie_title
             
-            logger.info(f"SUBTITLES: Downloading subtitles for: {title_to_use}")
-            if imdb_id:
-                logger.info(f"SUBTITLES: Using IMDB ID: {imdb_id}")
-            else:
-                logger.info("SUBTITLES: No IMDB ID found, using title search")
             
             # Initialize subtitles service
             subtitles_service = SubtitlesService()
@@ -161,17 +154,7 @@ class TorrentDownloader:
                 movie_title=title_to_use
             )
             
-            # Log results
-            if results.get('spanish'):
-                logger.info("SUBTITLES: Spanish subtitles downloaded successfully")
-            else:
-                logger.warning("SUBTITLES: Failed to download Spanish subtitles")
-                
-            if results.get('english'):
-                logger.info("SUBTITLES: English subtitles downloaded successfully")
-            else:
-                logger.warning("SUBTITLES: Failed to download English subtitles")
-            
+
             return results
             
         except Exception as e:
@@ -193,7 +176,7 @@ class TorrentDownloader:
             
             result = await conn.fetchrow(
                 """
-                SELECT downloaded_lg FROM movie_download_42 
+                SELECT downloaded_lg FROM movie_downloads_42 
                 WHERE hash_id = $1 AND downloaded_lg = true
                 ORDER BY update_dt DESC
                 LIMIT 1
@@ -219,7 +202,7 @@ class TorrentDownloader:
         logger.info(f"Download marked as started: {torrent_hash[:8]}...")
     
     async def _update_download_record(self, movie_id: str, torrent_hash: str, status: str, progress: int = 0, file_path: str = None):
-        """Update download record in movie_download_42"""
+        """Update download record in movie_downloads_42"""
         if not self.db_url:
             return
             
@@ -232,11 +215,11 @@ class TorrentDownloader:
             # Insert or update record
             await conn.execute(
                 """
-                INSERT INTO movie_download_42 (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
+                INSERT INTO movie_downloads_42 (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
                 VALUES ($1::uuid, $2, $3, $4, NOW())
                 ON CONFLICT (hash_id) DO UPDATE SET
                     downloaded_lg = $3,
-                    filepath_ds = COALESCE($4, movie_download_42.filepath_ds),
+                    filepath_ds = COALESCE($4, movie_downloads_42.filepath_ds),
                     update_dt = NOW()
                 """,
                 movie_id, torrent_hash, is_downloaded, file_path
@@ -526,7 +509,6 @@ class TorrentDownloader:
                         not torrent_info['subtitles_downloaded'] and 
                         progress > 0):  # Some progress to ensure directory creation
                         
-                        logger.info(f"SUBTITLES: Initiating subtitle download for {torrent_hash[:8]}...")
                         try:
                             await self._download_movie_subtitles(
                                 movie_id, 
@@ -534,9 +516,7 @@ class TorrentDownloader:
                                 torrent_info['torrent_directory']
                             )
                             torrent_info['subtitles_downloaded'] = True
-                            logger.info(f"SUBTITLES: Subtitle download completed for {torrent_hash[:8]}...")
                         except Exception as e:
-                            logger.error(f"SUBTITLES: Subtitle download failed for {torrent_hash[:8]}...: {e}")
                             torrent_info['subtitles_downloaded'] = True  # Mark as attempted to avoid retries
 
                     # Detect main video file from torrent metadata

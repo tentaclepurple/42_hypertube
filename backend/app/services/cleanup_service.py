@@ -104,7 +104,7 @@ class CleanupService:
                     md.filepath_ds,
                     m.title,
                     MAX(umv.last_viewed_at) as last_viewed
-                FROM movie_download_42 md
+                FROM movie_downloads_42 md
                 LEFT JOIN movies m ON md.movie_id = m.id
                 LEFT JOIN user_movie_views umv ON md.movie_id = umv.movie_id
                 WHERE md.downloaded_lg = true 
@@ -265,7 +265,7 @@ class CleanupService:
                 # Find and delete records where filepath_ds matches or is within the deleted path
                 result = await conn.execute(
                     """
-                    DELETE FROM movie_download_42 
+                    DELETE FROM movie_downloads_42 
                     WHERE filepath_ds = $1 
                        OR filepath_ds LIKE $2
                     """,
@@ -297,7 +297,7 @@ class CleanupService:
             async with get_db_connection() as conn:
                 result = await conn.execute(
                     """
-                    DELETE FROM movie_download_42 
+                    DELETE FROM movie_downloads_42 
                     WHERE movie_id = $1::uuid AND hash_id = $2
                     """,
                     movie_id, hash_id

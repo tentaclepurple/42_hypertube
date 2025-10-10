@@ -55,8 +55,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 async def get_current_user_from_cookie(request: Request):
     """Get user from cookie instead of Authorization header"""
+
     token = request.cookies.get("access_token")
     
+
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

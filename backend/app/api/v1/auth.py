@@ -39,7 +39,6 @@ load_dotenv()
 
 HOST = os.getenv("FRONT_HOST")
 
-
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 
