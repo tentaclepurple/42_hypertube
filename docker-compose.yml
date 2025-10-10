@@ -5,7 +5,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - NEXT_PUBLIC_URL=http://imontero.ddns.net:8000  #http://localhost:8000
+      - NEXT_PUBLIC_URL=http://10.14.1.1:8000  #http://localhost:8000
     ports:
       - "3000:3000"
     volumes:
@@ -13,6 +13,4 @@ services:
       - /app/node_modules
     stdin_open: true
     tty: true
-    networks:
-      - hypertube-network
     restart: unless-stopped

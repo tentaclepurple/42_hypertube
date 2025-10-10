@@ -19,7 +19,7 @@ export async function GET(
     const movieId = resolvedParams.params[0];
     const subtitlePath = resolvedParams.params.slice(1).join('/');
     
-    const backendUrl = `http://imontero.ddns.net:8000/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
+    const backendUrl = `http://10.14.1.1:8000/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
     
     console.log('Proxy request to:', backendUrl);
     

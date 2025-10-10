@@ -517,27 +517,31 @@ export default function MovieDetails() {
 
     const handleTorrentSelect = async (torrent: Torrent) => {
         if (!id) return;
-        
         setSelectedTorrent(torrent);
         setisStreamModalOpen(true);
         setCommentError(null);
         lastUpdatePercentageRef.current = movieData?.view_percentage || 0;
         lastUpdateTimeRef.current = Date.now();
-        
         setTimeout(async () => {
             if (videoRef.current) {
-                const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`;
-
+                // Obtener el token del localStorage
+                const token = localStorage.getItem("token");
+                // Construir URL con el token como query parameter
+                const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}&token=${encodeURIComponent(token || "")}`;
                 try {
+                    // Verificar si el stream está disponible (sin descargar todo el video)
                     const checkResponse = await fetch(streamUrl, {
                         method: "GET",
-                        credentials: 'include',
+                        headers: { Authorization: `Bearer ${token}` }
                     });
-
                     if (checkResponse.status === 202) {
-                        const statusResponse = await fetch(streamUrl, {
+                        // El video se está descargando
+                        const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
+                        const statusResponse = await fetch(statusUrl, {
                             method: "GET",
-                            credentials: 'include',
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
                         });
                         const data = await statusResponse.json();
                         
@@ -549,37 +553,51 @@ export default function MovieDetails() {
                         setTimeout(() => handleTorrentSelect(torrent), retryAfter * 1000);
                         return;
                     }
-                    
                     if (!checkResponse.ok) {
                         if (checkResponse.status === 401) logout();
                         setCommentError([`Stream error: ${checkResponse.status}`]);
                         return;
                     }
-                    
+
+                    // El video está listo, asignar la URL con el token al elemento video
+                    console.log('Setting video source:', streamUrl.substring(0, 100) + '...');
                     videoRef.current.src = streamUrl;
-                    
+                    // Cargar subtítulos
                     const subtitles = await loadSubtitles(torrent);
                     console.log('Subtitles loaded for processing:', subtitles);
-
+                    // Limpiar tracks de subtítulos existentes
                     const existingTracks = videoRef.current.querySelectorAll('track');
                     existingTracks.forEach(track => {
                         console.log('Removing existing track:', track.src);
                         track.remove();
                     });
-
+                    // Event handlers
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
                             console.error('Video error:', video.error);
-                            setCommentError([`Video error: ${video.error.message || 'Playback failed'}`]);
+                            let errorMessage = 'Playback failed';
+                            switch (video.error.code) {
+                                case 1: // MEDIA_ERR_ABORTED
+                                    errorMessage = 'Video loading aborted';
+                                    break;
+                                case 2: // MEDIA_ERR_NETWORK
+                                    errorMessage = 'Network error while loading video';
+                                    break;
+                                case 3: // MEDIA_ERR_DECODE
+                                    errorMessage = 'Video decoding failed';
+                                    break;
+                                case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                                    errorMessage = 'Video format not supported';
+                                    break;
+                            }
+                            setCommentError([`Video error: ${errorMessage}`]);
                         }
                     };
-                    
                     const handleLoadedData = () => {
                         setCommentError(null);
-                        console.log('Video data loaded');
+                        console.log('Video data loaded successfully');
                     };
-                    
                     const handleProgress = () => {
                         if (videoRef.current && videoRef.current.buffered.length > 0) {
                             const buffered = videoRef.current.buffered.end(0);
@@ -590,7 +608,6 @@ export default function MovieDetails() {
                             }
                         }
                     };
-
                     const handleTimeUpdate = () => {
                         if (videoRef.current && videoRef.current.duration > 0) {
                             const currentTime = videoRef.current.currentTime;
@@ -600,7 +617,7 @@ export default function MovieDetails() {
                             const timeDiff = now - lastUpdateTimeRef.current;
                             const currentPercentage = Math.floor(percentage);
                             const lastReported = lastUpdatePercentageRef.current;
-
+                            // Actualizar progreso cada 30 segundos si ha avanzado
                             if (timeDiff >= 30000 && currentPercentage > lastReported) {
                                 updateViewProgress(percentage);
                                 lastUpdateTimeRef.current = now;
@@ -614,21 +631,21 @@ export default function MovieDetails() {
                             }
                         }
                     };
-
+                    // Limpiar event listeners previos para evitar duplicados
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
                     videoRef.current.removeEventListener('loadedmetadata', () => {});
                     videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-
+                    // Agregar nuevos event listeners
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
                     videoRef.current.addEventListener('progress', handleProgress);
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
-                    
+                    // Cargar el video
                     videoRef.current.load();
-
+                    // Debug: Verificar tracks después de cargar
                     setTimeout(() => {
                         if (videoRef.current) {
                             console.log('Video tracks after load:', videoRef.current.textTracks.length);
@@ -644,13 +661,12 @@ export default function MovieDetails() {
                             }
                         }
                     }, 5000);
-                    
                 } catch (error) {
                     console.error('Network error:', error);
-                    setCommentError([`Network error: ${error}`]);
+                    setCommentError([`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`]);
                 }
             } else {
-                setError(["VideoRef still null after timeout"]);
+                setError(["Video element not ready"]);
             }
         }, 100);
     };
@@ -1023,7 +1039,7 @@ export default function MovieDetails() {
                             </button>
                         </div>
                         <div className="flex-1 flex items-center justify-center p-4">
-                            <video ref={videoRef} controls autoPlay className="w-full h-full object-contain bg-black" />
+                            <video ref={videoRef} crossOrigin="use-credentials" controls autoPlay className="w-full h-full object-contain bg-black" />
                         </div>
                     </div>
                 </div>
