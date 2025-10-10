@@ -2,6 +2,8 @@
 kafka-python==2.2.13     # ← CAMBIAR: de 2.2.13 a 2.0.2
 aiokafka==0.12.0
 
+python-dotenv
+
 # Async
 aiofiles==23.2.0
 libtorrent

@@ -193,7 +193,7 @@ class TorrentDownloader:
             
             result = await conn.fetchrow(
                 """
-                SELECT downloaded_lg FROM movie_downloads 
+                SELECT downloaded_lg FROM movie_download_42 
                 WHERE hash_id = $1 AND downloaded_lg = true
                 ORDER BY update_dt DESC
                 LIMIT 1
@@ -219,7 +219,7 @@ class TorrentDownloader:
         logger.info(f"Download marked as started: {torrent_hash[:8]}...")
     
     async def _update_download_record(self, movie_id: str, torrent_hash: str, status: str, progress: int = 0, file_path: str = None):
-        """Update download record in movie_downloads"""
+        """Update download record in movie_download_42"""
         if not self.db_url:
             return
             
@@ -232,11 +232,11 @@ class TorrentDownloader:
             # Insert or update record
             await conn.execute(
                 """
-                INSERT INTO movie_downloads (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
+                INSERT INTO movie_download_42 (movie_id, hash_id, downloaded_lg, filepath_ds, update_dt)
                 VALUES ($1::uuid, $2, $3, $4, NOW())
                 ON CONFLICT (hash_id) DO UPDATE SET
                     downloaded_lg = $3,
-                    filepath_ds = COALESCE($4, movie_downloads.filepath_ds),
+                    filepath_ds = COALESCE($4, movie_download_42.filepath_ds),
                     update_dt = NOW()
                 """,
                 movie_id, torrent_hash, is_downloaded, file_path

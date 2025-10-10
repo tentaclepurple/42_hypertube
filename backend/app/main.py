@@ -15,11 +15,28 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://imontero.ddns.net:3000"],
+    allow_origins=[
+            "http://localhost:3000",
+            "http://10.14.1.3:3000"
+        ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"]
+    allow_headers=[
+        "Content-Type", 
+        "Authorization", 
+        "Cookie",
+        "Set-Cookie",
+        "Range",  # Importante para streaming de video
+        "Accept",
+        "Accept-Encoding",
+    ],
+    expose_headers=[
+        "Content-Range",
+        "Accept-Ranges", 
+        "Content-Length",
+        "Content-Disposition",
+        "X-Content-Status",
+    ],
 )
 
 

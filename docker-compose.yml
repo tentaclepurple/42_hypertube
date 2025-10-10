@@ -1,21 +1,4 @@
 services:
-  frontend:
-    container_name: frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    environment:
-      - NEXT_PUBLIC_URL=http://imontero.ddns.net:8000
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend/app:/app
-      - /app/node_modules
-    stdin_open: true
-    tty: true
-    networks:
-      - hypertube-network
-    restart: unless-stopped
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.0
@@ -102,8 +85,6 @@ services:
       zookeeper:
         condition: service_healthy
       backend:
-        condition: service_started
-      frontend:
         condition: service_started
     restart: unless-stopped
     healthcheck:

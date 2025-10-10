@@ -29,8 +29,16 @@ from datetime import datetime, timedelta
 from starlette import status
 import urllib.parse
 import json
+from dotenv import load_dotenv
 
-HOST = "imontero.ddns.net"
+load_dotenv()
+
+import os
+
+load_dotenv()
+
+HOST = os.getenv("FRONT_HOST")
+
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr

@@ -7,11 +7,15 @@ from datetime import datetime
 import json
 import time
 import uuid
-import os
 import mimetypes
 from pathlib import Path
 import aiofiles
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
+import os
 
 from app.api.deps import get_current_user, get_current_user_from_cookie
 from app.db.session import get_db_connection
@@ -23,6 +27,11 @@ from app.services.cleanup_service import cleanup_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+HOST = os.getenv("FRONT_HOST")
+
+print("-- HOST:", HOST, flush=True)
 
 
 @router.get("/{movie_id}", response_model=MovieDetail)
@@ -161,6 +170,8 @@ async def stream_movie(
     torrent_hash: str = Query(..., description="Specific torrent hash (quality)"),
     range: str = Header(None)
 ):
+
+    
     """
     Unified streaming endpoint that:
     1. Checks if movie with specific hash is downloaded
@@ -169,6 +180,7 @@ async def stream_movie(
     4. Handles progressive streaming during download
     """
     try:
+        print("USER: ", current_user["id"], flush=True)
         movie_uuid = uuid.UUID(movie_id)
         user_id = current_user["id"]
         
@@ -208,7 +220,7 @@ async def stream_movie(
             download_info = await conn.fetchrow(
                 """
                 SELECT downloaded_lg, filepath_ds, hash_id, update_dt
-                FROM movie_downloads 
+                FROM movie_download_42 
                 WHERE movie_id = $1 AND hash_id = $2
                 ORDER BY update_dt DESC
                 LIMIT 1
@@ -229,7 +241,7 @@ async def stream_movie(
                 # File was deleted, mark as not downloaded
                 async with get_db_connection() as conn:
                     await conn.execute(
-                        "UPDATE movie_downloads SET downloaded_lg = false WHERE hash_id = $1",
+                        "UPDATE movie_download_42 SET downloaded_lg = false WHERE hash_id = $1",
                         torrent_hash.lower()
                     )
                 logger.warning(f"BACKEND: Downloaded file missing, marked as not downloaded: {file_path}")
@@ -519,7 +531,7 @@ async def get_streaming_status(
                 """
                 SELECT md.downloaded_lg, md.filepath_ds, md.hash_id, md.update_dt,
                        m.title
-                FROM movie_downloads md
+                FROM movie_download_42 md
                 JOIN movies m ON m.id = md.movie_id  
                 WHERE md.movie_id = $1 AND md.hash_id = $2
                 ORDER BY md.update_dt DESC
@@ -871,7 +883,7 @@ async def get_movie_subtitles(
         async with get_db_connection() as conn:
             download_info = await conn.fetchrow(
                 """
-                SELECT filepath_ds FROM movie_downloads 
+                SELECT filepath_ds FROM movie_download_42 
                 WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
                 """,
                 movie_uuid, torrent_hash.lower()
@@ -935,7 +947,7 @@ async def _find_available_subtitles(movie_dir: Path, movie_id: str, torrent_hash
                             "format": subtitle_file.suffix[1:].upper(),
                             "size": subtitle_file.stat().st_size,
                             "relative_path": str(relative_path),
-                            "url": f"{os.environ.get('NEXT_PUBLIC_URL', 'http://imontero.ddns.net:8000')}/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
+                            "url": f"http://localhost:8000/api/v1/movies/{movie_id}/subtitles/{relative_path}?torrent_hash={torrent_hash}"
                         })
                     
                     except Exception as e:
@@ -996,7 +1008,7 @@ async def serve_subtitle_file(
         async with get_db_connection() as conn:
             download_info = await conn.fetchrow(
                 """
-                SELECT filepath_ds FROM movie_downloads 
+                SELECT filepath_ds FROM movie_download_42 
                 WHERE movie_id = $1 AND hash_id = $2 AND downloaded_lg = true
                 """,
                 movie_uuid, torrent_hash.lower()
@@ -1040,7 +1052,7 @@ async def serve_subtitle_file(
             headers = {
                 "Content-Length": str(file_size),
                 "Content-Disposition": f"inline; filename={subtitle_full_path.name}",
-                "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+                "Access-Control-Allow-Origin": f"http://{HOST}:3000",
                 "Access-Control-Allow-Credentials": "true",
                 "Cache-Control": "public, max-age=3600"
             }
@@ -1069,7 +1081,7 @@ async def subtitle_options(
     return Response(
         status_code=200,
         headers={
-            "Access-Control-Allow-Origin": "http://imontero.ddns.net:3000",
+            "Access-Control-Allow-Origin": f"http://{HOST}:3000",
             "Access-Control-Allow-Methods": "GET, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
             "Access-Control-Allow-Credentials": "true",
