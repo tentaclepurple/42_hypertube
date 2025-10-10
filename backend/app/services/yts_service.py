@@ -2,13 +2,15 @@
 
 import aiohttp
 import asyncio
+import os
 from typing import Dict, List, Optional, Any
 
 
 class YTSService:
     """Service to interact with the YTS API"""
     
-    BASE_URL = "https://yts.mx/api/v2"
+
+    BASE_URL = os.getenv("YTS_BASE_URL", "https://yts.mx/api/v2")
     
     @staticmethod
     async def search_movies(query: str, limit: int = 20, page: int = 1) -> Dict[str, Any]:
@@ -26,7 +28,7 @@ class YTSService:
         
         try:
             async with aiohttp.ClientSession() as session:
-                print(f"YTS search for '{query}' with URL: {url} and params: {params}")
+                print(f"*** *** YTS search for '{query}' with URL: {url} and params: {params}", flush=True)
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -51,6 +53,7 @@ class YTSService:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params) as response:
+                    print(f"*** YTS get movie details for ID '{movie_id}' with URL: {url} and params: {params}", flush=True)
                     if response.status == 200:
                         data = await response.json()
                         return data.get("data", {}).get("movie", {})
@@ -77,7 +80,7 @@ class YTSService:
         
         try:
             async with aiohttp.ClientSession() as session:
-                print(f"Fetching popular movies from YTS with URL: {url} and params: {params}")
+                print(f"*** YTS get popular movies with URL: {url} and params: {params}", flush=True)
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
                         data = await response.json()

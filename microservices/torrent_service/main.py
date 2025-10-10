@@ -128,7 +128,6 @@ class TorrentDownloader:
         """Download subtitles for the movie in the torrent's actual directory"""
         try:
             logger.info(f"SUBTITLES: Starting download for movie {movie_id}")
-            logger.info(f"SUBTITLES: Target directory: {torrent_directory}")
             
             # Verify directory exists
             if not torrent_directory.exists():
@@ -673,7 +672,7 @@ def start_kafka_consumer(downloader):
             group_id='torrent-service',
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
             auto_offset_reset='latest',
-            enable_auto_commit=True
+            enable_auto_commit=True,
         )
 
         logger.info("Kafka consumer connected and waiting for messages...")

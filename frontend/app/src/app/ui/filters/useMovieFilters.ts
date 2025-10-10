@@ -106,7 +106,7 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         return filtered;
     };
 
-    const buildQueryString = (currentPage: number, limit: number): string => {
+    const buildQueryString = (currentPage: number): string => {
         const params = new URLSearchParams();
         
         if (filters.query.trim()) {
@@ -120,8 +120,7 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         }
 
         params.append('page', currentPage.toString());
-        params.append('limit', limit.toString());
-        
+
         return params.toString();
     };
 

@@ -21,7 +21,6 @@ export default function Search() {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [initialSearch, setInitialSearch] = useState(false);
-    const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { t } = useTranslation();
@@ -52,6 +51,8 @@ export default function Search() {
                 setInitialSearch(true);
                 setPage(1);
                 setAllMovies([]);
+                setHasMore(true);
+                setError(null);  
             }
         }, 500);
         return () => clearTimeout(timer);
@@ -64,7 +65,7 @@ export default function Search() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try {
-                const queryString = buildQueryString(page, limit);
+                const queryString = buildQueryString(page);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/movies?${queryString}`, {
                     method: 'GET',
                     headers: {
@@ -91,7 +92,8 @@ export default function Search() {
                         return [...prevMovies, ...newMovies];
                     });
                 }
-                setHasMore(data.length === limit);
+                setHasMore(data.length > 0);
+                setError(null);
             } catch (err) {
                 setHasMore(false);
                 setError(err as string[]);
@@ -101,26 +103,25 @@ export default function Search() {
         };
         
         fetchMovies();
-    }, [debouncedQuery, page, filters, limit]);
+    }, [debouncedQuery, page, JSON.stringify(filters)]);
 
     useEffect(() => {
-        if (!hasMore || loading || isLoggingOut) return;
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && hasMore && (debouncedQuery || hasActiveFilters())) {
-                setPage((prevPage) => prevPage + 1);
-            }
+          if (entries[0].isIntersecting && hasMore && !loading && debouncedQuery) {
+                setPage(prevPage => prevPage + 1);
+          }
         }, { threshold: 1 });
-        if (observerRef.current) observer.observe(observerRef.current);
-        return () => observer.disconnect();
-    }, [hasMore, loading, debouncedQuery, filters]);
 
-    const handleLimitChange = (newLimit: number) => {
-        setLimit(newLimit);
-        setPage(1);
-        setAllMovies([]);
-    };
+        if (observerRef.current) {
+          observer.observe(observerRef.current);
+        }
+        return () => {
+          if (observerRef.current) observer.unobserve(observerRef.current);
+        };
+      }, [hasMore, debouncedQuery]);
 
     const renderContent = () => {
+
         if (filteredMovies.length === 0 && !loading && initialSearch) {
             return (
                 <div className="text-center py-10">
@@ -163,6 +164,7 @@ export default function Search() {
 
     return (
         <div className="p-4 bg-dark-900 text-white">
+            <h1 className="text-4xl font-bold mb-6 text-center">{t("search.pageTitle")}</h1>
             <div className="relative mb-4 max-w-2xl mx-auto">
                 <input
                     type="text"
@@ -191,9 +193,6 @@ export default function Search() {
                 onFilterChange={handleFilterChange}
                 onToggleGenre={toggleGenre}
                 onClearFilters={clearAllFilters}
-                limit={limit}
-                onLimitChange={handleLimitChange}
-                showLimitSelector={true}
             />
             {error && (
                 <div className="text-center mt-4 py-2">
@@ -215,7 +214,6 @@ export default function Search() {
                     <p className="mt-2">{t("search.loading")}</p>
                 </div>
             )}
-
             <div ref={observerRef} className="h-10" />
         </div>
     );

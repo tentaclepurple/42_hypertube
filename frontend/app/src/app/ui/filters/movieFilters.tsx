@@ -10,9 +10,6 @@ interface MovieFiltersProps {
     onFilterChange: (key: keyof SearchFilters, value: string | string[]) => void;
     onToggleGenre: (genreTag: string) => void;
     onClearFilters: () => void;
-    limit?: number;
-    onLimitChange?: (limit: number) => void;
-    showLimitSelector?: boolean;
 }
 
 export const MovieFilters: React.FC<MovieFiltersProps> = ({
@@ -22,9 +19,6 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
     onFilterChange,
     onToggleGenre,
     onClearFilters,
-    limit = 20,
-    onLimitChange,
-    showLimitSelector = false
 }) => {
     const { t } = useTranslation();
 
@@ -98,19 +92,6 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
                             >
                                 <option value="asc">{t("search.filter.order.asc")}</option>
                                 <option value="desc">{t("search.filter.order.desc")}</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">{t("search.filter.resultsPerPage")}</label>
-                            <select
-                                value={limit}
-                                onChange={(e) => onLimitChange?.(Number(e.target.value))}
-                                className="w-full p-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                {limitOptions.map(option => (
-                                    <option key={option} value={option}>{option}</option>
-                                ))}
                             </select>
                         </div>
                     </div>

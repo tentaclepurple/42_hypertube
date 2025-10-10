@@ -17,7 +17,6 @@ class SubtitlesService:
     
     def __init__(self):
         self.api_key = os.environ.get("OP_SUBT_KEY")
-        print(f"SUBTITLES: Initializing service with API key: {'YES' if self.api_key else 'NO'}", flush=True)
         if not self.api_key:
             print("SUBTITLES: WARNING - OP_SUBT_KEY not found in environment variables", flush=True)
     
@@ -39,9 +38,6 @@ class SubtitlesService:
             Dict with download results for each language
         """
         print(f"SUBTITLES: Starting subtitle download process", flush=True)
-        print(f"SUBTITLES: Directory: {movie_directory}", flush=True)
-        print(f"SUBTITLES: IMDB ID: {imdb_id}", flush=True)
-        print(f"SUBTITLES: Title: {movie_title}", flush=True)
         
         if not self.api_key:
             print("SUBTITLES: ERROR - Cannot download subtitles: API key not configured", flush=True)
@@ -278,25 +274,20 @@ class SubtitlesService:
                     json=data
                 ) as response:
                     
-                    print(f"SUBTITLES: Download API response status: {response.status}", flush=True)
                     
                     if response.status != 200:
                         response_text = await response.text()
-                        print(f"SUBTITLES: Download request failed: {response.status} - {response_text[:200]}", flush=True)
                         return False
                     
                     download_info = await response.json()
-                    print(f"SUBTITLES: Download response keys: {list(download_info.keys())}", flush=True)
                     
                     if 'link' not in download_info:
-                        print("SUBTITLES: No download link in API response", flush=True)
                         return False
                     
                     download_url = download_info['link']
                     print(f"SUBTITLES: Got download URL: {download_url[:50]}...", flush=True)
                 
                 # Step 2: Download the actual file
-                print(f"SUBTITLES: Downloading file content...", flush=True)
                 async with session.get(download_url) as file_response:
                     
                     print(f"SUBTITLES: File download response status: {file_response.status}", flush=True)

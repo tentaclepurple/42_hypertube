@@ -31,7 +31,8 @@ export default function MovieDetails() {
     const [subtitleError, setSubtitleError] = useState<string | null>(null);
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
-    
+    const [isPreparingStream, setIsPreparingStream] = useState(false);
+    const [estimatedWaitTime, setEstimatedWaitTime] = useState<number | null>(null);
     const [editingUserComment, setEditingUserComment] = useState(false);
     const [editUserCommentText, setEditUserCommentText] = useState({
         comment: "",
@@ -446,10 +447,6 @@ export default function MovieDetails() {
                 track.srclang = langCode;
                 track.label = detectedLanguage;
 
-                const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
-                                detectedLanguage.toLowerCase().includes('español') ||
-                                langCode === 'es';
-                
                 track.default = false;
                 
                 console.log('Adding WebVTT subtitle track:', {
@@ -500,15 +497,6 @@ export default function MovieDetails() {
                         cues: track.cues ? track.cues.length : 'not loaded'
                     });
                 }
-
-                let hasActiveTrack = false;
-                for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-                    if (videoRef.current.textTracks[i].mode === 'showing') {
-                        hasActiveTrack = true;
-                        break;
-                    }
-                }
-                
                 console.log('Subtitle tracks available but remaining disabled by user choice');
             }
             
@@ -524,18 +512,14 @@ export default function MovieDetails() {
         lastUpdateTimeRef.current = Date.now();
         setTimeout(async () => {
             if (videoRef.current) {
-                // Obtener el token del localStorage
                 const token = localStorage.getItem("token");
-                // Construir URL con el token como query parameter
                 const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}&token=${encodeURIComponent(token || "")}`;
                 try {
-                    // Verificar si el stream está disponible (sin descargar todo el video)
                     const checkResponse = await fetch(streamUrl, {
                         method: "GET",
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (checkResponse.status === 202) {
-                        // El video se está descargando
                         const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
                         const statusResponse = await fetch(statusUrl, {
                             method: "GET",
@@ -543,10 +527,11 @@ export default function MovieDetails() {
                                 Authorization: `Bearer ${token}`
                             }
                         });
+                        setIsPreparingStream(true);
                         const data = await statusResponse.json();
-                        
                         const message = data.detail?.message || 'Download in progress';
                         const retryAfter = data.detail?.retry_after || 30;
+                        setEstimatedWaitTime(data.detail?.estimated_wait || null);
                         
                         setCommentError([`${message} - Retrying in ${retryAfter}s...`]);
                         
@@ -556,22 +541,20 @@ export default function MovieDetails() {
                     if (!checkResponse.ok) {
                         if (checkResponse.status === 401) logout();
                         setCommentError([`Stream error: ${checkResponse.status}`]);
+                        setIsPreparingStream(false);
+                        setEstimatedWaitTime(null);
                         return;
                     }
 
-                    // El video está listo, asignar la URL con el token al elemento video
                     console.log('Setting video source:', streamUrl.substring(0, 100) + '...');
                     videoRef.current.src = streamUrl;
-                    // Cargar subtítulos
                     const subtitles = await loadSubtitles(torrent);
                     console.log('Subtitles loaded for processing:', subtitles);
-                    // Limpiar tracks de subtítulos existentes
                     const existingTracks = videoRef.current.querySelectorAll('track');
                     existingTracks.forEach(track => {
                         console.log('Removing existing track:', track.src);
                         track.remove();
                     });
-                    // Event handlers
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
@@ -596,7 +579,8 @@ export default function MovieDetails() {
                     };
                     const handleLoadedData = () => {
                         setCommentError(null);
-                        console.log('Video data loaded successfully');
+                        setEstimatedWaitTime(null);
+                        console.log('Video data loaded');
                     };
                     const handleProgress = () => {
                         if (videoRef.current && videoRef.current.buffered.length > 0) {
@@ -608,6 +592,7 @@ export default function MovieDetails() {
                             }
                         }
                     };
+                    
                     const handleTimeUpdate = () => {
                         if (videoRef.current && videoRef.current.duration > 0) {
                             const currentTime = videoRef.current.currentTime;
@@ -617,7 +602,6 @@ export default function MovieDetails() {
                             const timeDiff = now - lastUpdateTimeRef.current;
                             const currentPercentage = Math.floor(percentage);
                             const lastReported = lastUpdatePercentageRef.current;
-                            // Actualizar progreso cada 30 segundos si ha avanzado
                             if (timeDiff >= 30000 && currentPercentage > lastReported) {
                                 updateViewProgress(percentage);
                                 lastUpdateTimeRef.current = now;
@@ -631,23 +615,23 @@ export default function MovieDetails() {
                             }
                         }
                     };
-                    // Limpiar event listeners previos para evitar duplicados
+                    
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
                     videoRef.current.removeEventListener('loadedmetadata', () => {});
                     videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-                    // Agregar nuevos event listeners
+                    
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
                     videoRef.current.addEventListener('progress', handleProgress);
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
-                    // Cargar el video
                     videoRef.current.load();
-                    // Debug: Verificar tracks después de cargar
+                    
                     setTimeout(() => {
                         if (videoRef.current) {
+                            setIsPreparingStream(false);
                             console.log('Video tracks after load:', videoRef.current.textTracks.length);
                             for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                                 const track = videoRef.current.textTracks[i];
@@ -663,7 +647,8 @@ export default function MovieDetails() {
                     }, 5000);
                 } catch (error) {
                     console.error('Network error:', error);
-                    setCommentError([`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`]);
+                    setIsPreparingStream(false);
+                    setCommentError([`Network error: ${error}`]);
                 }
             } else {
                 setError(["Video element not ready"]);
@@ -953,7 +938,6 @@ export default function MovieDetails() {
                             <span className="ml-2 text-sm text-gray-400">({newRating}/5)</span>
                         </div>
                     </div>
-
                     <div className="mb-4">
                         <label htmlFor="comment" className="block text-sm font-medium mb-2">
                             {t("movies.comment")}
@@ -996,34 +980,37 @@ export default function MovieDetails() {
                         <p>{t("movies.firstComment")}</p>
                     </div>
                 ) : (
-                    comments.map((comment) => (
-                        <div key={comment.id} className="bg-gray-700 rounded-lg p-4">
-                            <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
-                                        {comment.username.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <Link href={`/profile/${comment.username}`}>
-                                            <p className="font-medium hover:text-blue-400 cursor-pointer">
-                                                {comment.username}
+                    <>
+                        <h2 className="text-xl font-semibold mb-4">{t("movies.comments")}</h2>
+                        {comments.map((comment) => (
+                            <div key={comment.id} className="bg-gray-700 rounded-lg p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
+                                            {comment.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <Link href={`/profile/${comment.username}`}>
+                                                <p className="font-medium hover:text-blue-400 cursor-pointer">
+                                                    {comment.username}
+                                                </p>
+                                            </Link>
+                                            <p className="text-xs text-gray-400">
+                                                {formatDate(comment.created_at)}
                                             </p>
-                                        </Link>
-                                        <p className="text-xs text-gray-400">
-                                            {formatDate(comment.created_at)}
-                                        </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {renderStars(comment.rating)}
+                                        <span className="ml-1 text-sm text-gray-400">
+                                            ({comment.rating}/5)
+                                        </span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    {renderStars(comment.rating)}
-                                    <span className="ml-1 text-sm text-gray-400">
-                                        ({comment.rating}/5)
-                                    </span>
-                                </div>
+                                <p className="text-gray-200 leading-relaxed">{comment.comment}</p>
                             </div>
-                            <p className="text-gray-200 leading-relaxed">{comment.comment}</p>
-                        </div>
-                    ))
+                        ))}
+                    </>
                 )}
             </div>
             
@@ -1034,12 +1021,33 @@ export default function MovieDetails() {
                             <h2 className="text-lg font-semibold">
                                 {movie?.title} - {selectedTorrent?.quality}
                             </h2>
-                            <button onClick={closeStreamingModal} className="p-1 rounded-full hover:bg-gray-700 transition-colors">
+                            <button
+                                onClick={closeStreamingModal}
+                                className="p-1 rounded-full hover:bg-gray-700 transition-colors"
+                            >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <video ref={videoRef} crossOrigin="use-credentials" controls autoPlay className="w-full h-full object-contain bg-black" />
+                        <div className="flex-1 flex items-center justify-center p-4 relative">
+                            <video
+                                ref={videoRef}
+                                controls
+                                autoPlay
+                                className="w-full h-full object-contain bg-black"
+                            />
+                            {isPreparingStream && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-center space-y-4">
+                                    <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+                                    <p className="text-lg font-medium text-white">
+                                        {  t("movies.video.streaming") || "Preparando el streaming..."}
+                                    </p>
+                                    {estimatedWaitTime && (
+                                        <p className="text-sm text-gray-400">
+                                        {t("movies.video.time")} {estimatedWaitTime}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -17,13 +17,13 @@ export default function Movies() {
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const [limit, setLimit] = useState(20);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const { t } = useTranslation();
     const {
         filters,
         showFilters,
         setShowFilters,
+        buildQueryString,
         filterAndSortMovies,
         handleFilterChange,
         toggleGenre,
@@ -41,8 +41,9 @@ export default function Movies() {
             setLoading(true);
             const token = localStorage.getItem('token');
             try
-            {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?page=${page}&limit=${limit}`, 
+            {   
+                const queryString = buildQueryString(page);
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/search/popular?${queryString}`,
                 {
                     method: 'GET',
                     headers: {
@@ -61,7 +62,7 @@ export default function Movies() {
                     const newMovies = data.filter(movie => !existingIds.has(movie.imdb_id || movie.id));
                     return [...prevMovies, ...newMovies];
                 });
-                setHasMore(data.length === limit);
+                setHasMore(data.length > 0);
             }catch(err){
                 setError(err as string[]);
             }finally{
@@ -69,7 +70,7 @@ export default function Movies() {
             }
         };
         fetchMovies();
-    }, [page, limit]);
+    }, [page]);
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
@@ -81,15 +82,10 @@ export default function Movies() {
         return () => observer.disconnect();
     }, [hasMore]);
 
-    const handleLimitChange = (newLimit: number) => {
-        setLimit(newLimit);
-        setPage(1);
-        setMovies([]);
-        setHasMore(true);
-    };
 
     return (
         <div className="p-4 bg-dark-900 text-white">
+            <h1 className="text-4xl font-bold mb-6 text-center">{t("movies.pageTitle")}</h1>
             {error && (
                 <div className="text-center mt-4 py-2">
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -104,9 +100,6 @@ export default function Movies() {
             onFilterChange={handleFilterChange}
             onToggleGenre={toggleGenre}
             onClearFilters={clearAllFilters}
-            limit={limit}
-            onLimitChange={handleLimitChange}
-            showLimitSelector={true}
         />
         <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {filteredMovies.map((movie) => (
@@ -140,6 +133,11 @@ export default function Movies() {
             <div className="text-center mt-4 py-2">
                 <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
                 <p className="mt-2">{t("movies.loadingMore")}</p>
+            </div>
+        )}
+        {filteredMovies.length === 0 && !loading &&(
+            <div className="text-center mt-4 py-2">
+                <p>{t("movies.noMoviesFound")}</p>
             </div>
         )}
         <div ref={observerRef} className="h-10" /></div>

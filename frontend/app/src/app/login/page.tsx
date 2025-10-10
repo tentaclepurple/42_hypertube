@@ -158,21 +158,21 @@ export default function Login() {
       <div className="space-y-3 max-w-xs mx-auto mt-20"> 
         <button
           onClick={() => handleLogin('42')}
-          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded transition duration-200"
+          className="w-full py-2 px-4 bg-blue-500 hover:bg-blue-700 text-white rounded transition duration-200"
         >
           {t("login.42Login")}
         </button>
         
         <button
           onClick={() => handleLogin('google')}
-          className="w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded transition duration-200"
+          className="w-full py-2 px-4 bg-red-500 hover:bg-red-700 text-white rounded transition duration-200"
         >
           {t("login.googleLogin")}
         </button>
         
         <button
           onClick={() => handleLogin('github')}
-          className="w-full py-2 px-4 bg-gray-700 hover:bg-gray-800 text-white rounded transition duration-200"
+          className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-800 text-white rounded transition duration-200"
         >
           {t("login.githubLogin")}
         </button>
