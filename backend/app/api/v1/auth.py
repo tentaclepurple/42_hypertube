@@ -110,6 +110,7 @@ async def oauth_login(provider: str, request: Request):
         
         # Generate redirect URI
         base_url = str(request.base_url).rstrip("/")
+        
         redirect_uri = f"{base_url}/api/v1/auth/oauth/{provider}/callback"
         
         # Get authorization URL
