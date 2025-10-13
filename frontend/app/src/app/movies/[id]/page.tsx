@@ -528,6 +528,7 @@ export default function MovieDetails() {
                             }
                         });
                         setIsPreparingStream(true);
+                        console.log('---- Stream:', isPreparingStream);
                         const data = await statusResponse.json();
                         const message = data.detail?.message || 'Download in progress';
                         const retryAfter = data.detail?.retry_after || 30;
@@ -580,7 +581,6 @@ export default function MovieDetails() {
                     const handleLoadedData = () => {
                         setCommentError(null);
                         setIsPreparingStream(false);
-                        setEstimatedWaitTime(null);
                         console.log('Video data loaded');
                     };
                     const handleProgress = () => {
@@ -678,6 +678,7 @@ export default function MovieDetails() {
                 }
                 track.remove();
             });
+            setEstimatedWaitTime(null);
             
             videoRef.current.currentTime = 0;
             videoRef.current.removeAttribute('src');
@@ -1029,26 +1030,28 @@ export default function MovieDetails() {
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="flex-1 flex items-center justify-center p-4 relative">
-                            <video
-                                ref={videoRef}
-                                controls
-                                autoPlay
-                                className="w-full h-full object-contain bg-black"
-                            />
-                            {isPreparingStream && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-center space-y-4">
-                                    <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full" />
-                                    <p className="text-lg font-medium text-white">
-                                        {  t("movies.video.streaming") || "Preparando el streaming..."}
-                                    </p>
-                                    {estimatedWaitTime && (
-                                        <p className="text-sm text-gray-400">
-                                        {t("movies.video.time")} {estimatedWaitTime}
+                        <div className="flex-1 flex items-center justify-center p-4 md:p-8 lg:p-12 relative bg-gray-900">
+                            <div className="relative w-full max-w-7xl">
+                                <video
+                                    ref={videoRef}
+                                    controls
+                                    autoPlay
+                                    className="w-full max-h-[calc(100vh-16rem)] object-contain bg-black rounded-lg shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+                                />
+                                {isPreparingStream && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm text-center space-y-4 rounded-lg">
+                                        <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+                                        <p className="text-lg font-medium text-white">
+                                            {t("movies.video.streaming")}
                                         </p>
-                                    )}
-                                </div>
-                            )}
+                                        {estimatedWaitTime && (
+                                            <p className="text-sm text-gray-400">
+                                                {t("movies.video.time")} {estimatedWaitTime}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
