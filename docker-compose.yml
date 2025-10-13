@@ -5,7 +5,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - NEXT_PUBLIC_URL=http://10.14.1.1:8000  #http://localhost:8000
+      - NEXT_PUBLIC_URL=http://imontero.ddns.net:8000
     ports:
       - "3000:3000"
     volumes:
@@ -13,4 +13,112 @@ services:
       - /app/node_modules
     stdin_open: true
     tty: true
+    networks:
+      - hypertube-network
     restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - hypertube-network
+    restart: unless-stopped
+  
+  kafka:
+    image: confluentinc/cp-kafka:7.0.0
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - kafka_data:/var/lib/kafka/data  
+    networks:
+      - hypertube-network
+    restart: unless-stopped
+
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+  
+  torrent_service:
+    container_name: torrent_service
+    build:
+      context: .
+      dockerfile: ./microservices/torrent_service/Dockerfile
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    networks:
+      - hypertube-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'from kafka import KafkaProducer; KafkaProducer(bootstrap_servers=[\"kafka:9092\"])' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  hypertube-network:
+    name: hypertube-network
+    driver: bridge
+
+volumes:
+  data:
+  kafka_data:
+  zookeeper_data: 
+  zookeeper_logs:
