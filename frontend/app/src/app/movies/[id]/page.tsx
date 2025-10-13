@@ -511,20 +511,17 @@ export default function MovieDetails() {
         lastUpdateTimeRef.current = Date.now();
         setTimeout(async () => {
             if (videoRef.current) {
-                const token = localStorage.getItem("token");
-                const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}&token=${encodeURIComponent(token || "")}`;
+                const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`;
                 try {
                     const checkResponse = await fetch(streamUrl, {
                         method: "GET",
-                        headers: { Authorization: `Bearer ${token}` }
+                        credentials: "include",
                     });
                     if (checkResponse.status === 202) {
                         const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
                         const statusResponse = await fetch(statusUrl, {
                             method: "GET",
-                            headers: {
-                                Authorization: `Bearer ${token}`
-                            }
+                            credentials: "include",
                         });
                         setIsPreparingStream(true);
                         const data = await statusResponse.json();
