@@ -33,9 +33,6 @@ router = APIRouter()
 
 HOST = os.getenv("FRONT_HOST")
 
-print("-- HOST:", HOST, flush=True)
-
-
 @router.get("/{movie_id}", response_model=MovieDetail)
 async def get_movie_details(
     movie_id: str,

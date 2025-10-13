@@ -24,7 +24,7 @@ class CleanupService:
         
         # Toggle cleanup by count. True to enable count-based cleanup <-------------
 
-        self.enable_count_cleanup = False
+        self.enable_count_cleanup = True
         
         self.download_path = Path("/data/movies")
         
@@ -35,6 +35,7 @@ class CleanupService:
         """
         try:
             print(f"Checking cleanup conditions... {self.download_path}, days: {self.days_threshold}")
+            print("-----", self.max_movies)
             current_count = await self._count_items_in_download_dir()
             
             # Check for movies that need cleanup by days
@@ -214,7 +215,7 @@ class CleanupService:
             return 0
     
     async def _cleanup_oldest_items(self, items_to_remove: int) -> List[Dict[str, Any]]:
-        """Delete the oldest items by modification date and update database"""
+        """Delete the oldest items by modification date, respecting active downloads"""
         try:
             # Get all items with their dates
             items = []
@@ -227,12 +228,42 @@ class CleanupService:
                         "size_mb": 0
                     })
             
+            # Verify in database which ones are currently downloading (incomplete)
+            async with get_db_connection() as conn:
+                downloading = await conn.fetch(
+                    """
+                    SELECT filepath_ds 
+                    FROM movie_downloads_42 
+                    WHERE downloaded_lg = false 
+                    AND filepath_ds IS NOT NULL
+                    """
+                )
+                downloading_paths = {row['filepath_ds'] for row in downloading if row['filepath_ds']}
+            
+            # Filter out items that are currently downloading
+            # We need to check if the item path is contained in any downloading path
+            # or if any downloading path is contained in the item path
+            filtered_items = []
+            for item in items:
+                item_str = str(item['path'])
+                is_downloading = False
+                
+                for dl_path in downloading_paths:
+                    # Check if item is the download itself or contains it
+                    if item_str in dl_path or dl_path.startswith(item_str):
+                        is_downloading = True
+                        logger.info(f"Skipping {item['name']} - download in progress")
+                        break
+                
+                if not is_downloading:
+                    filtered_items.append(item)
+            
             # Order by modification date (oldest first)
-            items.sort(key=lambda x: x["modified_time"])
+            filtered_items.sort(key=lambda x: x["modified_time"])
 
             # Delete the oldest items
             removed_items = []
-            for item in items[:items_to_remove]:
+            for item in filtered_items[:items_to_remove]:
                 try:
                     size_mb = await self._calculate_item_size(item["path"])
                     
@@ -252,11 +283,19 @@ class CleanupService:
                 except Exception as e:
                     logger.error(f"Error deleting {item['name']}: {e}")
             
+            # Log if we couldn't remove enough items
+            if len(removed_items) < items_to_remove:
+                logger.warning(
+                    f"Could only remove {len(removed_items)}/{items_to_remove} items. "
+                    f"Some items may be downloading."
+                )
+            
             return removed_items
             
         except Exception as e:
             logger.error(f"Error deleting oldest items: {e}")
             return []
+    
     
     async def _cleanup_database_records_by_path(self, deleted_path: str):
         """Remove database records that reference the deleted file/directory"""
