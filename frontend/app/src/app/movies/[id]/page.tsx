@@ -540,8 +540,7 @@ export default function MovieDetails() {
                     if (!checkResponse.ok) {
                         if (checkResponse.status === 401) logout();
                         setCommentError([`Stream error: ${checkResponse.status}`]);
-                        setIsPreparingStream(false);
-                        setEstimatedWaitTime(null);
+                        setIsPreparingStream(false)
                         return;
                     }
 
@@ -676,7 +675,6 @@ export default function MovieDetails() {
                 }
                 track.remove();
             });
-            setEstimatedWaitTime(null);
             
             videoRef.current.currentTime = 0;
             videoRef.current.removeAttribute('src');
