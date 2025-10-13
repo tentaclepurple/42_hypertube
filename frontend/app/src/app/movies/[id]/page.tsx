@@ -32,7 +32,6 @@ export default function MovieDetails() {
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isPreparingStream, setIsPreparingStream] = useState(false);
-    const [estimatedWaitTime, setEstimatedWaitTime] = useState<number | null>(null);
     const [editingUserComment, setEditingUserComment] = useState(false);
     const [editUserCommentText, setEditUserCommentText] = useState({
         comment: "",
@@ -532,7 +531,6 @@ export default function MovieDetails() {
                         const data = await statusResponse.json();
                         const message = data.detail?.message || 'Download in progress';
                         const retryAfter = data.detail?.retry_after || 30;
-                        setEstimatedWaitTime(data.detail?.estimated_wait || null);
                         
                         setCommentError([`${message} - Retrying in ${retryAfter}s...`]);
                         
@@ -1044,11 +1042,6 @@ export default function MovieDetails() {
                                         <p className="text-lg font-medium text-white">
                                             {t("movies.video.streaming")}
                                         </p>
-                                        {estimatedWaitTime && (
-                                            <p className="text-sm text-gray-400">
-                                                {t("movies.video.time")} {estimatedWaitTime}
-                                            </p>
-                                        )}
                                     </div>
                                 )}
                             </div>
