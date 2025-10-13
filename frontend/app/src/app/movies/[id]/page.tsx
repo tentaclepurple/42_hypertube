@@ -527,7 +527,6 @@ export default function MovieDetails() {
                             }
                         });
                         setIsPreparingStream(true);
-                        console.log('---- Stream:', isPreparingStream);
                         const data = await statusResponse.json();
                         const message = data.detail?.message || 'Download in progress';
                         const retryAfter = data.detail?.retry_after || 30;
