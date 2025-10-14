@@ -32,7 +32,7 @@ export default function AuthCallback() {
         login(token, userData);
         router.push('/');
       } catch (err) {
-        console.error('Error processing OAuth callback:', err);
+
         router.push('/login?error=Error+processing+authentication+data');
       }
     } else {

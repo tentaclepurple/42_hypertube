@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth, User } from "../context/authcontext";
 import { Pencil, Camera, Upload, X, MessageCircle, Trash2, Check, Star } from "lucide-react";
 import { parsedError, parsedEditError } from "../ui/error/parsedError";
@@ -14,6 +14,7 @@ interface AvatarUploadProps {
   handleUpload: () => void;
   uploading: boolean;
   editError: string[] | null;
+  setEditError: (errors: string[] | null) => void;
   profilePicture: File | null;
   setProfilePicture: (file: File | null) => void;
 }
@@ -24,12 +25,14 @@ function AvatarUpload({
   handleUpload,
   uploading,
   editError,
+  setEditError,
   profilePicture,
   setProfilePicture
 }: AvatarUploadProps) {
   const [hover, setHover] = useState(false);
   const [previewURL, setPreviewURL] = useState<string | null>(null);
   const { t } = useTranslation();
+
 
   useEffect(() => {
     if (profilePicture) {
@@ -44,6 +47,7 @@ function AvatarUpload({
   const handleCancel = () => {
     setProfilePicture(null);
     setPreviewURL(null);
+    setEditError(null);
     const input = document.getElementById('avatar-upload') as HTMLInputElement;
     if (input) {
       input.value = '';
@@ -77,7 +81,7 @@ function AvatarUpload({
             ${hover ? 'opacity-75' : 'opacity-0'} 
             transition-opacity duration-300 ease-in-out
             ${uploading ? 'pointer-events-none' : ''}`}
-          title="Change profile picture"
+          title={t("profile.change")}
         >
           <Camera className="h-8 w-8 text-white" />
         </label>
@@ -150,6 +154,22 @@ export default function Profile() {
   const { t } = useTranslation();
 
   useEffect(() => {
+    if (editError && editError.length > 0) {
+      const timer = setTimeout(() => {
+        setEditError(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+    if (editCommentError && editCommentError.length > 0) {
+      const timer = setTimeout(() => {
+        setEditCommentError(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [editError, editCommentError, editImgError]);
+
+
+  useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -186,7 +206,6 @@ export default function Profile() {
           gender: data.gender || "",
         });
       } catch (err) {
-        console.error('Error fetching user profile:', err);
         setError([err instanceof Error ? err.message : 'An error occurred']);
       } finally {
         setIsLoading(false);
@@ -208,25 +227,25 @@ export default function Profile() {
     const errors: string[] = [];
     
     if (!formData.first_name?.trim()) {
-      errors.push("First name is required");
+      errors.push(t("profile.errors.firstName"));
     }
     
     if (!formData.last_name?.trim()) {
-      errors.push("Last name is required");
+      errors.push(t("profile.errors.lastName"));
     }
     
     if (!formData.email?.trim()) {
-      errors.push("Email is required");
+      errors.push(t("profile.errors.emailExists"));
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.push("Please enter a valid email address");
+      errors.push(t("profile.errors.email"));
     }
     
     if (formData.email !== formData.email_confirm) {
-      errors.push("Email addresses do not match");
+      errors.push(t("profile.errors.emailMatch"));
     }
 
     if (formData.birth_year && (isNaN(Number(formData.birth_year)) || Number(formData.birth_year) < 1900 || Number(formData.birth_year) > new Date().getFullYear())) {
-      errors.push("Please enter a valid birth year");
+      errors.push(t("profile.errors.birth"));
     }
 
     return errors;
@@ -235,6 +254,7 @@ export default function Profile() {
   const handleSave = async () => {
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
+      setEditError(null);
       setEditError(validationErrors);
       return;
     }
@@ -277,7 +297,6 @@ export default function Profile() {
       setIsEditing(false);
       updateUser(updatedUserData);
     } catch (err) {
-      console.error('Error updating profile:', err);
       setEditError(Array.isArray(err) ? err : [typeof err === 'string' ? err : 'An error occurred']);
     } finally {
       setIsLoading(false);
@@ -288,12 +307,12 @@ export default function Profile() {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setEditImgError(['File size must be less than 5MB']);
+        setEditImgError([`${t("profile.errors.image.size")}`]);
         return;
       }
       
       if (!file.type.startsWith('image/')) {
-        setEditImgError(['Please select a valid image file']);
+        setEditImgError([`${t("profile.errors.image.type")}`]);
         return;
       }
       
@@ -304,7 +323,7 @@ export default function Profile() {
 
   const handleUpload = async () => {
     if (!profilePicture) {
-      setEditImgError(['Please select a file to upload']);
+      setEditImgError([t("profile.errors.image.file")]);
       return;
     }
 
@@ -344,8 +363,7 @@ export default function Profile() {
       setProfilePicture(null);
       setEditImgError(null);
     } catch (err) {
-      console.error('Error uploading image:', err);
-      setEditImgError(Array.isArray(err) ? err : [typeof err === 'string' ? err : 'An error occurred uploading image']);
+      setEditImgError(Array.isArray(err) ? err : [typeof err === 'string' ? err : t("profile.errors.image.upload")]);
     } finally {
       setUploading(false);
     }
@@ -366,9 +384,10 @@ export default function Profile() {
     setEditCommentError(null);
   };
 
+
   const handleSaveEditComment = async () => {
     if (!editCommentText.comment.trim()) {
-      setEditCommentError(['Comment cannot be empty']);
+      setEditCommentError([t("profile.errors.empty")]);
       return;
     }
 
@@ -414,12 +433,10 @@ export default function Profile() {
           ) || [],
         };
       });
-      setEditCommentError(null);
       setEditCommentId(null);
       setEditCommentText({ comment: "", rating: 1 });
     } catch (err) {
-      console.error('Error updating comment:', err);
-      setEditCommentError(['Failed to update comment. Please try again.']);
+      setEditCommentError([t("profile.errors.updateComment")]);
     }
   };
 
@@ -467,8 +484,8 @@ export default function Profile() {
         };
       });
     } catch (err) {
-      console.error('Error deleting comment:', err);
-      setError(['Failed to delete comment. Please try again.']);
+
+      setError([t("profile.errors.deleteComment")]);
     }
   };
 
@@ -696,15 +713,16 @@ export default function Profile() {
           </>
         ) : (
           <div className="mt-6">
-            <h1 className="text-3xl font-bold mb-6 text-center">Edit Profile</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center">{t('profile.edit')}</h1>
             <div className="flex flex-col lg:flex-row items-start gap-8">
               <div className="flex-shrink-0">
-                <AvatarUpload 
+                <AvatarUpload
                   user={user}
                   handleImageChange={handleImageChange}
                   handleUpload={handleUpload}
                   uploading={uploading}
                   editError={editImgError}
+                  setEditError={setEditImgError}
                   profilePicture={profilePicture}
                   setProfilePicture={setProfilePicture}
                 />

@@ -1,5 +1,3 @@
-// frontend/app/src/app/api/subtitles/[...params]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -19,9 +17,7 @@ export async function GET(
     const subtitlePath = resolvedParams.params.slice(1).join('/');
     
     const backendUrl = `http://backend:8000/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
-    
-    console.log('Proxy request to:', backendUrl);
-    
+
     const response = await fetch(backendUrl, {
       method: 'GET',
       headers: {
@@ -31,7 +27,6 @@ export async function GET(
     });
     
     if (!response.ok) {
-      console.error(`Backend error: ${response.status} - ${response.statusText}`);
       return new NextResponse(`Backend error: ${response.status}`, { 
         status: response.status 
       });
@@ -54,7 +49,6 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error('Error in subtitle proxy:', error);
     return new NextResponse('Internal server error', { status: 500 });
   }
 }

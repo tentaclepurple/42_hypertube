@@ -62,7 +62,6 @@ export default function MovieDetails() {
             }
             const data = await response.json();
             setMovieData(data);
-            console.log("Movie data:", data);
         } catch (err) {
             setError(err as string[]);
         }
@@ -172,7 +171,7 @@ export default function MovieDetails() {
 
     const handleSaveEditUserComment = async () => {
         if (!editUserCommentText.comment.trim()) {
-            setEditUserCommentError(['Comment cannot be empty']);
+            setEditUserCommentError([t("movies.emptyComment")]);
             return;
         }
 
@@ -208,8 +207,7 @@ export default function MovieDetails() {
             setEditingUserComment(false);
             setEditUserCommentText({ comment: "", rating: 1 });
         } catch (err) {
-            console.error('Error updating comment:', err);
-            setEditUserCommentError(['Failed to update comment. Please try again.']);
+            setEditUserCommentError([t("movies.commentError")]);
         }
     };
 
@@ -221,7 +219,7 @@ export default function MovieDetails() {
     };
 
     const handleDeleteUserComment = async () => {
-        if (!window.confirm(t("profile.delete") || "Are you sure you want to delete this comment?")) {
+        if (!window.confirm(t("profile.delete") || t("movies.deleteComment"))) {
             return;
         }
 
@@ -255,8 +253,7 @@ export default function MovieDetails() {
             setEditUserCommentText({ comment: "", rating: 1 });
             setEditUserCommentError(null);
         } catch (err) {
-            console.error('Error deleting comment:', err);
-            setError(['Failed to delete comment. Please try again.']);
+            setError([t("movies.deleteError")]);
         }
     };
     
@@ -277,18 +274,16 @@ export default function MovieDetails() {
             
             if (!response.ok) {
                 if (response.status === 401) logout();
-                console.warn('No subtitles available or error loading them');
+                setSubtitleError(t(`movies.subtitle.noSubtitles`));
                 return [];
             }
             
             const data = await response.json();
             const subtitles = data.subtitles || [];
-            console.log("Subtitles loaded:", subtitles);
             return subtitles;
             
         } catch (error) {
-            console.error('Error loading subtitles:', error);
-            setSubtitleError('Failed to load subtitles');
+            setSubtitleError(t(`movies.subtitle.loadError`));
             return [];
         }
     };
@@ -410,26 +405,18 @@ export default function MovieDetails() {
     };
 
     const handleLoadedMetadata = async (subtitles: any[], currentTorrent: Torrent) => {
-        console.log('Video metadata loaded, processing subtitles...');
-        console.log('Available subtitles:', subtitles);
-
         for (let index = 0; index < subtitles.length; index++) {
             const subtitle = subtitles[index];
-            console.log(`Processing subtitle ${index}:`, subtitle);
-            
             try {
-
                 const subtitleUrl = `/api/subtitles/${id}/${subtitle.relative_path}?torrent_hash=${currentTorrent.hash}`;
-                console.log(`Loading subtitle from: ${subtitleUrl}`);
                 
                 const response = await fetch(subtitleUrl);
                 if (!response.ok) {
-                    console.error(`Failed to load subtitle ${index}: ${response.status}`);
+                    setSubtitleError(`${t(`movies.subtitle.loadError`)} ${index}: ${response.status}`);
                     continue;
                 }
                 
                 const srtContent = await response.text();
-                console.log(`Subtitle ${index} content length:`, srtContent.length);
 
                 const vttContent = srtToVtt(srtContent);
 
@@ -447,56 +434,30 @@ export default function MovieDetails() {
                 track.label = detectedLanguage;
 
                 track.default = false;
-                
-                console.log('Adding WebVTT subtitle track:', {
-                    index,
-                    srclang: track.srclang,
-                    label: track.label,
-                    default: track.default,
-                    blobUrl: blobUrl.substring(0, 50) + '...'
-                });
 
                 videoRef.current?.appendChild(track);
 
                 setTimeout(() => {
                     const textTrack = videoRef.current?.textTracks[videoRef.current.textTracks.length - 1];
                     if (textTrack) {
-                        console.log(`Track ${index} added successfully:`, {
-                            kind: textTrack.kind,
-                            label: textTrack.label,
-                            language: textTrack.language,
-                            mode: textTrack.mode,
-                            cues: textTrack.cues ? textTrack.cues.length : 'not loaded'
-                        });
-
                         if (track.default) {
                             textTrack.mode = 'showing';
-                            console.log(`Activated default track ${index}`);
                         }
                     }
                 }, 100 * (index + 1));
                 
             } catch (error) {
-                console.error(`Error processing subtitle ${index}:`, error);
+                setSubtitleError(`${t(`movies.subtitle.processingError`)} ${index}: ${error}`);
             }
         }
 
         setTimeout(() => {
             if (videoRef.current && videoRef.current.textTracks) {
-                console.log('Final subtitle tracks check:', videoRef.current.textTracks.length);
                 
                 for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                     const track = videoRef.current.textTracks[i];
                     track.mode = 'disabled';
-                    console.log(`Track ${i} disabled:`, {
-                        kind: track.kind,
-                        label: track.label,
-                        language: track.language,
-                        mode: track.mode,
-                        cues: track.cues ? track.cues.length : 'not loaded'
-                    });
                 }
-                console.log('Subtitle tracks available but remaining disabled by user choice');
             }
             
         }, 2000);
@@ -525,64 +486,58 @@ export default function MovieDetails() {
                         });
                         setIsPreparingStream(true);
                         const data = await statusResponse.json();
-                        const message = data.detail?.message || 'Download in progress';
+                        const message = data.detail?.message || t(`movie.video.dowloand`);
                         const retryAfter = data.detail?.retry_after || 30;
                         
-                        setCommentError([`${message} - Retrying in ${retryAfter}s...`]);
+                        setCommentError([`${message} - ${t(`movie.video.retry`)} ${retryAfter}s...`]);
                         
                         setTimeout(() => handleTorrentSelect(torrent), retryAfter * 1000);
                         return;
                     }
                     if (!checkResponse.ok) {
                         if (checkResponse.status === 401) logout();
-                        setCommentError([`Stream error: ${checkResponse.status}`]);
                         setIsPreparingStream(false)
                         return;
                     }
 
-                    console.log('Setting video source:', streamUrl.substring(0, 100) + '...');
                     videoRef.current.src = streamUrl;
                     const subtitles = await loadSubtitles(torrent);
-                    console.log('Subtitles loaded for processing:', subtitles);
                     const existingTracks = videoRef.current.querySelectorAll('track');
                     existingTracks.forEach(track => {
-                        console.log('Removing existing track:', track.src);
                         track.remove();
                     });
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
-                            console.error('Video error:', video.error);
-                            let errorMessage = 'Playback failed';
+                            let errorMessage;
                             switch (video.error.code) {
-                                case 1: // MEDIA_ERR_ABORTED
-                                    errorMessage = 'Video loading aborted';
+                                case 1:
+                                    errorMessage = t('movie.video.error.1');
                                     break;
-                                case 2: // MEDIA_ERR_NETWORK
-                                    errorMessage = 'Network error while loading video';
+                                case 2:
+                                    errorMessage = t('movie.video.error.2');
                                     break;
-                                case 3: // MEDIA_ERR_DECODE
-                                    errorMessage = 'Video decoding failed';
+                                case 3:
+                                    errorMessage = t('movie.video.error.3');
                                     break;
-                                case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-                                    errorMessage = 'Video format not supported';
+                                case 4:
+                                    errorMessage = t('movie.video.error.4');
                                     break;
                             }
-                            setCommentError([`Video error: ${errorMessage}`]);
+                            setCommentError([`${t('movie.video.error.default')} ${errorMessage}`]);
                         }
                     };
                     const handleLoadedData = () => {
                         setCommentError(null);
                         setIsPreparingStream(false);
-                        console.log('Video data loaded');
                     };
+
                     const handleProgress = () => {
                         if (videoRef.current && videoRef.current.buffered.length > 0) {
                             const buffered = videoRef.current.buffered.end(0);
                             const duration = videoRef.current.duration || 0;
                             if (duration > 0) {
                                 const percent = (buffered / duration) * 100;
-                                console.log(`Buffered: ${percent.toFixed(2)}%`);
                             }
                         }
                     };
@@ -626,26 +581,17 @@ export default function MovieDetails() {
                     setTimeout(() => {
                         if (videoRef.current) {
                             setIsPreparingStream(false);
-                            console.log('Video tracks after load:', videoRef.current.textTracks.length);
                             for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                                 const track = videoRef.current.textTracks[i];
-                                console.log(`Track ${i}:`, {
-                                    kind: track.kind,
-                                    label: track.label,
-                                    language: track.language,
-                                    mode: track.mode,
-                                    cues: track.cues ? track.cues.length : 'not loaded'
-                                });
                             }
                         }
                     }, 5000);
                 } catch (error) {
-                    console.error('Network error:', error);
                     setIsPreparingStream(false);
-                    setCommentError([`Network error: ${error}`]);
+                    setCommentError([`${t('movie.video.error.network')} ${error}`]);
                 }
             } else {
-                setError(["Video element not ready"]);
+                setError([t("movies.video.error.video")]);
             }
         }, 100);
     };

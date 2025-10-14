@@ -11,6 +11,7 @@ export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [scrollInterval, setScrollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [error, setError] = useState<string>("");
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -23,7 +24,7 @@ export default function Home() {
         setMovies(data);
         if (data.length > 0) setSelectedMovie(data[0]);
       } catch (err) {
-        console.error(err);
+        setError(err instanceof Error ? err.message : String(err));
       }
     };
     fetchPublicMovies();
@@ -57,6 +58,16 @@ export default function Home() {
     }
   };
 
+  if (error) {
+    return (
+      <main className="bg-black text-white fixed inset-0 top-16 bottom-16 flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="bg-black text-white fixed inset-0 top-16 bottom-16 flex flex-col overflow-auto lg:overflow-hidden">
       {selectedMovie && (
@@ -80,6 +91,7 @@ export default function Home() {
                 fill
                 unoptimized
                 className="object-cover"
+                priority
               />
             </div>
             <div
@@ -103,6 +115,7 @@ export default function Home() {
                 fill
                 unoptimized
                 className="object-cover"
+                priority
               />
             </div>
             <div
@@ -155,6 +168,7 @@ export default function Home() {
                   fill
                   unoptimized
                   className="object-cover"
+                  priority
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="p-2 sm:p-3">
