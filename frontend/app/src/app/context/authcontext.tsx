@@ -23,6 +23,7 @@
    logout: () => void;
    updateUser: (userData: Partial<User>) => void;
    isAuthenticated: boolean;
+   authError: string | null;
  }
  
  const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +61,7 @@
  export function AuthProvider({ children }: { children: ReactNode }) {
    const [user, setUser] = useState<User | null>(null);
    const [token, setToken] = useState<string | null>(null);
+   const [authError, setAuthError] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const router = useRouter();
  
@@ -73,7 +75,7 @@
          setSecureCookie('access_token', token);
          
        } catch (error) {
-         console.error('Error parsing user data:', error);
+
          localStorage.removeItem('token');
          localStorage.removeItem('user');
          removeCookie('access_token');
@@ -88,7 +90,6 @@
      localStorage.setItem('user', JSON.stringify(userData));
 
      setSecureCookie('access_token', token);
-     
      setUser(userData);
      setToken(token);
    };
@@ -101,7 +102,9 @@
          headers: {
            'Authorization': `Bearer ${token}`,
          },
-       }).catch(error => console.error('Error during logout:', error));
+       }).catch((error) => {
+        setAuthError(error.message);
+      });
      }
      localStorage.removeItem('token');
      localStorage.removeItem('user');
@@ -134,7 +137,8 @@
          login, 
          logout,
          updateUser,
-         isAuthenticated: !!user 
+         isAuthenticated: !!user,
+         authError,
        }}
      >
        {children}

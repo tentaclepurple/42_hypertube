@@ -48,6 +48,10 @@
         "completed": "✅ Visto completamente",
         "comment": "Tu comentario",
         "comments": "Comentarios",
+        "deleteComment": "¿Estás seguro de que quieres eliminar este comentario?",
+        "commentError": "Error al actualizar el comentario. Por favor, inténtalo de nuevo.",
+        "emptyComment": "El comentario no puede estar vacío.",
+        "deleteError": "Fallo al eliminar el comentario. Por favor, inténtalo de nuevo.",
         "rating": "Tu valoración",
         "placeholder": "Escribe tu opinión sobre la película...",
         "character": "carácter",
@@ -61,10 +65,26 @@
         "noMoviesFound": "No se han encontrado películas con los filtros actuales",
         "video":{
             "streaming": "Preparando el streaming...",
-            "time": "Tiempo estimado: "
+            "download": "Descarga en progreso",
+            "retry": "Reintentando en",
+            "error":{
+                "network": "Error de red:",
+                "video": "Error de elemento de video:",
+                "default": "Error de reproducción de video:",
+                "1": "Descarga interrumpida",
+                "2": "Error de red al cargar el video.",
+                "3": "Error de decodificación del video.",
+                "4": "Error de fuente del video."
+            }
+        },
+        "subtitle": {
+            "noSubtitle": "No hay subtítulos disponibles",
+            "loadError": "Error al cargar los subtítulos",
+            "processingError": "Error al procesar los subtítulos"
         }
     },
     "profile": {
+        "edit": "Editar Perfil",
         "loading": "Cargando prefil...",
         "userloading": "Cargando perfil de usuario...",
         "notfound": "Perfil de usuario no encontrado.",
@@ -72,12 +92,14 @@
         "gender": "Género: ",
         "comments": "Comentarios recientes",
         "nocomments": "No se encontraron comentarios recientes",
+        "change": "Cambio de imagen de perfil",
         "uploading": "Subiendo...",
         "upload": "Subir",
         "cancel": "Cancelar",
         "firstName": "Nombre",
         "lastName": "Apellido",
         "email": "Correo electrónico",
+        "confirmEmail": "Confirmar correo electrónico",
         "birth": "Fecha de nacimiento",
         "genderEdit": "Género",
         "save": "Guardar",
@@ -96,6 +118,23 @@
             "other": "Otro",
             "non-binary": "No binario",
             "prefer-not-to-say": "Prefiero no decirlo"
+        },
+        "errors": {
+            "firstName": "El nombre debe tener al menos 1 carácter.",
+            "lastName": "El apellido debe tener al menos 1 carácter.",
+            "email": "Por favor, introduce una dirección de correo electrónico válida.",
+            "emailExists": "El correo es obligatorio",
+            "emailMatch": "Los correos no coinciden.",
+            "birth": "El año de nacimiento debe ser un año válido.",
+            "empty": "El comentario no puede estar vacío.",
+            "updateComment": "Error al actualizar el comentario. Por favor, inténtalo de nuevo.",
+            "deleteComment": "Error al eliminar el comentario. Por favor, inténtalo de nuevo.",
+            "image":{
+                "type": "Por favor, selecciona un archivo de imagen válido.",
+                "size": "El tamaño del archivo debe ser menor de 5MB.",
+                "file": "Por favor, selecciona un archivo para subir.",
+                "upload": "Error al subir la imagen."
+            }
         }
     },
     "register": {
@@ -199,7 +238,8 @@
         "copy": "Copiar",
         "copied": "¡Copiado!",
         "documentation": "Documentación API",
-        "docu_info": "Descubre cómo usar la API con nuestra documentación completa"
+        "docu_info": "Descubre cómo usar la API con nuestra documentación completa",
+        "error": "No se pudo copiar al portapapeles. Por favor, inténtalo de nuevo."
     },
     "view": {
         "pageTitle": "Seguir viendo"

@@ -1,5 +1,3 @@
-// frontend/app/src/api/page.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -56,15 +54,15 @@ export default function Apipage(){
         }
     };
 
-    // const copyToClipboard = async (text: string, field: string) => {
-    //     try {
-    //         await navigator.clipboard.writeText(text);
-    //         setCopyField(field);
-    //         setTimeout(() => setCopyField(''), 2000);
-    //     } catch (err) {
-    //         console.error('Failed to copy text: ', err);
-    //     }
-    // };
+    const copyToClipboard = async (text: string, field: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopyField(field);
+            setTimeout(() => setCopyField(''), 2000);
+        } catch (err) {
+            setError([t('api.error')]);
+        }
+    };
 
     return (
         <div className='text-white max-w-4xl mx-auto p-6'>
@@ -129,13 +127,13 @@ export default function Apipage(){
                                     <div className='flex-1 text-gray-200 break-allflex-1 px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm break-all'>
                                         {apiKey.apiKey}
                                     </div>
-                                    {/* <button
+                                    <button
                                         onClick={() => copyToClipboard(apiKey.apiKey, 'apiKey')}
                                         className='px-4 py-3 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap'
                                     >
                                         <Copy size={16} />
                                         {copyField === 'apiKey' ? t('api.copied') : t('api.copy')}
-                                    </button> */}
+                                    </button>
                                 </div>
                             </div>
                             <div>
@@ -146,13 +144,13 @@ export default function Apipage(){
                                     <div className='flex-1 text-gray-200 break-all px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm break-all'>
                                         {apiKey.apiSecret}
                                     </div>
-                                    {/* <button
+                                    <button
                                         onClick={() => copyToClipboard(apiKey.apiSecret, 'apiSecret')}
                                         className='px-4 py-3 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap'
                                     >
                                         <Copy size={16} />
                                         {copyField === 'apiSecret' ? t('api.copied') : t('api.copy')}
-                                    </button> */}
+                                    </button>
                                 </div>
                             </div>
                         </div>
