@@ -31,7 +31,7 @@ export default function MovieDetails() {
     const [subtitleError, setSubtitleError] = useState<string | null>(null);
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
-    
+    const [isPreparingStream, setIsPreparingStream] = useState(false);
     const [editingUserComment, setEditingUserComment] = useState(false);
     const [editUserCommentText, setEditUserCommentText] = useState({
         comment: "",
@@ -446,10 +446,6 @@ export default function MovieDetails() {
                 track.srclang = langCode;
                 track.label = detectedLanguage;
 
-                // const isSpanish = detectedLanguage.toLowerCase().includes('spanish') || 
-                //                 detectedLanguage.toLowerCase().includes('español') ||
-                //                 langCode === 'es';
-                
                 track.default = false;
                 
                 console.log('Adding WebVTT subtitle track:', {
@@ -500,15 +496,6 @@ export default function MovieDetails() {
                         cues: track.cues ? track.cues.length : 'not loaded'
                     });
                 }
-
-                // let hasActiveTrack = false;
-                // for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-                //     if (videoRef.current.textTracks[i].mode === 'showing') {
-                //         hasActiveTrack = true;
-                //         break;
-                //     }
-                // }
-                
                 console.log('Subtitle tracks available but remaining disabled by user choice');
             }
             
@@ -517,30 +504,27 @@ export default function MovieDetails() {
 
     const handleTorrentSelect = async (torrent: Torrent) => {
         if (!id) return;
-        
         setSelectedTorrent(torrent);
         setisStreamModalOpen(true);
         setCommentError(null);
         lastUpdatePercentageRef.current = movieData?.view_percentage || 0;
         lastUpdateTimeRef.current = Date.now();
-        
         setTimeout(async () => {
             if (videoRef.current) {
                 const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`;
-
                 try {
                     const checkResponse = await fetch(streamUrl, {
                         method: "GET",
-                        credentials: 'include',
+                        credentials: "include",
                     });
-
                     if (checkResponse.status === 202) {
-                        const statusResponse = await fetch(streamUrl, {
+                        const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
+                        const statusResponse = await fetch(statusUrl, {
                             method: "GET",
-                            credentials: 'include',
+                            credentials: "include",
                         });
+                        setIsPreparingStream(true);
                         const data = await statusResponse.json();
-                        
                         const message = data.detail?.message || 'Download in progress';
                         const retryAfter = data.detail?.retry_after || 30;
                         
@@ -549,37 +533,49 @@ export default function MovieDetails() {
                         setTimeout(() => handleTorrentSelect(torrent), retryAfter * 1000);
                         return;
                     }
-                    
                     if (!checkResponse.ok) {
                         if (checkResponse.status === 401) logout();
                         setCommentError([`Stream error: ${checkResponse.status}`]);
+                        setIsPreparingStream(false)
                         return;
                     }
-                    
+
+                    console.log('Setting video source:', streamUrl.substring(0, 100) + '...');
                     videoRef.current.src = streamUrl;
-                    
                     const subtitles = await loadSubtitles(torrent);
                     console.log('Subtitles loaded for processing:', subtitles);
-
                     const existingTracks = videoRef.current.querySelectorAll('track');
                     existingTracks.forEach(track => {
                         console.log('Removing existing track:', track.src);
                         track.remove();
                     });
-
                     const handleError = (e: Event) => {
                         const video = e.target as HTMLVideoElement;
                         if (video.error) {
                             console.error('Video error:', video.error);
-                            setCommentError([`Video error: ${video.error.message || 'Playback failed'}`]);
+                            let errorMessage = 'Playback failed';
+                            switch (video.error.code) {
+                                case 1: // MEDIA_ERR_ABORTED
+                                    errorMessage = 'Video loading aborted';
+                                    break;
+                                case 2: // MEDIA_ERR_NETWORK
+                                    errorMessage = 'Network error while loading video';
+                                    break;
+                                case 3: // MEDIA_ERR_DECODE
+                                    errorMessage = 'Video decoding failed';
+                                    break;
+                                case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                                    errorMessage = 'Video format not supported';
+                                    break;
+                            }
+                            setCommentError([`Video error: ${errorMessage}`]);
                         }
                     };
-                    
                     const handleLoadedData = () => {
                         setCommentError(null);
+                        setIsPreparingStream(false);
                         console.log('Video data loaded');
                     };
-                    
                     const handleProgress = () => {
                         if (videoRef.current && videoRef.current.buffered.length > 0) {
                             const buffered = videoRef.current.buffered.end(0);
@@ -590,7 +586,7 @@ export default function MovieDetails() {
                             }
                         }
                     };
-
+                    
                     const handleTimeUpdate = () => {
                         if (videoRef.current && videoRef.current.duration > 0) {
                             const currentTime = videoRef.current.currentTime;
@@ -600,7 +596,6 @@ export default function MovieDetails() {
                             const timeDiff = now - lastUpdateTimeRef.current;
                             const currentPercentage = Math.floor(percentage);
                             const lastReported = lastUpdatePercentageRef.current;
-
                             if (timeDiff >= 30000 && currentPercentage > lastReported) {
                                 updateViewProgress(percentage);
                                 lastUpdateTimeRef.current = now;
@@ -614,23 +609,23 @@ export default function MovieDetails() {
                             }
                         }
                     };
-
+                    
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
                     videoRef.current.removeEventListener('loadedmetadata', () => {});
                     videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-
+                    
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
                     videoRef.current.addEventListener('progress', handleProgress);
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
-                    
                     videoRef.current.load();
-
+                    
                     setTimeout(() => {
                         if (videoRef.current) {
+                            setIsPreparingStream(false);
                             console.log('Video tracks after load:', videoRef.current.textTracks.length);
                             for (let i = 0; i < videoRef.current.textTracks.length; i++) {
                                 const track = videoRef.current.textTracks[i];
@@ -644,13 +639,13 @@ export default function MovieDetails() {
                             }
                         }
                     }, 5000);
-                    
                 } catch (error) {
                     console.error('Network error:', error);
+                    setIsPreparingStream(false);
                     setCommentError([`Network error: ${error}`]);
                 }
             } else {
-                setError(["VideoRef still null after timeout"]);
+                setError(["Video element not ready"]);
             }
         }, 100);
     };
@@ -1020,12 +1015,30 @@ export default function MovieDetails() {
                             <h2 className="text-lg font-semibold">
                                 {movie?.title} - {selectedTorrent?.quality}
                             </h2>
-                            <button onClick={closeStreamingModal} className="p-1 rounded-full hover:bg-gray-700 transition-colors">
+                            <button
+                                onClick={closeStreamingModal}
+                                className="p-1 rounded-full hover:bg-gray-700 transition-colors"
+                            >
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <video ref={videoRef} controls autoPlay className="w-full h-full object-contain bg-black" />
+                        <div className="flex-1 flex items-center justify-center p-4 md:p-8 lg:p-12 relative bg-gray-900">
+                            <div className="relative w-full max-w-7xl">
+                                <video
+                                    ref={videoRef}
+                                    controls
+                                    autoPlay
+                                    className="w-full max-h-[calc(100vh-16rem)] object-contain bg-black rounded-lg shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+                                />
+                                {isPreparingStream && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm text-center space-y-4 rounded-lg">
+                                        <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+                                        <p className="text-lg font-medium text-white">
+                                            {t("movies.video.streaming")}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
