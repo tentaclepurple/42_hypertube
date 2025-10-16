@@ -482,7 +482,7 @@ export default function MovieDetails() {
                         const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
                         const statusResponse = await fetch(statusUrl, {
                             method: "GET",
-                            credentials: "include",
+                            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                         });
                         setIsPreparingStream(true);
                         const data = await statusResponse.json();
