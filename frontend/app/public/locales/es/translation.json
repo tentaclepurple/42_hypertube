@@ -84,6 +84,7 @@
         }
     },
     "profile": {
+        "name": "Nombre",
         "edit": "Editar Perfil",
         "loading": "Cargando prefil...",
         "userloading": "Cargando perfil de usuario...",

@@ -205,6 +205,7 @@ export default function Profile() {
           birth_year: data.birth_year ? String(data.birth_year) : "",
           gender: data.gender || "",
         });
+        console.log("Fetched user data:", data);
       } catch (err) {
         setError([err instanceof Error ? err.message : 'An error occurred']);
       } finally {
@@ -512,6 +513,21 @@ export default function Profile() {
     return String(value);
   };
 
+  const translateGender = (gender: string | null | undefined): string => {
+    if (!gender) return "N/A";
+    
+    const genderMap: { [key: string]: string } = {
+      "male": t("profile.male"),
+      "female": t("profile.female"),
+      "non-binary": t("profile.noBinary"),
+      "prefer-not-to-say": t("profile.notsay"),
+      "other": t("profile.other")
+    };
+    
+    return genderMap[gender] || gender;
+  };
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen p-6 bg-dark-900 text-white flex items-center justify-center">
@@ -574,10 +590,10 @@ export default function Profile() {
                   </button>
                 </div>
                 <div className="space-y-1 text-gray-300">
-                  <p><span className="font-medium">Name:</span> {safeRender(user.first_name)} {safeRender(user.last_name)}</p>
-                  <p><span className="font-medium">Email:</span> {safeRender(user.email)}</p>
+                  <p><span className="font-medium">{t("profile.name")}:</span> {safeRender(user.first_name)} {safeRender(user.last_name)}</p>
+                  <p><span className="font-medium">{t("profile.email")}:</span> {safeRender(user.email)}</p>
                   <p><span className="font-medium">{t("profile.year")}</span> {safeRender(user.birth_year)}</p>
-                  <p><span className="font-medium">{t("profile.gender")}</span> {safeRender(user.gender)}</p>
+                  <p><span className="font-medium">{t("profile.gender")}</span> {translateGender(user.gender)}</p>
                 </div>
               </div>
             </div>
