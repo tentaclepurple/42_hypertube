@@ -56,7 +56,7 @@ export default function Register() {
 
     setLoading(true);
     try{
-      const { confirm_password, ...data } = formData;
+      const data = { ...formData };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/register`, {
         method: "POST",
@@ -80,7 +80,7 @@ export default function Register() {
         first_name: "",
         last_name: ""
       });
-    } catch (error) {
+    } catch {
       setError((prev) => ({ ...prev, general: `${t("register.errors.general")}` }));
     } finally {
       setLoading(false);

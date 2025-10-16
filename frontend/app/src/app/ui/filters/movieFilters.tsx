@@ -30,8 +30,6 @@ export const MovieFilters: React.FC<MovieFiltersProps> = ({
         { value: 'hypertube_rating', label: t("search.filter.sortOptions.hypertube_rating") }
     ];
 
-    const limitOptions = [10, 20, 30, 50];
-
     return (
         <>
             <div className="flex justify-center mb-6">

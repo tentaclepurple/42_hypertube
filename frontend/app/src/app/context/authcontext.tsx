@@ -1,6 +1,6 @@
 'use client';
  
- import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+ import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
  import { useRouter } from 'next/navigation';
  import { Comment } from '../movies/types/comment';
  
@@ -60,7 +60,7 @@
  
  export function AuthProvider({ children }: { children: ReactNode }) {
    const [user, setUser] = useState<User | null>(null);
-   const [token, setToken] = useState<string | null>(null);
+   const [, setToken] = useState<string | null>(null);
    const [authError, setAuthError] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const router = useRouter();
@@ -74,7 +74,7 @@
          setUser(JSON.parse(storedUser));
          setSecureCookie('access_token', token);
          
-       } catch (error) {
+       } catch {
 
          localStorage.removeItem('token');
          localStorage.removeItem('user');
@@ -94,7 +94,7 @@
      setToken(token);
    };
  
-   const logout = () => {
+   const logout = useCallback(() => {
      const token = localStorage.getItem('token');
      if (token) {
        fetch(`${process.env.NEXT_PUBLIC_URL}/api/v1/auth/logout`, {
@@ -114,7 +114,7 @@
      setUser(null);
      setToken(null);
      router.push('/login');
-   };
+   }, [router]);
 
    const updateUser = (userData: Partial<User>) => {
       setUser((prevUser) => {

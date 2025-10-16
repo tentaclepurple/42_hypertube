@@ -31,8 +31,7 @@ export default function AuthCallback() {
         
         login(token, userData);
         router.push('/');
-      } catch (err) {
-
+      } catch {
         router.push('/login?error=Error+processing+authentication+data');
       }
     } else {

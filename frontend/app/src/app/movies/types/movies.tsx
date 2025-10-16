@@ -30,3 +30,9 @@ export interface Movie {
     completed?: boolean;
     hypertube_rating?: number;
   }
+
+  export interface Subtitle {
+    relative_path: string;
+    filename?: string;
+    language?: string;
+}

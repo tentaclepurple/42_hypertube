@@ -8,6 +8,7 @@ import { MessageCircle, Calendar, UserIcon } from 'lucide-react';
 import { parsedError } from '../../ui/error/parsedError';
 import { formatDate, renderStars } from '../../ui/comments';
 import { useTranslation } from 'react-i18next';
+import Image from 'next/image';
 
 export default function UserPublicProfile() {
   const { logout } = useAuth();
@@ -41,7 +42,7 @@ export default function UserPublicProfile() {
           setError(err);
           setIsLoading(false);
       });
-  }, [username]);
+  }, [username, logout]);
 
   if (error) {
       return (
@@ -82,9 +83,12 @@ export default function UserPublicProfile() {
       <div className="p-6 bg-dark-900 text-white ">
         <div className="max-w-screen-lg mx-auto">
           <div className="flex flex-col md:flex-row items-center space-x-4 mb-8">
-            <img
+            <Image
               src={userProfile?.profile_picture || '/default-avatar.png'}
               alt={userProfile.username}
+              width={128}
+              height={128}
+              unoptimized
               className="w-32 h-32 rounded-full border-4 border-gray-600 mb-4 md:mb-0"
             />
             <div>

@@ -12,7 +12,7 @@ export async function GET(
       return new NextResponse('Missing torrent_hash parameter', { status: 400 });
     }
     
-    const resolvedParams = await params;
+    const resolvedParams = params;
     const movieId = resolvedParams.params[0];
     const subtitlePath = resolvedParams.params.slice(1).join('/');
     
@@ -48,12 +48,12 @@ export async function GET(
       },
     });
     
-  } catch (error) {
+  } catch {
     return new NextResponse('Internal server error', { status: 500 });
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(){
   return new NextResponse(null, {
     status: 200,
     headers: {

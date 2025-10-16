@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Movie } from "../../movies/types/movies";
+
 
 
 export interface SearchFilters {
@@ -53,7 +54,7 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         onFiltersChange?.(filters);
     }, [filters, onFiltersChange]);
 
-    const filterAndSortMovies = (movieList: Movie[]): Movie[] => {
+    const filterAndSortMovies = useCallback((movieList: Movie[]): Movie[] => {
         let filtered = [...movieList];
 
         if (filters.yearFrom) {
@@ -73,8 +74,8 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         }
 
         filtered.sort((a, b) => {
-            let aValue: any;
-            let bValue: any;
+            let aValue: string | number | undefined;
+            let bValue: string | number | undefined;
 
             switch (filters.sortBy) {
                 case 'title':
@@ -88,6 +89,10 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
                 case 'view_percentage':
                     aValue = a.view_percentage || 0;
                     bValue = b.view_percentage || 0;
+                    break;
+                case 'hypertube_rating':
+                    aValue = a.hypertube_rating || 0;
+                    bValue = b.hypertube_rating || 0;
                     break;
                 default:
                     aValue = a.rating;
@@ -104,9 +109,9 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         });
 
         return filtered;
-    };
+    }, [filters]);
 
-    const buildQueryString = (currentPage: number): string => {
+    const buildQueryString = useCallback((currentPage: number): string => {
         const params = new URLSearchParams();
         
         if (filters.query.trim()) {
@@ -122,14 +127,14 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         params.append('page', currentPage.toString());
 
         return params.toString();
-    };
+    }, [filters]);
 
-    const hasActiveFilters = (): boolean => {
+    const hasActiveFilters = useCallback((): boolean => {
         return Boolean (
             filters.yearFrom || filters.yearTo ||
             filters.genres.length > 0
         );
-    };
+    }, [filters]);
 
     const handleFilterChange = (key: keyof SearchFilters, value: string | string[]): void => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -154,9 +159,9 @@ export const useMovieFilters = ({ initialquery = "", onFiltersChange }: UseMovie
         });
     };
 
-    const updateQuery = (query: string): void => {
+    const updateQuery = useCallback((query: string): void => {
         setFilters(prev => ({ ...prev, query}));
-    };
+    }, []);
 
     return {
         filters,

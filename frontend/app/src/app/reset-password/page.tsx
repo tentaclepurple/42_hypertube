@@ -25,7 +25,7 @@ export default function ResetPassword() {
         if (!token) {
             setError([t("resetPassword.errors.token")]);
         }
-    }, [token]);
+    }, [token, t]);
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
