@@ -226,7 +226,6 @@ class SearchService:
             GROUP BY m.id, m.imdb_id, m.title, m.year, m.imdb_rating, m.genres, 
                      m.cover_image, umv.view_percentage, umv.completed
             ORDER BY 
-                hypertube_rating DESC NULLS LAST,
                 m.imdb_rating DESC NULLS LAST
             LIMIT $2 OFFSET $3
         """

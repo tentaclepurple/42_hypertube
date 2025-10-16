@@ -470,6 +470,7 @@ export default function MovieDetails() {
         setCommentError(null);
         lastUpdatePercentageRef.current = movieData?.view_percentage || 0;
         lastUpdateTimeRef.current = Date.now();
+        const token = localStorage.getItem("token");
         setTimeout(async () => {
             if (videoRef.current) {
                 const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`;
@@ -482,7 +483,9 @@ export default function MovieDetails() {
                         const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
                         const statusResponse = await fetch(statusUrl, {
                             method: "GET",
-                            credentials: "include",
+                            headers: {
+                                Authorization: `Bearer ${token}`    
+                            }
                         });
                         setIsPreparingStream(true);
                         const data = await statusResponse.json();
