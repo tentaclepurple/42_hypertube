@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Star, MessageCircle, Send, X, Heart, Pencil, Trash2, Check } from "lucide-react";
-import { Movie, Torrent } from "../types/movies";
+import { Movie, Torrent, Subtitle } from "../types/movies";
 import { Comment } from "../types/comment";
 import { useAuth } from "../../context/authcontext";
 import { parsedError } from "../../ui/error/parsedError";
 import { formatDate, renderStars } from "../../ui/comments";
 import { useTranslation } from "react-i18next";
+import Image from "next/image";
 
 
 export default function MovieDetails() {
@@ -44,7 +45,7 @@ export default function MovieDetails() {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const { t } = useTranslation();
 
-    const fectchMovieData = async () => {
+    const fectchMovieData = useCallback(async () => {
         if (!id) return;
         const token = localStorage.getItem("token");
         try {
@@ -65,9 +66,9 @@ export default function MovieDetails() {
         } catch (err) {
             setError(err as string[]);
         }
-    };
+    }, [id, logout]);
 
-    const fetchComments = async () => {
+    const fetchComments = useCallback (async () => {
         if (!id) return;
         setCommentsLoading(true);
         const token = localStorage.getItem("token");
@@ -98,9 +99,9 @@ export default function MovieDetails() {
         } finally {
             setCommentsLoading(false);
         }
-    };
+    }, [id, logout, user]);
 
-    const fecthFavoriteStatus = async () => {
+    const fecthFavoriteStatus = useCallback(async () => {
         if (!id) return;
         const token = localStorage.getItem("token");
         try {
@@ -121,7 +122,7 @@ export default function MovieDetails() {
         } catch (err) {
             setError(err as string[]);
         }
-    };
+    }, [id, logout]);
 
     const toggleFavorite = async () => {
         if (!id || isButtonDisabled) return;
@@ -206,12 +207,12 @@ export default function MovieDetails() {
             setEditUserCommentError(null);
             setEditingUserComment(false);
             setEditUserCommentText({ comment: "", rating: 1 });
-        } catch (err) {
+        } catch {
             setEditUserCommentError([t("movies.commentError")]);
         }
     };
 
-    const handleUserCommentInputChange = (field: string, value: any) => {
+    const handleUserCommentInputChange = (field: string, value: string | number) => {
         setEditUserCommentText(prev => ({
             ...prev,
             [field]: value
@@ -252,7 +253,7 @@ export default function MovieDetails() {
             setEditingUserComment(false);
             setEditUserCommentText({ comment: "", rating: 1 });
             setEditUserCommentError(null);
-        } catch (err) {
+        } catch {
             setError([t("movies.deleteError")]);
         }
     };
@@ -282,7 +283,7 @@ export default function MovieDetails() {
             const subtitles = data.subtitles || [];
             return subtitles;
             
-        } catch (error) {
+        } catch {
             setSubtitleError(t(`movies.subtitle.loadError`));
             return [];
         }
@@ -404,7 +405,7 @@ export default function MovieDetails() {
         return match ? match[1].toLowerCase() : 'en';
     };
 
-    const handleLoadedMetadata = async (subtitles: any[], currentTorrent: Torrent) => {
+    const handleLoadedMetadata = async (subtitles: Subtitle[], currentTorrent: Torrent) => {
         for (let index = 0; index < subtitles.length; index++) {
             const subtitle = subtitles[index];
             try {
@@ -470,7 +471,6 @@ export default function MovieDetails() {
         setCommentError(null);
         lastUpdatePercentageRef.current = movieData?.view_percentage || 0;
         lastUpdateTimeRef.current = Date.now();
-        const token = localStorage.getItem("token");
         setTimeout(async () => {
             if (videoRef.current) {
                 const streamUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream?torrent_hash=${torrent.hash}`;
@@ -483,9 +483,7 @@ export default function MovieDetails() {
                         const statusUrl = `${process.env.NEXT_PUBLIC_URL}/api/v1/movies/${id}/stream/status?torrent_hash=${torrent.hash}`;
                         const statusResponse = await fetch(statusUrl, {
                             method: "GET",
-                            headers: {
-                                Authorization: `Bearer ${token}`    
-                            }
+                            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                         });
                         setIsPreparingStream(true);
                         const data = await statusResponse.json();
@@ -541,6 +539,7 @@ export default function MovieDetails() {
                             const duration = videoRef.current.duration || 0;
                             if (duration > 0) {
                                 const percent = (buffered / duration) * 100;
+                                console.log(`Buffered: ${percent.toFixed(2)}%`);
                             }
                         }
                     };
@@ -584,9 +583,6 @@ export default function MovieDetails() {
                     setTimeout(() => {
                         if (videoRef.current) {
                             setIsPreparingStream(false);
-                            for (let i = 0; i < videoRef.current.textTracks.length; i++) {
-                                const track = videoRef.current.textTracks[i];
-                            }
                         }
                     }, 5000);
                 } catch (error) {
@@ -635,7 +631,7 @@ export default function MovieDetails() {
             setLoading(false);
         };
         loadData();
-    }, [id, authLoading]);
+    }, [id, authLoading, fectchMovieData, fetchComments, fecthFavoriteStatus]);
 
     if(error) return (
         <div className="text-center mt-4 py-2">
@@ -657,7 +653,13 @@ export default function MovieDetails() {
         <div className="p-4 bg-dark-900 text-white">
             <div className="max-w-4xl mx-auto flex flex-col md:flex-row">
                 <div className="flex-shrink-0">
-                    <img src={movie?.poster} alt={movie?.title} className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
+                    <Image 
+                        src={movie?.poster || "/no-poster.png"}
+                        width={300}
+                        height={450}
+                        unoptimized
+                        alt={movie?.title || "No title available"} 
+                        className="w-full md:w-auto  h-auto rounded-lg mb-4 md:mb-0 md:mr-6" />
                 </div>
                 <div>
                     <h1 className="text-4xl font-bold">{movie?.title}</h1>

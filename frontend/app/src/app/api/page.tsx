@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/authcontext';
 import { useTranslation } from 'react-i18next';
 import { parsedError} from '../ui/error/parsedError';
-import { Key, Copy, AlertTriangle, Dice1 } from 'lucide-react';
+import { Key, Copy, AlertTriangle } from 'lucide-react';
 
 interface ApiKeyProps {
   apiKey: string;
@@ -59,7 +59,7 @@ export default function Apipage(){
             await navigator.clipboard.writeText(text);
             setCopyField(field);
             setTimeout(() => setCopyField(''), 2000);
-        } catch (err) {
+        } catch {
             setError([t('api.error')]);
         }
     };

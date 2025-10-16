@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from "../context/authcontext";
 import { parsedError } from "../ui/error/parsedError";
 import { useTranslation } from 'react-i18next';
+import Image from "next/image";
 
 export default function FavoriteMovies() {
     const { logout } = useAuth();
@@ -51,7 +52,7 @@ export default function FavoriteMovies() {
             }
         };
         fetchMovies();
-    }, [page]);
+    }, [page, hasMore, logout]);
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {
@@ -78,13 +79,13 @@ export default function FavoriteMovies() {
                 <Link key={movie.imdb_id || movie.id} href={`/movies/${movie.id}`} passHref>
                     <div className="bg-gray-800 p-2 rounded-lg transition-transform hover:scale-105">
                         <div className="relative pb-[150%]">
-                            <img
+                            <Image
                                 src={movie.poster || '/no-poster.png'}
                                 alt={movie.title}
+                                width={300}
+                                height={450}
+                                unoptimized
                                 className="absolute inset-0 w-full h-full object-cover rounded-md"
-                                onError={(e) => {
-                                    e.currentTarget.src = '/no-poster.png';
-                                }}
                             />
                         </div>
                         <h2 className="text-lg font-bold mt-2 truncate">{movie.title}</h2>

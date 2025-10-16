@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth, User } from "../context/authcontext";
 import { Pencil, Camera, Upload, X, MessageCircle, Trash2, Check, Star } from "lucide-react";
 import { parsedError, parsedEditError } from "../ui/error/parsedError";
 import Link from "next/link";
 import { formatDate, renderStars } from "../ui/comments";
 import { useTranslation } from "react-i18next";
+import Image from "next/image";
+import { Comment } from "../movies/types/comment";
 
 interface AvatarUploadProps {
   user: User;
@@ -61,10 +63,13 @@ function AvatarUpload({
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
       >
-        <img
+        <Image
           src={previewURL || user?.profile_picture || '/default-avatar.png'}
           alt={user?.username || 'User avatar'}
           className="w-32 h-32 rounded-full border-4 border-gray-600 object-cover"
+          width={128}
+          height={128}
+          unoptimized
         />
         <input
           type="file"
@@ -205,6 +210,7 @@ export default function Profile() {
           birth_year: data.birth_year ? String(data.birth_year) : "",
           gender: data.gender || "",
         });
+        console.log("Fetched user data:", data);
       } catch (err) {
         setError([err instanceof Error ? err.message : 'An error occurred']);
       } finally {
@@ -369,7 +375,7 @@ export default function Profile() {
     }
   };
   
-  const handleEditComment = (comment: any) => {
+  const handleEditComment = (comment: Comment) => {
     setEditCommentId(comment.id);
     setEditCommentText({
       comment: comment.comment,
@@ -435,12 +441,12 @@ export default function Profile() {
       });
       setEditCommentId(null);
       setEditCommentText({ comment: "", rating: 1 });
-    } catch (err) {
+    } catch {
       setEditCommentError([t("profile.errors.updateComment")]);
     }
   };
 
-  const handleCommentInputChange = (field: string, value: any) => {
+  const handleCommentInputChange = (field: string, value: string | number) => {
     setEditCommentText(prev => ({
       ...prev,
       [field]: value
@@ -483,8 +489,7 @@ export default function Profile() {
           comments: prevUser.comments?.filter(comment => comment.id !== commentId) || [],
         };
       });
-    } catch (err) {
-
+    } catch {
       setError([t("profile.errors.deleteComment")]);
     }
   };
@@ -506,11 +511,26 @@ export default function Profile() {
     setProfilePicture(null);
   };
 
-  const safeRender = (value: any, fallback: string = "N/A"): string => {
+  const safeRender = (value: string | number | null | undefined, fallback: string = "N/A"): string => {
     if (value === null || value === undefined || value === "") return fallback;
     if (typeof value === 'object') return fallback;
     return String(value);
   };
+
+  const translateGender = (gender: string | null | undefined): string => {
+    if (!gender) return "N/A";
+    
+    const genderMap: { [key: string]: string } = {
+      "male": t("profile.male"),
+      "female": t("profile.female"),
+      "non-binary": t("profile.noBinary"),
+      "prefer-not-to-say": t("profile.notsay"),
+      "other": t("profile.other")
+    };
+    
+    return genderMap[gender] || gender;
+  };
+
 
   if (isLoading) {
     return (
@@ -557,9 +577,12 @@ export default function Profile() {
         {!isEditing ? (
           <>
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
-              <img
+              <Image
                 src={user.profile_picture || '/default-avatar.png'}
                 alt={user.username}
+                width={128}
+                height={128}
+                unoptimized
                 className="w-32 h-32 rounded-full border-4 border-gray-600 object-cover"
               />
               <div className="flex-1">
@@ -574,10 +597,10 @@ export default function Profile() {
                   </button>
                 </div>
                 <div className="space-y-1 text-gray-300">
-                  <p><span className="font-medium">Name:</span> {safeRender(user.first_name)} {safeRender(user.last_name)}</p>
-                  <p><span className="font-medium">Email:</span> {safeRender(user.email)}</p>
+                  <p><span className="font-medium">{t("profile.name")}:</span> {safeRender(user.first_name)} {safeRender(user.last_name)}</p>
+                  <p><span className="font-medium">{t("profile.email")}:</span> {safeRender(user.email)}</p>
                   <p><span className="font-medium">{t("profile.year")}</span> {safeRender(user.birth_year)}</p>
-                  <p><span className="font-medium">{t("profile.gender")}</span> {safeRender(user.gender)}</p>
+                  <p><span className="font-medium">{t("profile.gender")}</span> {translateGender(user.gender)}</p>
                 </div>
               </div>
             </div>
