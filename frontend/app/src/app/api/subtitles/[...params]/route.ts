@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { params: string[] } }
+  context: { params: Promise<{ params: string[] }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(
       return new NextResponse('Missing torrent_hash parameter', { status: 400 });
     }
     
-    const resolvedParams = params;
+    const resolvedParams = await context.params;
     const movieId = resolvedParams.params[0];
     const subtitlePath = resolvedParams.params.slice(1).join('/');
     
@@ -53,7 +53,7 @@ export async function GET(
   }
 }
 
-export async function OPTIONS(){
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

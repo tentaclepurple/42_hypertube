@@ -8,9 +8,9 @@ services:
       - NEXT_PUBLIC_URL=http://imontero.ddns.net:8000
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend/app:/app
-      - /app/node_modules
+    # volumes:
+      # - ./frontend/app:/app
+      # - /app/node_modules
     stdin_open: true
     tty: true
     networks:
