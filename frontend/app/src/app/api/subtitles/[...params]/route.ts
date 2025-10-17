@@ -1,3 +1,6 @@
+// frontend/app/src/app/api/subtitles/[...params]/route.ts
+
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -16,7 +19,7 @@ export async function GET(
     const movieId = resolvedParams.params[0];
     const subtitlePath = resolvedParams.params.slice(1).join('/');
     
-    const backendUrl = `http://backend:8000/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
+    const backendUrl = `${process.env.BACKEND_INTERNAL_URL}/api/v1/movies/${movieId}/subtitles/${subtitlePath}?torrent_hash=${torrentHash}`;
 
     const response = await fetch(backendUrl, {
       method: 'GET',

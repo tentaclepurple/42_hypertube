@@ -1,6 +1,5 @@
 # backend/app/api/v1/auth.py
 
-
 from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -29,8 +28,10 @@ from datetime import datetime, timedelta
 from starlette import status
 import urllib.parse
 import json
+import os
 
-HOST = "localhost"
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
@@ -101,9 +102,8 @@ async def oauth_login(provider: str, request: Request):
         
         # request.session["oauth_state"] = state
         
-        # Generate redirect URI
-        base_url = str(request.base_url).rstrip("/")
-        redirect_uri = f"{base_url}/api/v1/auth/oauth/{provider}/callback"
+        # Generate redirect URI using BACKEND_URL
+        redirect_uri = f"{BACKEND_URL}/api/v1/auth/oauth/{provider}/callback"
         
         # Get authorization URL
         auth_url = OAuthService.get_authorization_url(provider, redirect_uri, state)
@@ -128,8 +128,7 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
             raise HTTPException(status_code=400, detail=f"Provider must be one of: {', '.join(valid_providers)}")
         
         # Generate redirect URI (must match the one used in authorization request)
-        base_url = str(request.base_url).rstrip("/")
-        redirect_uri = f"{base_url}/api/v1/auth/oauth/{provider}/callback"
+        redirect_uri = f"{BACKEND_URL}/api/v1/auth/oauth/{provider}/callback"
         
         # Process callback and get user info
         user_info = await OAuthService.process_callback(provider, code, redirect_uri)
@@ -233,21 +232,21 @@ async def oauth_callback(provider: str, code: str, state: str = None, request: R
         encoded_user = urllib.parse.quote(user_json)
         
         # Redirect to frontend with token and user data
-        frontend_url = f"http://{HOST}:3000/auth/callback"
+        frontend_url = f"{FRONTEND_URL}/auth/callback"
         redirect_url = f"{frontend_url}?access_token={access_token}&user={encoded_user}"
         
         return RedirectResponse(redirect_url, status_code=303)
             
     except ValueError as e:
         # Redirect to frontend with error message
-        frontend_url = f"http://{HOST}:3000/login"
+        frontend_url = f"{FRONTEND_URL}/login"
         error_message = urllib.parse.quote(str(e))
         return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
     except HTTPException as e:
         raise e
     except Exception as e:
         # Redirect to frontend with error message
-        frontend_url = f"http://{HOST}:3000/login"
+        frontend_url = f"{FRONTEND_URL}/login"
         error_message = urllib.parse.quote(f"Authentication error: {str(e)}")
         return RedirectResponse(f"{frontend_url}?error={error_message}", status_code=303)
 
@@ -304,7 +303,7 @@ async def forgot_password(request_data: PasswordResetRequest):
         print(reset_token)
         
         # RESET URL FRONTEND
-        reset_url = f"http://{HOST}:3000/reset-password?token={reset_token}"
+        reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
         
         send_password_reset_email(user["email"], reset_url)
         

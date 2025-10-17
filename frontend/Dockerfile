@@ -1,3 +1,5 @@
+# frontend/Dockerfile
+
 FROM mcr.microsoft.com/mirror/docker/library/node:20
 
 WORKDIR /app
@@ -8,7 +10,11 @@ RUN npm install
 
 COPY app/ .
 
-ENV NEXT_PUBLIC_URL=http://localhost:8000
+ARG NEXT_PUBLIC_URL
+ARG BACKEND_INTERNAL_URL
+
+ENV NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL}
+ENV BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
 
 RUN npm run build
 

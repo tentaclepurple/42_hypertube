@@ -210,7 +210,6 @@ export default function Profile() {
           birth_year: data.birth_year ? String(data.birth_year) : "",
           gender: data.gender || "",
         });
-        console.log("Fetched user data:", data);
       } catch (err) {
         setError([err instanceof Error ? err.message : 'An error occurred']);
       } finally {

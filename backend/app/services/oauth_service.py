@@ -1,4 +1,5 @@
 # backend/app/services/oauth_service.py
+
 import os
 import requests
 from urllib.parse import urlencode
@@ -60,6 +61,7 @@ class OAuthService:
             params["state"] = state
             
         auth_url = f"{config['auth_url']}?{urlencode(params)}"
+        
         return auth_url
     
     @staticmethod
@@ -69,7 +71,6 @@ class OAuthService:
             raise ValueError(f"Provider {provider} not supported")
         
         config = OAuthService.PROVIDERS_CONFIG[provider]
-        
 
         token_params = {
             "client_id": config["client_id"],
@@ -89,8 +90,9 @@ class OAuthService:
             params=token_params if provider == "github" else None,
             headers=headers
         )
-        
+                
         if token_response.status_code != 200:
+            print(f"Token error response: {token_response.text}", flush=True)
             raise ValueError(f"Error obtaining access token: {token_response.text}")
         
         token_data = token_response.json()

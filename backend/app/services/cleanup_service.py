@@ -35,7 +35,6 @@ class CleanupService:
         """
         try:
             print(f"Checking cleanup conditions... {self.download_path}, days: {self.days_threshold}")
-            print("-----", self.max_movies)
             current_count = await self._count_items_in_download_dir()
             
             # Check for movies that need cleanup by days
