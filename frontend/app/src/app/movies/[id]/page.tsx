@@ -533,17 +533,6 @@ export default function MovieDetails() {
                         setIsPreparingStream(false);
                     };
 
-                    const handleProgress = () => {
-                        if (videoRef.current && videoRef.current.buffered.length > 0) {
-                            const buffered = videoRef.current.buffered.end(0);
-                            const duration = videoRef.current.duration || 0;
-                            if (duration > 0) {
-                                const percent = (buffered / duration) * 100;
-                                console.log(`Buffered: ${percent.toFixed(2)}%`);
-                            }
-                        }
-                    };
-                    
                     const handleTimeUpdate = () => {
                         if (videoRef.current && videoRef.current.duration > 0) {
                             const currentTime = videoRef.current.currentTime;
@@ -570,13 +559,11 @@ export default function MovieDetails() {
                     videoRef.current.removeEventListener('error', handleError);
                     videoRef.current.removeEventListener('loadeddata', handleLoadedData);
                     videoRef.current.removeEventListener('loadedmetadata', () => {});
-                    videoRef.current.removeEventListener('progress', handleProgress);
                     videoRef.current.removeEventListener('timeupdate', handleTimeUpdate);
                     
                     videoRef.current.addEventListener('error', handleError);
                     videoRef.current.addEventListener('loadeddata', handleLoadedData);
                     videoRef.current.addEventListener('loadedmetadata', () => handleLoadedMetadata(subtitles, torrent));
-                    videoRef.current.addEventListener('progress', handleProgress);
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
                     videoRef.current.load();
                     
