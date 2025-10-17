@@ -1,4 +1,5 @@
 .env
+*.env*
 __pycache__/
 data/
 *.mp4
@@ -12,3 +13,4 @@ data/
 *.mp3
 *.wav
 *.aac
+*.pdf
