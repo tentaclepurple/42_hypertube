@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../context/authcontext';
 import { useTranslation } from 'react-i18next';
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -46,5 +46,17 @@ export default function AuthCallback() {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

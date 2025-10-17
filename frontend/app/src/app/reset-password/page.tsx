@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Eye, EyeOff, Check } from "lucide-react";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { parsedEditError } from "../ui/error/parsedError";
 import { useAuth } from "../context/authcontext";
 import { useTranslation } from "react-i18next";
 
-export default function ResetPassword() {
+function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const token = searchParams.get("token");
@@ -66,8 +66,9 @@ export default function ResetPassword() {
             setLoading(false);
         }
     }
+
     return (
-        <div className="flex items-center justify-center ">
+        <div className="flex items-center justify-center">
             <div className="max-w-md mt-auto p-6">
                 {loading && (
                     <div className="text-center mt-4 py-2">
@@ -146,5 +147,17 @@ export default function ResetPassword() {
                 </div>
             </div>   
         </div>
-    )
+    );
+}
+
+export default function ResetPassword() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        }>
+            <ResetPasswordContent />
+        </Suspense>
+    );
 }
