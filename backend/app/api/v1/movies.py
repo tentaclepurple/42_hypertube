@@ -454,6 +454,9 @@ async def _check_streaming_threshold(file_path: Path) -> bool:
                 
         # Percentage check
         min_percentage_bytes = MIN_PERCENTAGE * file_size
+
+        print("Min percentage bytes:", min_percentage_bytes, flush=True)
+
         if real_downloaded >= min_percentage_bytes:
             print(f"DEBUG: Start streaming! - need {min_percentage_bytes/1024/1024:.1f}MB, have {real_downloaded/1024/1024:.1f}MB")
             return True

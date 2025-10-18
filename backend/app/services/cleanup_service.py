@@ -34,7 +34,6 @@ class CleanupService:
         Returns statistics about the cleanup operation.
         """
         try:
-            print(f"Checking cleanup conditions... {self.download_path}, days: {self.days_threshold}")
             current_count = await self._count_items_in_download_dir()
             
             # Check for movies that need cleanup by days
@@ -43,6 +42,7 @@ class CleanupService:
             
             # Check for cleanup by count
             needs_cleanup_by_count = self.enable_count_cleanup and current_count > self.max_movies
+            print(f"Needs cleanup? By days({self.days_threshold}): {needs_cleanup_by_days}. By count: {needs_cleanup_by_count}", flush=True)
             
             stats = {
                 "cleanup_executed": False,
