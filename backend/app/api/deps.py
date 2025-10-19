@@ -88,52 +88,43 @@ async def get_current_user_hybrid(
     request: Request,
     authorization: Optional[str] = Header(None),
     token: Optional[str] = Query(None)
-    
 ):
     """
-    Hybrid authentication: tries Authorization header first, then cookie
-    Works for both same-origin (standalone) and cross-origin (separate servers)
+    Hybrid authentication: tries Authorization header first, then cookie, then query param
     """
-    token = None
+    auth_token = None
     auth_method = None
-    
-    # Try Authorization header first (works in both scenarios)
+    # Try Authorization header first
     if authorization and authorization.startswith("Bearer "):
-        token = authorization.replace("Bearer ", "")
+        auth_token = authorization.replace("Bearer ", "")
         auth_method = "header"
-
-    
-    # Fallback to cookie (works for same-origin/standalone)
+    # Try query parameter token (for video streaming)
+    elif token:  # ← ADD THIS BLOCK
+        auth_token = token
+        auth_method = "query"
+    # Fallback to cookie
     else:
-        token = request.cookies.get("access_token")
-        if token:
+        auth_token = request.cookies.get("access_token")
+        if auth_token:
             auth_method = "cookie"
-
-    
-    if not token:
+    if not auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No authentication token provided"
         )
-    
     try:
-        is_revoked = await TokenService.is_token_revoked(token)
+        is_revoked = await TokenService.is_token_revoked(auth_token)
         if is_revoked:
             raise HTTPException(401, "Token has been revoked")
-        
-        user_id = JWTService.verify_token(token)
-        
+        user_id = JWTService.verify_token(auth_token)
         async with get_db_connection() as conn:
             user = await conn.fetchrow(
                 "SELECT id, email, username, first_name, last_name, profile_picture FROM users WHERE id = $1",
                 uuid.UUID(user_id)
             )
-            
         if not user:
             raise HTTPException(401, "Could not validate credentials")
-        
         print(f"DEBUG: ✓ User authenticated via {auth_method}: {user['username']}", flush=True)
-        
         return dict(user)
     except ValueError as e:
         print(f"DEBUG: ✗ Token validation error: {str(e)}", flush=True)
