@@ -4,7 +4,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.api import api_router
-
+import os
 
 app = FastAPI(
     title="Hypertube API",
@@ -12,10 +12,12 @@ app = FastAPI(
     version="0.1.0"
 )
 
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust as needed
+    allow_origins=['http://10.14.1.3:3000', 'http://localhost:3000'],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
