@@ -1,12 +1,11 @@
 # microservices/torrent_service/app/subtitles_service.py
 
 import aiohttp
-import asyncio
 import os
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
