@@ -124,8 +124,6 @@ async def get_current_user_hybrid(
             )
         if not user:
             raise HTTPException(401, "Could not validate credentials")
-        print(f"DEBUG: ✓ User authenticated via {auth_method}: {user['username']}", flush=True)
         return dict(user)
     except ValueError as e:
-        print(f"DEBUG: ✗ Token validation error: {str(e)}", flush=True)
         raise HTTPException(401, str(e))
