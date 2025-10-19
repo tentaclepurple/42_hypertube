@@ -15,13 +15,13 @@ const resources = {
   },
 };
 
-// ✅ Leer localStorage antes de inicializar
+
 const getInitialLanguage = () => {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('i18nextLng');
-    if (saved) return saved;  // Si hay guardado, usarlo
+    if (saved) return saved;
   }
-  return 'en';  // Si no, inglés por defecto
+  return 'en';
 };
 
 i18n
@@ -29,7 +29,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: getInitialLanguage(),  // ✅ Usa localStorage o 'en'
+    lng: getInitialLanguage(),
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,

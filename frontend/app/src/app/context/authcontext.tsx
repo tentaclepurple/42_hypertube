@@ -3,6 +3,7 @@
  import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
  import { useRouter } from 'next/navigation';
  import { Comment } from '../movies/types/comment';
+ import i18n from '@/app/lib/i18n';
  
  export interface User {
    id: string;
@@ -108,6 +109,9 @@
      }
      localStorage.removeItem('token');
      localStorage.removeItem('user');
+
+     localStorage.removeItem('i18nextLng');
+     i18n.changeLanguage('en');
 
      removeCookie('access_token');
 

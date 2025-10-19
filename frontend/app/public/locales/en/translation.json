@@ -153,7 +153,7 @@
         "registering": "Registering...",
         "errors": {
             "general": "Something went wrong. Please try again.",
-            "username": "ensure this value has at least 3 characters",
+            "username": "invalid username",
             "email": "value is not a valid email address",
             "password": "ensure this value has at least 8 characters",
             "confirmPassword": "Passwords do not match",

@@ -149,7 +149,7 @@
         "registering": "Registrando...",
         "errors": {
             "general": "Algo salió mal. Por favor, inténtalo de nuevo.",
-            "username": "El nombre de usuario debe tener al menos 3 caracteres",
+            "username": "Nombre de usuario inválido",
             "email": "El valor no es una dirección de correo electrónico válida",
             "password": "Asegúrate de que la contraseña tenga al menos 8 caracteres",
             "confirmPassword": "Las contraseñas no coinciden",
