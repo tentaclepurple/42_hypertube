@@ -10,7 +10,7 @@ class YTSService:
     """Service to interact with the YTS API"""
     
 
-    BASE_URL = os.getenv("YTS_BASE_URL", "https://yts.mx/api/v2")
+    BASE_URL = os.getenv("YTS_BASE_URL")
     
     @staticmethod
     async def search_movies(query: str, limit: int = 20, page: int = 1) -> Dict[str, Any]:
