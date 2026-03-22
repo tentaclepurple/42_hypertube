@@ -12,3 +12,4 @@ data/
 *.mp3
 *.wav
 *.aac
+*env*
